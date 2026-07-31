@@ -12,13 +12,13 @@ function friendlyError(err) {
 }
 
 export function LoginPage() {
-  const { user, loading, signIn } = useAuth()
+  const { session, loading, signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  if (!loading && user) {
+  if (!loading && session) {
     return <Navigate to="/" replace />
   }
 
