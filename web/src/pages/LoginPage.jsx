@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { EmailPicker } from '../components/EmailPicker'
-import directory from '../data/directory.json'
+import { supabase } from '../lib/supabase'
 
 function friendlyError(err) {
   const msg = err?.message || ''
@@ -17,6 +17,24 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [directory, setDirectory] = useState([])
+  const [directoryLoading, setDirectoryLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+    async function loadDirectory() {
+      const { data, error: err } = await supabase.functions.invoke('get-directory')
+      if (!mounted) return
+      if (!err && Array.isArray(data)) {
+        setDirectory(data)
+      }
+      setDirectoryLoading(false)
+    }
+    loadDirectory()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   if (!loading && session) {
     return <Navigate to="/" replace />
@@ -45,11 +63,16 @@ export function LoginPage() {
         <p className="brand">Progress Management</p>
         <h1>Chào mừng trở lại</h1>
         <p className="muted">Chọn nhân viên theo mã số (tăng dần) hoặc gõ để tìm nhanh, rồi nhập mật khẩu.</p>
-
         <form className="form" onSubmit={onSubmit}>
           <label>
             Nhân viên / Gmail
-            <EmailPicker users={directory} value={email} onChange={setEmail} required />
+            <EmailPicker
+              users={directory}
+              value={email}
+              onChange={setEmail}
+              required
+              disabled={directoryLoading}
+            />
           </label>
           <label>
             Mật khẩu
@@ -67,7 +90,6 @@ export function LoginPage() {
             {submitting ? 'Đang đăng nhập…' : 'Đăng nhập'}
           </button>
         </form>
-
         {error ? <p className="error">{error}</p> : null}
       </div>
     </div>
