@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -30,24 +30,24 @@ export function AuthProvider({ children }) {
     let mounted = true
 
     async function initAuth() {
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data } = await supabase.auth.getSession()
       if (!mounted) return
       
-      const currentUser = session?.user ?? null
-      setUser(currentUser)
-      if (currentUser) {
-        await fetchProfile(currentUser.id)
+      const currentSession = data.session
+      setSession(currentSession)
+      
+      if (currentSession?.user) {
+        await fetchProfile(currentSession.user.id)
       }
       setLoading(false)
     }
 
     initAuth()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const currentUser = session?.user ?? null
-      setUser(currentUser)
-      if (currentUser) {
-        await fetchProfile(currentUser.id)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
+      setSession(currentSession)
+      if (currentSession?.user) {
+        await fetchProfile(currentSession.user.id)
       } else {
         setProfile(null)
       }
@@ -67,7 +67,8 @@ export function AuthProvider({ children }) {
   }
 
   const value = {
-    user,
+    session, // TRẢ LẠI BIẾN NÀY ĐỂ KHÔNG LỖI APP
+    user: session?.user || null,
     profile,
     loading,
     caps,
@@ -79,7 +80,7 @@ export function AuthProvider({ children }) {
     async signOut() {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
-      setUser(null)
+      setSession(null)
       setProfile(null)
     },
     async createUser(userData) {
