@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { normalizeRole, getCapabilities } from '../lib/roles'
 
 const AuthContext = createContext(null)
 
@@ -18,7 +19,6 @@ export function AuthProvider({ children }) {
       .select('*')
       .eq('id', userId)
       .single()
-
     if (!error && data) {
       setProfile(data)
     } else {
@@ -28,22 +28,19 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     let mounted = true
-
     async function initAuth() {
       const { data } = await supabase.auth.getSession()
       if (!mounted) return
-      
+
       const currentSession = data.session
       setSession(currentSession)
-      
+
       if (currentSession?.user) {
         await fetchProfile(currentSession.user.id)
       }
       setLoading(false)
     }
-
     initAuth()
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
       setSession(currentSession)
       if (currentSession?.user) {
@@ -53,18 +50,13 @@ export function AuthProvider({ children }) {
       }
       setLoading(false)
     })
-
     return () => {
       mounted = false
       subscription?.unsubscribe()
     }
   }, [])
 
-  const caps = {
-    isAdmin: profile?.position === 'Admin',
-    isManager: profile?.position === 'Manager' || profile?.position === 'Admin',
-    canManageUsers: profile?.position === 'Admin',
-  }
+  const caps = getCapabilities(normalizeRole(profile?.position))
 
   const value = {
     session, // TRẢ LẠI BIẾN NÀY ĐỂ KHÔNG LỖI APP
