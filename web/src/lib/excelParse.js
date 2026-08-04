@@ -35,6 +35,16 @@ function resolveAbbrev(raw) {
   return hit ? picMap[hit] : s
 }
 
+// FIX: chuẩn hóa Status về đúng 1 trong 4 giá trị dùng trong app (khớp STATUSES ở SectionTasksPage)
+function normalizeStatus(raw) {
+  const s = String(raw || '').trim().toLowerCase()
+  if (s.includes('complete')) return 'Completed'
+  if (s.includes('progress')) return 'In Progress'
+  if (s.includes('hold')) return 'On Hold'
+  if (s.includes('not started') || !s) return 'Not Started'
+  return String(raw || 'Not Started').trim()
+}
+
 /** Desktop sheet names (fuzzy) */
 const PROGRESS_SHEET_MATCHERS = [
   (n) => n.includes('01.') || n.includes('3d model'),
@@ -67,7 +77,6 @@ function mapProgressColumns(headerRow) {
     ) {
       cols.drawingId = idx
     } else if (cols.drawingId == null && (h === 'id' || h === 'dwg' || h === 'dwg no')) {
-      // fallback only if dedicated Drawing ID not found later — mark soft
       cols._idSoft = idx
     } else if (
       cols.percent == null &&
@@ -90,6 +99,13 @@ function mapProgressColumns(headerRow) {
     ) {
       cols.pic = idx
     }
+    // FIX: thêm nhận diện 5 cột mới. Bỏ qua 'description' theo yêu cầu.
+    else if (cols.status == null && h === 'status') cols.status = idx
+    else if (cols.review3d == null && h.includes('3d review')) cols.review3d = idx
+    else if (cols.firstUnit == null && h.includes('first unit')) cols.firstUnit = idx
+    else if (cols.unitIssue == null && h.includes('unit issue')) cols.unitIssue = idx
+    else if (cols.vvtReview == null && h.includes('vvt review')) cols.vvtReview = idx
+    else if (cols.ownerReview == null && h.includes('owner review')) cols.ownerReview = idx
   })
   if (cols.drawingId == null && cols._idSoft != null) cols.drawingId = cols._idSoft
   delete cols._idSoft
@@ -161,7 +177,6 @@ function pickProgressSheets(wb) {
     }
   }
 
-  // Fallback: if none matched, try any sheet with Activity + % headers
   if (picked.length === 0) {
     for (const sheetName of names) {
       if (isZoneListSheet(sheetName)) continue
@@ -174,12 +189,6 @@ function pickProgressSheets(wb) {
   return picked
 }
 
-/**
- * Desktop-compatible PIC/% parser:
- * - Zone list vs review plan → zone → PIC abbrev
- * - Sheets 01..04 → Activity, Zone, Drawing ID, %
- * - PIC full name = mapping[zoneToPIC[zone]]
- */
 export function parsePicPercentWorkbook(arrayBuffer) {
   const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true })
   const { zoneToPic, sheetNameUsed: zoneSheet } = parseZoneListSheet(wb)
@@ -214,7 +223,6 @@ export function parsePicPercentWorkbook(arrayBuffer) {
       const drawingId = String(cell(row, cols.drawingId)).trim()
       const percentComplete = normalizePercent(cell(row, cols.percent))
 
-      // Desktop: PIC from zone list; fallback to PIC column if present
       const abbrevFromZone = zone ? zoneToPic[zone] || zoneToPic[normalizeVietnamese(zone)] || '' : ''
       const abbrevDirect = cols.pic != null ? String(cell(row, cols.pic)).trim() : ''
       const abbrev = abbrevFromZone || abbrevDirect
@@ -255,6 +263,10 @@ export function parsePicPercentWorkbook(arrayBuffer) {
 
 /**
  * Parse Piping VT style workbook → sections[{ headerName, activities[] }]
+ *
+ * FIX: đọc đủ 13 field: Zone, Activity Name, P.I.C, Start date, Finish date,
+ * % Complete, Status, 3D Review, First unit, Unit issue (ngày), VVT review,
+ * Owner review. Cột nào file không có sẽ để trống '' thay vì làm hỏng object.
  */
 export function parsePipingVtWorkbook(arrayBuffer) {
   const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true })
@@ -265,11 +277,7 @@ export function parsePipingVtWorkbook(arrayBuffer) {
     const matrix = sheetToMatrix(wb.Sheets[sheetName])
     if (!matrix.length) continue
 
-    const found = findHeader(
-      matrix,
-      mapProgressColumns,
-      (c) => c.activity != null
-    )
+    const found = findHeader(matrix, mapProgressColumns, (c) => c.activity != null)
     if (!found?.cols?.activity) continue
     const { headerRowIdx, cols } = found
 
@@ -296,6 +304,12 @@ export function parsePipingVtWorkbook(arrayBuffer) {
         lateDate: excelDateToIso(cell(row, cols.lateDate)) || '',
         percentComplete: normalizePercent(cell(row, cols.percent)),
         picRaw: resolveAbbrev(cell(row, cols.pic)),
+        status: cols.status != null ? normalizeStatus(cell(row, cols.status)) : 'Not Started',
+        review3d: cols.review3d != null ? String(cell(row, cols.review3d)).trim() : '',
+        firstUnit: cols.firstUnit != null ? String(cell(row, cols.firstUnit)).trim() : '',
+        unitIssueDate: cols.unitIssue != null ? excelDateToIso(cell(row, cols.unitIssue)) || '' : '',
+        vvtReview: cols.vvtReview != null ? String(cell(row, cols.vvtReview)).trim() : '',
+        ownerReview: cols.ownerReview != null ? String(cell(row, cols.ownerReview)).trim() : '',
       })
     }
   }
