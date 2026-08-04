@@ -952,8 +952,14 @@ select:focus {
   background: var(--surface);
 }
 
+/* FIX: table-layout: fixed + min-width để bảng nhiều cột (14 cột) không bị
+   trình duyệt tự bóp/lệch độ rộng theo nội dung — thay vào đó bảng giữ
+   đủ chỗ cho mọi cột và cho phép cuộn ngang trong .pm-table-wrap (đã có
+   sẵn overflow: auto ở trên). */
 .pm-table {
   width: 100%;
+  min-width: 82rem;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.86rem;
 }
@@ -963,6 +969,7 @@ select:focus {
   border-bottom: 1px solid var(--line);
   padding: 0.4rem;
   vertical-align: middle;
+  overflow: hidden;
 }
 
 .pm-table th {
@@ -970,13 +977,25 @@ select:focus {
   background: var(--surface-2);
   position: sticky;
   top: 0;
+  white-space: nowrap;
+  overflow: visible;
 }
 
+/* FIX: min-width: 0 là mấu chốt — mặc định input có min-width: auto khiến
+   nó không chịu co lại theo cột, gây tràn/dính khung khi bảng có nhiều cột. */
 .pm-table input,
 .pm-table select {
   width: 100%;
-  padding: 0.35rem 0.4rem;
-  font-size: 0.85rem;
+  min-width: 0;
+  padding: 0.35rem 0.3rem;
+  font-size: 0.82rem;
+  box-sizing: border-box;
+}
+
+/* FIX: input ngày có icon lịch chiếm chỗ, cần padding nhỏ hơn để vừa cột hẹp */
+.pm-table input[type="date"] {
+  padding: 0.3rem 0.2rem;
+  font-size: 0.76rem;
 }
 
 .pm-table tr.pending {
@@ -1255,5 +1274,3 @@ select:focus {
     grid-template-columns: 1fr;
   }
 }
-
-
