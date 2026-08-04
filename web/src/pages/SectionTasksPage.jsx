@@ -178,8 +178,15 @@ export function SectionTasksPage() {
                 <th>Activity</th>
                 <th>Drawing</th>
                 <th>Assigned</th>
+                <th>Start</th>
+                <th>Finish</th>
                 <th>%</th>
                 <th>Status</th>
+                <th>3D Review</th>
+                <th>First unit</th>
+                <th>Unit issue</th>
+                <th>VVT review</th>
+                <th>Owner review</th>
                 <th>Review</th>
               </tr>
             </thead>
@@ -231,6 +238,22 @@ export function SectionTasksPage() {
                     </td>
                     <td>
                       <input
+                        type="date"
+                        disabled={!canEdit}
+                        value={t.start_date || ''}
+                        onChange={(e) => patchTask(t.id, { start_date: e.target.value || null })}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="date"
+                        disabled={!canEdit}
+                        value={t.finish_date || ''}
+                        onChange={(e) => patchTask(t.id, { finish_date: e.target.value || null })}
+                      />
+                    </td>
+                    <td>
+                      <input
                         type="number"
                         min={0}
                         max={caps.percentCap}
@@ -250,6 +273,50 @@ export function SectionTasksPage() {
                           <option key={s}>{s}</option>
                         ))}
                       </select>
+                    </td>
+                    <td>
+                      <input
+                        disabled={!canEdit}
+                        value={t.review_3d || ''}
+                        placeholder="—"
+                        onChange={(e) => patchTask(t.id, { review_3d: e.target.value || null })}
+                        style={{ width: '6rem' }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        disabled={!canEdit}
+                        value={t.first_unit || ''}
+                        placeholder="—"
+                        onChange={(e) => patchTask(t.id, { first_unit: e.target.value || null })}
+                        style={{ width: '4.5rem' }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="date"
+                        disabled={!canEdit}
+                        value={t.unit_issue_date || ''}
+                        onChange={(e) => patchTask(t.id, { unit_issue_date: e.target.value || null })}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        disabled={!canEdit}
+                        value={t.vvt_review || ''}
+                        placeholder="—"
+                        onChange={(e) => patchTask(t.id, { vvt_review: e.target.value || null })}
+                        style={{ width: '4.5rem' }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        disabled={!canEdit}
+                        value={t.owner_review || ''}
+                        placeholder="—"
+                        onChange={(e) => patchTask(t.id, { owner_review: e.target.value || null })}
+                        style={{ width: '4.5rem' }}
+                      />
                     </td>
                     <td>
                       {t.pending_review ? (
