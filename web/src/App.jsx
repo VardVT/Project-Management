@@ -7,17 +7,16 @@ import { LoginPage } from './pages/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { SummaryPage } from './pages/SummaryPage'
 import { SectionTasksPage } from './pages/SectionTasksPage'
+import { SectionReviewPage } from './pages/SectionReviewPage'
 import { ReviewsPage } from './pages/ReviewsPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { UsersPage } from './pages/UsersPage'
 import { ComingSoonPage } from './pages/ComingSoonPage'
-
 function HomeRedirect() {
   const { caps } = useAuth()
   if (caps.showDashboard) return <Navigate to="/dashboard" replace />
   return <Navigate to="/summary" replace />
 }
-
 function AuthedTree() {
   return (
     <ProjectProvider>
@@ -27,6 +26,7 @@ function AuthedTree() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="summary" element={<SummaryPage />} />
           <Route path="sections/:sectionId" element={<SectionTasksPage />} />
+          <Route path="sections/:sectionId/reviews" element={<SectionReviewPage />} />
           <Route path="reviews" element={<ReviewsPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="users" element={<UsersPage />} />
@@ -38,7 +38,6 @@ function AuthedTree() {
     </ProjectProvider>
   )
 }
-
 export default function App() {
   return (
     <AuthProvider>
