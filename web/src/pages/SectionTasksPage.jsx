@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
@@ -131,6 +131,11 @@ export function SectionTasksPage() {
           Ship {currentProject?.ship_id} · {filtered.length} task
           {caps.canEditAssignedOnly ? ' (chỉ task của bạn)' : ''}
         </p>
+        {/* FIX: link sang trang Review riêng (3D Review/First unit/Unit issue/
+            VVT review/Owner review) — thay vì nhồi hết vào 1 bảng. */}
+        <Link className="back-link" to={`/sections/${sectionId}/reviews`}>
+          Xem cột Review (3D/VVT/Owner…) →
+        </Link>
       </div>
 
       <div className="pm-filter-bar">
@@ -171,6 +176,9 @@ export function SectionTasksPage() {
         <p className="muted">Đang tải…</p>
       ) : (
         <div className="pm-table-wrap">
+          {/* FIX: bỏ 5 cột review (đã chuyển sang SectionReviewPage), giữ lại
+              đúng các cột thao tác hàng ngày. Cột % dùng class riêng "col-percent"
+              để CSS thu nhỏ độ rộng (xem style.css). */}
           <table className="pm-table">
             <thead>
               <tr>
@@ -180,13 +188,8 @@ export function SectionTasksPage() {
                 <th>Assigned</th>
                 <th>Start</th>
                 <th>Finish</th>
-                <th>%</th>
+                <th className="col-percent">%</th>
                 <th>Status</th>
-                <th>3D Review</th>
-                <th>First unit</th>
-                <th>Unit issue</th>
-                <th>VVT review</th>
-                <th>Owner review</th>
                 <th>Review</th>
               </tr>
             </thead>
@@ -252,7 +255,7 @@ export function SectionTasksPage() {
                         onChange={(e) => patchTask(t.id, { finish_date: e.target.value || null })}
                       />
                     </td>
-                    <td>
+                    <td className="col-percent">
                       <input
                         type="number"
                         min={0}
@@ -260,7 +263,6 @@ export function SectionTasksPage() {
                         disabled={!canEdit}
                         value={t.percent_complete ?? 0}
                         onChange={(e) => patchTask(t.id, { percent_complete: Number(e.target.value) })}
-                        style={{ width: '4.5rem' }}
                       />
                     </td>
                     <td>
@@ -273,50 +275,6 @@ export function SectionTasksPage() {
                           <option key={s}>{s}</option>
                         ))}
                       </select>
-                    </td>
-                    <td>
-                      <input
-                        disabled={!canEdit}
-                        value={t.review_3d || ''}
-                        placeholder="—"
-                        onChange={(e) => patchTask(t.id, { review_3d: e.target.value || null })}
-                        style={{ width: '6rem' }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        disabled={!canEdit}
-                        value={t.first_unit || ''}
-                        placeholder="—"
-                        onChange={(e) => patchTask(t.id, { first_unit: e.target.value || null })}
-                        style={{ width: '4.5rem' }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="date"
-                        disabled={!canEdit}
-                        value={t.unit_issue_date || ''}
-                        onChange={(e) => patchTask(t.id, { unit_issue_date: e.target.value || null })}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        disabled={!canEdit}
-                        value={t.vvt_review || ''}
-                        placeholder="—"
-                        onChange={(e) => patchTask(t.id, { vvt_review: e.target.value || null })}
-                        style={{ width: '4.5rem' }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        disabled={!canEdit}
-                        value={t.owner_review || ''}
-                        placeholder="—"
-                        onChange={(e) => patchTask(t.id, { owner_review: e.target.value || null })}
-                        style={{ width: '4.5rem' }}
-                      />
                     </td>
                     <td>
                       {t.pending_review ? (
