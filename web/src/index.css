@@ -1004,30 +1004,33 @@ select:focus {
   background: rgba(181, 71, 8, 0.06);
 }
 
-/* FIX: checkbox tròn để chọn nhiều task cùng lúc — appearance: none để bỏ
-   style vuông mặc định của trình duyệt, tự vẽ hình tròn qua border-radius. */
-.pm-checkbox-circle {
+/* FIX: .pm-table input { width: 100% } ở trên đang kéo checkbox giãn theo
+   độ rộng cột (3.2rem) trong khi chiều cao giữ nguyên 1.4rem → ra hình bầu
+   dục thay vì tròn. Ép lại width/height cố định + !important để thắng rule
+   chung, đảm bảo luôn là hình vuông trước khi bo tròn góc. */
+.pm-table input.pm-checkbox-circle {
   appearance: none;
   -webkit-appearance: none;
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 1.4rem !important;
+  height: 1.4rem !important;
+  flex: none;
   border-radius: 50%;
   border: 2px solid var(--line);
   background: #fff;
   cursor: pointer;
-  display: inline-block;
-  margin: 0;
+  display: block;
+  margin: 0 auto;
   padding: 0;
   vertical-align: middle;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.pm-checkbox-circle:checked {
+.pm-table input.pm-checkbox-circle:checked {
   background: var(--shell-accent, var(--accent));
   border-color: var(--shell-accent, var(--accent));
 }
 
-.pm-checkbox-circle:checked::after {
+.pm-table input.pm-checkbox-circle:checked::after {
   content: "";
   display: block;
   width: 0.5rem;
