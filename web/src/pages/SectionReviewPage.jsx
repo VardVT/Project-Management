@@ -100,8 +100,8 @@ export function SectionReviewPage() {
           <table className="pm-table">
             <colgroup>
               <col style={{ width: '12rem' }} />    {/* Zone */}
-              <col style={{ width: '22.5rem' }} />  {/* Activity */}
-              <col style={{ width: '12rem' }} />    {/* Drawing */}
+              <col style={{ width: '25rem' }} />    {/* Activity */}
+              <col style={{ width: '25rem' }} />    {/* Drawing */}
               <col style={{ width: '12rem' }} />    {/* 3D Review */}
               <col style={{ width: '10.5rem' }} />  {/* First unit */}
               <col style={{ width: '12rem' }} />    {/* Unit issue */}
