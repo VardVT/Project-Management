@@ -237,7 +237,7 @@ export function SectionTasksPage() {
                 const canEdit =
                   caps.canEditAllTasks || (caps.canEditAssignedOnly && t.assignee_id === user.id)
                 return (
-                  <tr key={t.id} className={t.pending_review ? 'pending' : ''}>
+                  <tr key={t.id} data-status={t.status || 'Not Started'} className={t.pending_review ? 'pending' : ''}>
                     <td>
                       <input
                         type="checkbox"
