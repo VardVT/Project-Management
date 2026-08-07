@@ -176,10 +176,21 @@ export function SectionTasksPage() {
         <p className="muted">Đang tải…</p>
       ) : (
         <div className="pm-table-wrap">
-          {/* FIX: bỏ 5 cột review (đã chuyển sang SectionReviewPage), giữ lại
-              đúng các cột thao tác hàng ngày. Cột % dùng class riêng "col-percent"
-              để CSS thu nhỏ độ rộng (xem style.css). */}
+          {/* FIX: colgroup đặt width riêng từng cột — Activity/Zone cần
+              nhiều chỗ hơn để đọc tên dài, %/Status/Review hẹp lại vì
+              nội dung ngắn (số, dropdown, nút). */}
           <table className="pm-table">
+            <colgroup>
+              <col style={{ width: '8rem' }} />   {/* Zone */}
+              <col style={{ width: '15rem' }} />  {/* Activity */}
+              <col style={{ width: '8rem' }} />   {/* Drawing */}
+              <col style={{ width: '8rem' }} />   {/* Assigned */}
+              <col style={{ width: '7rem' }} />   {/* Start */}
+              <col style={{ width: '7rem' }} />   {/* Finish */}
+              <col style={{ width: '3.5rem' }} /> {/* % */}
+              <col style={{ width: '7.5rem' }} /> {/* Status */}
+              <col style={{ width: '5.5rem' }} /> {/* Review */}
+            </colgroup>
             <thead>
               <tr>
                 <th>Zone</th>
@@ -188,7 +199,7 @@ export function SectionTasksPage() {
                 <th>Assigned</th>
                 <th>Start</th>
                 <th>Finish</th>
-                <th className="col-percent">%</th>
+                <th>%</th>
                 <th>Status</th>
                 <th>Review</th>
               </tr>
@@ -255,7 +266,7 @@ export function SectionTasksPage() {
                         onChange={(e) => patchTask(t.id, { finish_date: e.target.value || null })}
                       />
                     </td>
-                    <td className="col-percent">
+                    <td>
                       <input
                         type="number"
                         min={0}
