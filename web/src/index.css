@@ -961,13 +961,13 @@ select:focus {
 .pm-table {
   table-layout: fixed;
   border-collapse: collapse;
-  font-size: 0.86rem;
+  font-size: 1.29rem;
 }
 
 .pm-table th,
 .pm-table td {
   border-bottom: 1px solid var(--line);
-  padding: 0.4rem;
+  padding: 0.6rem;
   vertical-align: middle;
   overflow: hidden;
 }
@@ -987,15 +987,15 @@ select:focus {
 .pm-table select {
   width: 100%;
   min-width: 0;
-  padding: 0.35rem 0.3rem;
-  font-size: 0.82rem;
+  padding: 0.525rem 0.45rem;
+  font-size: 1.23rem;
   box-sizing: border-box;
 }
 
 /* FIX: input ngày có icon lịch chiếm chỗ, cần padding nhỏ hơn để vừa cột hẹp */
 .pm-table input[type="date"] {
-  padding: 0.3rem 0.2rem;
-  font-size: 0.76rem;
+  padding: 0.45rem 0.3rem;
+  font-size: 1.14rem;
 }
 
 .pm-table tr.pending {
