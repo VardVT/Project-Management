@@ -181,19 +181,19 @@ export function SectionTasksPage() {
               nội dung ngắn (số, dropdown, nút). */}
           <table className="pm-table">
             <colgroup>
-              <col style={{ width: '8rem' }} />   {/* Zone */}
+              <col style={{ width: '8rem' }} />   {/* Section */}
               <col style={{ width: '15rem' }} />  {/* Activity */}
-              <col style={{ width: '8rem' }} />   {/* Drawing */}
+              <col style={{ width: '10rem' }} />  {/* Drawing */}
               <col style={{ width: '8rem' }} />   {/* Assigned */}
               <col style={{ width: '7rem' }} />   {/* Start */}
               <col style={{ width: '7rem' }} />   {/* Finish */}
-              <col style={{ width: '3.5rem' }} /> {/* % */}
+              <col style={{ width: '5rem' }} />   {/* % */}
               <col style={{ width: '7.5rem' }} /> {/* Status */}
               <col style={{ width: '5.5rem' }} /> {/* Review */}
             </colgroup>
             <thead>
               <tr>
-                <th>Zone</th>
+                <th>Section</th>
                 <th>Activity</th>
                 <th>Drawing</th>
                 <th>Assigned</th>
