@@ -99,14 +99,14 @@ export function SectionReviewPage() {
         <div className="pm-table-wrap">
           <table className="pm-table">
             <colgroup>
-              <col style={{ width: '8rem' }} />  {/* Zone */}
-              <col style={{ width: '15rem' }} /> {/* Activity */}
-              <col style={{ width: '8rem' }} />  {/* Drawing */}
-              <col style={{ width: '8rem' }} />  {/* 3D Review */}
-              <col style={{ width: '7rem' }} />  {/* First unit */}
-              <col style={{ width: '8rem' }} />  {/* Unit issue */}
-              <col style={{ width: '7rem' }} />  {/* VVT review */}
-              <col style={{ width: '7rem' }} />  {/* Owner review */}
+              <col style={{ width: '12rem' }} />    {/* Zone */}
+              <col style={{ width: '22.5rem' }} />  {/* Activity */}
+              <col style={{ width: '12rem' }} />    {/* Drawing */}
+              <col style={{ width: '12rem' }} />    {/* 3D Review */}
+              <col style={{ width: '10.5rem' }} />  {/* First unit */}
+              <col style={{ width: '12rem' }} />    {/* Unit issue */}
+              <col style={{ width: '10.5rem' }} />  {/* VVT review */}
+              <col style={{ width: '10.5rem' }} />  {/* Owner review */}
             </colgroup>
             <thead>
               <tr>
