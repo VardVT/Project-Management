@@ -970,10 +970,11 @@ select:focus {
   padding: 0.6rem;
   vertical-align: middle;
   overflow: hidden;
+  text-align: center;
 }
 
 .pm-table th {
-  text-align: left;
+  text-align: center;
   background: var(--surface-2);
   position: sticky;
   top: 0;
@@ -990,6 +991,7 @@ select:focus {
   padding: 0.525rem 0.45rem;
   font-size: 1.23rem;
   box-sizing: border-box;
+  text-align: center;
 }
 
 /* FIX: input ngày có icon lịch chiếm chỗ, cần padding nhỏ hơn để vừa cột hẹp */
