@@ -182,8 +182,8 @@ export function SectionTasksPage() {
           <table className="pm-table">
             <colgroup>
               <col style={{ width: '12rem' }} />    {/* Section */}
-              <col style={{ width: '22.5rem' }} />  {/* Activity */}
-              <col style={{ width: '15rem' }} />    {/* Drawing */}
+              <col style={{ width: '25rem' }} />    {/* Activity */}
+              <col style={{ width: '25rem' }} />    {/* Drawing */}
               <col style={{ width: '12rem' }} />    {/* Assigned */}
               <col style={{ width: '10.5rem' }} />  {/* Start */}
               <col style={{ width: '10.5rem' }} />  {/* Finish */}
