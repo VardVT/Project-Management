@@ -952,29 +952,16 @@ select:focus {
   background: var(--surface);
 }
 
-/* FIX: table-layout: fixed để trình duyệt không tự bóp/lệch độ rộng cột
-   theo nội dung — bảng SectionTasksPage giờ chỉ còn 9 cột (đã tách 5 cột
-   review sang SectionReviewPage) nên min-width giảm xuống, cân đối hơn,
-   ít phải cuộn ngang hơn hẳn so với bản 14 cột trước đây. */
+/* FIX: độ rộng từng cột giờ đặt qua <colgroup> ngay trong JSX của từng
+   trang (SectionTasksPage, SectionReviewPage) — mỗi trang có bộ cột khác
+   nhau nên để width ở đó dễ chỉnh hơn là gắn class cho từng <td>.
+   table-layout: fixed vẫn giữ để browser không tự bóp/lệch cột theo nội
+   dung; bỏ width:100%/min-width cố định để độ rộng bảng = đúng tổng các
+   <col> khai báo, phần dư xử lý bằng cuộn ngang ở .pm-table-wrap. */
 .pm-table {
-  width: 100%;
-  min-width: 62rem;
   table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.86rem;
-}
-
-/* Trang SectionReviewPage (8 cột, có 3 cột text ngắn + 3 cột review) vẫn
-   cần đủ chỗ, nhưng ít cột hơn hẳn nên min-width nhỏ hơn bảng chính. */
-.pm-table-review {
-  min-width: 58rem;
-}
-
-/* Cột % chỉ cần vài ký tự số — cho nó hẹp hẳn lại, phần dư nhường cho
-   Activity/Zone/Drawing là những cột cần nhiều chỗ hơn để đọc tên. */
-.pm-table th.col-percent,
-.pm-table td.col-percent {
-  width: 3.4rem;
 }
 
 .pm-table th,
