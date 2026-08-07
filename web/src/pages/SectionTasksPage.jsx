@@ -20,6 +20,8 @@ export function SectionTasksPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [newActivity, setNewActivity] = useState('')
+  // FIX: state chọn nhiều task cùng lúc (checkbox tròn ở cột đầu)
+  const [selectedIds, setSelectedIds] = useState(new Set())
 
   async function load() {
     if (!sectionId || !currentProject) return
@@ -59,6 +61,22 @@ export function SectionTasksPage() {
       return true
     })
   }, [tasks, filterAssigned, filterText])
+
+  function toggleSelect(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => {
+      if (prev.size === filtered.length && filtered.length > 0) return new Set()
+      return new Set(filtered.map((t) => t.id))
+    })
+  }
 
   async function addTask(e) {
     e.preventDefault()
@@ -181,8 +199,9 @@ export function SectionTasksPage() {
               nội dung ngắn (số, dropdown, nút). */}
           <table className="pm-table">
             <colgroup>
-              <col style={{ width: '12rem' }} />    {/* Section */}
-              <col style={{ width: '25rem' }} />    {/* Activity */}
+              <col style={{ width: '3.2rem' }} />   {/* Chọn */}
+              <col style={{ width: '17rem' }} />    {/* Section */}
+              <col style={{ width: '30rem' }} />    {/* Activity */}
               <col style={{ width: '25rem' }} />    {/* Drawing */}
               <col style={{ width: '12rem' }} />    {/* Assigned */}
               <col style={{ width: '10.5rem' }} />  {/* Start */}
@@ -193,6 +212,15 @@ export function SectionTasksPage() {
             </colgroup>
             <thead>
               <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    className="pm-checkbox-circle"
+                    checked={selectedIds.size > 0 && selectedIds.size === filtered.length}
+                    onChange={toggleSelectAll}
+                    title="Chọn tất cả"
+                  />
+                </th>
                 <th>Section</th>
                 <th>Activity</th>
                 <th>Drawing</th>
@@ -210,6 +238,14 @@ export function SectionTasksPage() {
                   caps.canEditAllTasks || (caps.canEditAssignedOnly && t.assignee_id === user.id)
                 return (
                   <tr key={t.id} className={t.pending_review ? 'pending' : ''}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        className="pm-checkbox-circle"
+                        checked={selectedIds.has(t.id)}
+                        onChange={() => toggleSelect(t.id)}
+                      />
+                    </td>
                     <td>
                       <input
                         disabled={!canEdit}
