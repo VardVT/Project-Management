@@ -1353,3 +1353,98 @@ select:focus {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Dashboard charts (donut + horizontal bars) ===== */
+.chart-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  align-items: flex-start;
+  margin-top: 0.75rem;
+}
+
+.donut-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.donut-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.donut-wrap-block {
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+}
+
+.legend-row strong {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hbar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.hbar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.hbar-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.88rem;
+}
+
+.hbar-label strong {
+  color: var(--muted);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.hbar-track {
+  height: 0.6rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.hbar-fill {
+  height: 100%;
+  border-radius: 999px;
+  min-width: 2px;
+  transition: width 0.4s ease;
+}
