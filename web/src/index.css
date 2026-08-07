@@ -975,11 +975,56 @@ select:focus {
 
 .pm-table th {
   text-align: center;
-  background: var(--surface-2);
+  background: linear-gradient(180deg, #fff, var(--surface-2));
+  border-bottom: 2px solid var(--shell-accent, var(--sky));
   position: sticky;
   top: 0;
   white-space: nowrap;
   overflow: visible;
+}
+
+/* FIX: màu theo Status — thông tin thật (trạng thái task), không phải
+   trang trí thuần túy. Dùng lại đúng bộ màu đã có sẵn trong app
+   (--sky/--brass/--ok/--danger) thay vì thêm màu mới. */
+.pm-table tbody tr:hover {
+  background: var(--sky-soft);
+}
+
+.pm-table tbody tr[data-status="Not Started"] {
+  background: rgba(47, 111, 159, 0.045);
+}
+.pm-table tbody tr[data-status="Not Started"] td:first-child {
+  box-shadow: inset 4px 0 0 var(--sky);
+}
+
+.pm-table tbody tr[data-status="In Progress"] {
+  background: rgba(184, 134, 11, 0.06);
+}
+.pm-table tbody tr[data-status="In Progress"] td:first-child {
+  box-shadow: inset 4px 0 0 var(--brass);
+}
+
+.pm-table tbody tr[data-status="Completed"] {
+  background: rgba(21, 122, 75, 0.05);
+}
+.pm-table tbody tr[data-status="Completed"] td:first-child {
+  box-shadow: inset 4px 0 0 var(--ok);
+}
+
+.pm-table tbody tr[data-status="On Hold"] {
+  background: rgba(180, 35, 24, 0.05);
+}
+.pm-table tbody tr[data-status="On Hold"] td:first-child {
+  box-shadow: inset 4px 0 0 var(--danger);
+}
+
+/* Task đang chờ review luôn nổi bật nhất — thắng cả màu status ở trên
+   nhờ đứng sau trong thứ tự CSS. */
+.pm-table tr.pending {
+  background: rgba(196, 92, 38, 0.1) !important;
+}
+.pm-table tr.pending td:first-child {
+  box-shadow: inset 4px 0 0 var(--accent) !important;
 }
 
 /* FIX: min-width: 0 là mấu chốt — mặc định input có min-width: auto khiến
@@ -998,10 +1043,6 @@ select:focus {
 .pm-table input[type="date"] {
   padding: 0.45rem 0.3rem;
   font-size: 1.14rem;
-}
-
-.pm-table tr.pending {
-  background: rgba(181, 71, 8, 0.06);
 }
 
 /* FIX: .pm-table input { width: 100% } ở trên đang kéo checkbox giãn theo
