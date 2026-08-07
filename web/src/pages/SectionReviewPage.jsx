@@ -97,7 +97,17 @@ export function SectionReviewPage() {
         <p className="muted">Đang tải…</p>
       ) : (
         <div className="pm-table-wrap">
-          <table className="pm-table pm-table-review">
+          <table className="pm-table">
+            <colgroup>
+              <col style={{ width: '8rem' }} />  {/* Zone */}
+              <col style={{ width: '15rem' }} /> {/* Activity */}
+              <col style={{ width: '8rem' }} />  {/* Drawing */}
+              <col style={{ width: '8rem' }} />  {/* 3D Review */}
+              <col style={{ width: '7rem' }} />  {/* First unit */}
+              <col style={{ width: '8rem' }} />  {/* Unit issue */}
+              <col style={{ width: '7rem' }} />  {/* VVT review */}
+              <col style={{ width: '7rem' }} />  {/* Owner review */}
+            </colgroup>
             <thead>
               <tr>
                 <th>Zone</th>
