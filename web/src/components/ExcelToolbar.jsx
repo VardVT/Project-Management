@@ -5,15 +5,12 @@ import { fileToArrayBuffer } from '../lib/excelParse'
 import { parseEngineeringPlansWorkbook } from '../lib/engineeringPlansParse'
 import { applyEngineeringPlansImport } from '../lib/engineeringPlansImport'
 import { applyPipingVtSectionMapping } from '../lib/pipingVtMapping'
-
 export function ExcelToolbar() {
   const { caps, user } = useAuth()
   const { currentProject, reloadSections, loadProjects, selectProject } = useProject()
   const plansRef = useRef(null)
   const [busy, setBusy] = useState('')
-
   if (!caps.canImportExcel) return null
-
   async function onPlansFile(e) {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -25,17 +22,17 @@ export function ExcelToolbar() {
     setBusy('import')
     try {
       const buf = await fileToArrayBuffer(file)
-      const parsed = parseEngineeringPlansWorkbook(buf)
+      // FIX: truyền thêm file.name để parser ưu tiên lấy mã tàu (NB số)
+      // từ TÊN FILE thay vì từ cột Vessel bên trong file.
+      const parsed = parseEngineeringPlansWorkbook(buf, file.name)
       if (!parsed.tasks.length) {
         window.alert('Không thấy task (Vessel số + Activity Name) trong file.')
         return
       }
-
       const shipGuess = parsed.shipHint || currentProject?.ship_id || ''
       const useCurrent =
         currentProject?.id &&
         (!shipGuess || String(currentProject.ship_id) === String(shipGuess))
-
       const result = await applyEngineeringPlansImport({
         parsed,
         userId: user.id,
@@ -43,7 +40,6 @@ export function ExcelToolbar() {
         projectId: useCurrent ? currentProject.id : undefined,
         assignEngineers: true,
       })
-
       await loadProjects()
       await selectProject(result.project)
       await reloadSections()
@@ -53,7 +49,6 @@ export function ExcelToolbar() {
       setBusy('')
     }
   }
-
   async function onMapping() {
     if (!currentProject?.id) {
       window.alert('Hãy Import Plans / chọn project trước.')
@@ -80,7 +75,6 @@ export function ExcelToolbar() {
       setBusy('')
     }
   }
-
   return (
     <>
       <input ref={plansRef} type="file" accept=".xlsx,.xls" hidden onChange={onPlansFile} />
