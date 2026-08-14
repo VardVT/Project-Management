@@ -29,6 +29,7 @@ function mapHeader(headerRow) {
     else if (h === 'start') cols.start = idx
     else if (h === 'finish') cols.finish = idx
     else if (h.includes('late finish') || h === 'late') cols.late = idx
+    else if (h.includes('expected finish')) cols.expectedFinish = idx
     else if (h.includes('performance') && h.includes('%')) cols.percent = idx
     else if (h.includes('% complete') && cols.percent == null) cols.percent = idx
   })
@@ -42,6 +43,23 @@ function normalizeStatus(raw) {
   if (s.includes('hold')) return 'On Hold'
   if (s.includes('not started') || !s) return 'Not Started'
   return String(raw || 'Not Started').trim()
+}
+
+/**
+ * Quy tắc % theo status, do file "Technical Activities" không có cột % riêng:
+ *   - Completed    -> 100
+ *   - Not Started  -> 0
+ *   - In Progress  -> 10 (mốc cố định, KHÔNG có số % thật trong file nguồn)
+ * Nếu cột % (performance/% complete) thực sự có giá trị > 0 trong sheet,
+ * ưu tiên dùng giá trị đó thay vì suy ra từ status.
+ */
+function percentFromStatusOrColumn(status, rawPercentCell) {
+  const fromColumn = normalizePercent(rawPercentCell)
+  if (fromColumn > 0) return fromColumn
+
+  if (status === 'Completed') return 100
+  if (status === 'In Progress') return 10
+  return 0 // Not Started, On Hold, hoặc bất kỳ trạng thái khác chưa định nghĩa
 }
 
 function parseExcelDate(value) {
@@ -63,6 +81,18 @@ function resourceName(label) {
   return String(label).replace(/^resources\s*:\s*/i, '').trim()
 }
 
+/**
+ * FIX: ưu tiên lấy mã tàu (NB number) từ TÊN FILE thay vì cột Vessel.
+ * VD "NB1005__4484__-_Engineering_Plans_All_-_W19.xlsx" → lấy "1005"
+ * (số ngay sau chữ "NB"), vì đây là mã hợp đồng dễ nhận diện, khác với
+ * mã hull nội bộ (4484) đang nằm trong cột Vessel của từng dòng task.
+ */
+function shipHintFromFileName(fileName) {
+  if (!fileName) return null
+  const m = String(fileName).match(/NB\s*[-_]?\s*(\d+)/i)
+  return m ? m[1] : null
+}
+
 function isTaskRow(row, cols) {
   const activity = String(cell(row, cols.activityName)).trim()
   if (!activity) return false
@@ -78,9 +108,20 @@ function isTaskRow(row, cols) {
  *   smaller spaces = higher WBS
  *   "Resources: X" = resource team (not a task)
  *   row vessel số + Activity Name = task (Drawing ID có thể trống)
+ *
+ * FIX so với bản gốc:
+ * 1. type: 'array' thay vì 'buffer' — code chạy trên GitHub Pages (browser),
+ *    fileToArrayBuffer() trả về ArrayBuffer từ File API, không phải Node Buffer.
+ *    Dùng sai type khiến SheetJS đọc sai offset, có thể gây dựng sai matrix
+ *    (đọc dư/sai dòng, lệch cột) — đây là nguyên nhân chính của hiện tượng
+ *    "dữ liệu lấy nhiều hơn thứ được show ra".
+ * 2. percentFromStatusOrColumn(): áp đúng quy tắc Completed=100 / Not Started=0 /
+ *    In Progress=10, thay vì chỉ xử lý mỗi case Completed và bỏ ngỏ In Progress
+ *    (khiến In Progress luôn bị tính nhầm thành 0%).
+ * 3. Thêm đọc cột "Expected Finish" (trước đây bị bỏ hoàn toàn).
  */
-export function parseEngineeringPlansWorkbook(arrayBuffer) {
-  const wb = XLSX.read(arrayBuffer, { type: 'buffer', cellDates: true })
+export function parseEngineeringPlansWorkbook(arrayBuffer, fileName) {
+  const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true })
   const sheetName = wb.SheetNames[0]
   const matrix = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
     header: 1,
@@ -101,7 +142,10 @@ export function parseEngineeringPlansWorkbook(arrayBuffer) {
   let currentResource = null
   const tasks = []
   const sectionMap = new Map() // sectionName -> count
-  let shipHint = null
+  // FIX: ưu tiên shipHint lấy từ tên file (mã NB) ngay từ đầu — nếu có,
+  // vòng lặp bên dưới sẽ KHÔNG ghi đè nó bằng giá trị cột Vessel nữa
+  // (điều kiện `!shipHint` sẽ luôn false khi đã có giá trị từ tên file).
+  let shipHint = shipHintFromFileName(fileName)
   let skippedResourceRows = 0
   let skippedSummaryRows = 0
 
@@ -117,11 +161,11 @@ export function parseEngineeringPlansWorkbook(arrayBuffer) {
       const activityId = String(cell(row, cols.activityId)).trim()
       const engineer = String(cell(row, cols.engineer)).trim()
       const status = normalizeStatus(cell(row, cols.status))
-      let percent = normalizePercent(cell(row, cols.percent))
-      if (status === 'Completed' && !percent) percent = 100
+      const percent = percentFromStatusOrColumn(status, cell(row, cols.percent))
       const startDate = parseExcelDate(cell(row, cols.start))
       const finishDate = parseExcelDate(cell(row, cols.finish))
       const lateDate = parseExcelDate(cell(row, cols.late))
+      const expectedFinishDate = parseExcelDate(cell(row, cols.expectedFinish))
 
       const vesselNum = label.replace(/\D/g, '')
       if (vesselNum && !shipHint) {
@@ -147,6 +191,7 @@ export function parseEngineeringPlansWorkbook(arrayBuffer) {
         startDate,
         finishDate,
         lateDate,
+        expectedFinishDate,
         rowIndex: r + 1,
       })
       continue
