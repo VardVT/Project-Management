@@ -140,4 +140,57 @@ export async function applyPipingVtImport(projectId, excelSections, profiles = [
 
     for (const act of activities) {
       const a = normKey(act.activity)
-      const d
+      const d = compactDrawing(act.drawing_id)
+      const found = (a && d && byActDraw.get(`${a}|||${d}`)) || (d && byDraw.get(d)) || (a && byAct.get(a))
+
+      if (found) {
+        const patch = {
+          zone: act.zone,
+          drawing_id: act.drawing_id || found.drawing_id,
+          start_date: act.start_date || null,
+          finish_date: act.finish_date || null,
+          late_date: act.late_date || null,
+          title: act.activity,
+          activity: act.activity,
+          percent_complete: act.percent_complete ?? 0,
+          status: act.status || 'Not Started',
+          review_3d: act.review_3d || null,
+          first_unit: act.first_unit || null,
+          unit_issue_date: act.unit_issue_date || null,
+          vvt_review: act.vvt_review || null,
+          owner_review: act.owner_review || null,
+        }
+        if (act.assignee_id) patch.assignee_id = act.assignee_id
+
+        const { error: upErr } = await supabase.from('tasks').update(patch).eq('id', found.id)
+        if (upErr) throw upErr
+        updated += 1
+      } else {
+        const { error: inErr } = await supabase.from('tasks').insert({
+          project_id: projectId,
+          section_id: section.id,
+          title: act.activity,
+          activity: act.activity,
+          zone: act.zone,
+          drawing_id: act.drawing_id || '',
+          start_date: act.start_date,
+          finish_date: act.finish_date,
+          late_date: act.late_date,
+          percent_complete: act.percent_complete ?? 0,
+          status: act.status || 'Not Started',
+          review_3d: act.review_3d || null,
+          first_unit: act.first_unit || null,
+          unit_issue_date: act.unit_issue_date || null,
+          vvt_review: act.vvt_review || null,
+          owner_review: act.owner_review || null,
+          assignee_id: act.assignee_id || null,
+        })
+        if (inErr) throw inErr
+        inserted += 1
+      }
+    }
+  }
+
+  return { inserted, updated, sections: grouped.size }
+}
+
