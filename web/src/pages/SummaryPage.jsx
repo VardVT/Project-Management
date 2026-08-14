@@ -310,4 +310,4 @@ export function SummaryPage() {
   }
 
   return <RichProjectDashboard eyebrow="Manager Summary" title="Tổng quan dự án" />
-}
+
