@@ -1448,3 +1448,51 @@ select:focus {
   min-width: 2px;
   transition: width 0.4s ease;
 }
+
+/* ===== Sidebar phân cấp theo Vessel ===== */
+.pm-vessel-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.pm-menu-item.parent.active-vessel {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-weight: 700;
+}
+
+.pm-menu-item.parent.active-vessel::before {
+  content: "";
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--shell-accent);
+  margin-right: 0.4rem;
+}
+
+.pm-menu-item.sub {
+  width: 100%;
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.pm-menu-item.sub:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.pm-submenu-nested {
+  margin-left: 0.6rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.pm-menu-item.sub2 {
+  padding-left: 1.6rem;
+  font-size: 0.82rem;
+  opacity: 0.88;
+}
