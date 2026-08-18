@@ -5,11 +5,6 @@ import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
 import { displaySectionName } from '../lib/roles'
 
-/**
- * Trang riêng cho 5 cột review (3D Review, First unit, Unit issue,
- * VVT review, Owner review) — tách khỏi SectionTasksPage để bảng chính
- * gọn hơn, còn trang này tập trung riêng cho việc theo dõi review.
- */
 export function SectionReviewPage() {
   const { sectionId } = useParams()
   const { user, caps } = useAuth()
@@ -26,9 +21,10 @@ export function SectionReviewPage() {
     setLoading(true)
     setError('')
 
+    // FIX: owners_review (đúng tên cột thật trong DB, có chữ "s")
     let query = supabase
       .from('tasks')
-      .select('id, zone, activity, drawing_id, assignee_id, review_3d, first_unit, unit_issue_date, vvt_review, owner_review')
+      .select('id, zone, activity, drawing_id, assignee_id, review_3d, first_unit, unit_issue_date, vvt_review, owners_review')
       .eq('section_id', sectionId)
       .order('created_at', { ascending: true })
 
@@ -99,14 +95,14 @@ export function SectionReviewPage() {
         <div className="pm-table-wrap">
           <table className="pm-table">
             <colgroup>
-              <col style={{ width: '12rem' }} />    {/* Zone */}
-              <col style={{ width: '25rem' }} />    {/* Activity */}
-              <col style={{ width: '25rem' }} />    {/* Drawing */}
-              <col style={{ width: '12rem' }} />    {/* 3D Review */}
-              <col style={{ width: '10.5rem' }} />  {/* First unit */}
-              <col style={{ width: '12rem' }} />    {/* Unit issue */}
-              <col style={{ width: '10.5rem' }} />  {/* VVT review */}
-              <col style={{ width: '10.5rem' }} />  {/* Owner review */}
+              <col style={{ width: '12rem' }} />
+              <col style={{ width: '25rem' }} />
+              <col style={{ width: '25rem' }} />
+              <col style={{ width: '12rem' }} />
+              <col style={{ width: '10.5rem' }} />
+              <col style={{ width: '12rem' }} />
+              <col style={{ width: '10.5rem' }} />
+              <col style={{ width: '10.5rem' }} />
             </colgroup>
             <thead>
               <tr>
@@ -162,11 +158,12 @@ export function SectionReviewPage() {
                       />
                     </td>
                     <td>
+                      {/* FIX: field state vẫn đọc/ghi đúng cột owners_review */}
                       <input
                         disabled={!canEdit}
-                        value={t.owner_review || ''}
+                        value={t.owners_review || ''}
                         placeholder="—"
-                        onChange={(e) => patchTask(t.id, { owner_review: e.target.value || null })}
+                        onChange={(e) => patchTask(t.id, { owners_review: e.target.value || null })}
                       />
                     </td>
                   </tr>
