@@ -1,5 +1,4 @@
 /** Role helpers — map profiles.position → UI capabilities */
-
 export const ROLES = {
   ADMIN: 'admin',
   MANAGER: 'manager',
@@ -7,7 +6,6 @@ export const ROLES = {
   ENGINEER: 'engineer',
   DESIGNER: 'designer',
 }
-
 export function normalizeRole(position) {
   const raw = String(position || '')
     .trim()
@@ -19,7 +17,6 @@ export function normalizeRole(position) {
   if (raw.includes('design')) return ROLES.DESIGNER
   return ROLES.ENGINEER
 }
-
 export function getRoleLabel(role) {
   switch (role) {
     case ROLES.ADMIN:
@@ -34,14 +31,12 @@ export function getRoleLabel(role) {
       return 'Engineer'
   }
 }
-
 /** Shell type drives layout look + menu */
 export function getShellType(role) {
   if (role === ROLES.ADMIN || role === ROLES.MANAGER) return 'manager'
   if (role === ROLES.SENIOR) return 'senior'
   return 'engineer'
 }
-
 /**
  * Capabilities matrix (Phase 1)
  * Ship Leader override can expand senior later.
@@ -51,7 +46,6 @@ export function getCapabilities(role) {
   const isMgr = shell === 'manager'
   const isSenior = shell === 'senior'
   const isEng = shell === 'engineer'
-
   return {
     shell,
     role,
@@ -67,6 +61,8 @@ export function getCapabilities(role) {
     canCreateTask: isMgr || isSenior,
     canImportExcel: isMgr || role === ROLES.DESIGNER,
     percentCap: isEng ? 85 : 100,
+    // FIX: export report — chỉ Admin/Manager được xuất file
+    canExportReport: role === ROLES.ADMIN || role === ROLES.MANAGER,
     // review
     canSubmitReview: isEng || role === ROLES.DESIGNER,
     canReviewTasks: isMgr || isSenior,
@@ -81,7 +77,6 @@ export function getCapabilities(role) {
     showLoadInOut: role === ROLES.ADMIN || role === ROLES.MANAGER,
   }
 }
-
 export const CANONICAL_SECTIONS = [
   '3D Pipe Drawing',
   'ISO generation',
@@ -91,7 +86,6 @@ export const CANONICAL_SECTIONS = [
   '3D Equipment Modeling',
   'General Arrangement',
 ]
-
 export function displaySectionName(headerName) {
   const raw = String(headerName || '').trim()
   if (raw === '3D Pipe Drawing') return 'Pipe 3D modeling'
