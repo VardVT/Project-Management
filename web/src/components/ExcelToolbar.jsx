@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
-import { fileToArrayBuffer } from '../lib/excelParse'
+import { supabase } from '../lib/supabase'
+import { fileToArrayBuffer, parsePicPercentWorkbook } from '../lib/excelParse'
 import { parseEngineeringPlansWorkbook } from '../lib/engineeringPlansParse'
 import { applyEngineeringPlansImport } from '../lib/engineeringPlansImport'
+import { applyPicPercentImport } from '../lib/excelImport'
 import { applyPipingVtSectionMapping } from '../lib/pipingVtMapping'
 import { downloadReportXlsx } from '../lib/exportReport'
 
@@ -11,6 +13,7 @@ export function ExcelToolbar() {
   const { caps, user } = useAuth()
   const { currentProject, reloadSections, loadProjects, selectProject } = useProject()
   const plansRef = useRef(null)
+  const percentRef = useRef(null)
   const [busy, setBusy] = useState('')
 
   async function onPlansFile(e) {
@@ -45,6 +48,46 @@ export function ExcelToolbar() {
       await reloadSections()
     } catch (err) {
       window.alert(err.message || 'Import Engineering Plans thất bại')
+    } finally {
+      setBusy('')
+    }
+  }
+
+  // FIX: luồng RIÊNG, tách khỏi "Import Plans" — dùng file Excel dạng
+  // phẳng (01/02/03/04 progress sheets) để cập nhật %/Status/PIC/Review
+  // vào các task đã có sẵn trên web (không tạo task mới, không tạo project mới).
+  async function onPercentFile(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!currentProject?.id) {
+      window.alert('Hãy chọn project trước.')
+      return
+    }
+    setBusy('percent')
+    try {
+      const buf = await fileToArrayBuffer(file)
+      const parsed = parsePicPercentWorkbook(buf)
+      if (!parsed.tasks.length) {
+        window.alert('Không đọc được task nào từ file (kiểm tra lại sheet 01/02/03/04).')
+        return
+      }
+      const { data: profiles } = await supabase.from('profiles').select('id, display_name, email')
+      const result = await applyPicPercentImport(currentProject.id, parsed.tasks, profiles || [])
+      await reloadSections()
+      window.alert(
+        `Update % / PIC: khớp ${result.matched}/${result.totalExcel} task, đã cập nhật ${result.updated}.\n` +
+          `Khớp theo: ${Object.entries(result.matchedBy)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(', ')}` +
+          (result.unmatchedSamples.length
+            ? `\n\nMột vài task không khớp được (ví dụ):\n${result.unmatchedSamples
+                .map((s) => `- ${s.activity} (${s.drawingId || 'no drawing'})`)
+                .join('\n')}`
+            : '')
+      )
+    } catch (err) {
+      window.alert(err.message || 'Update % / PIC thất bại')
     } finally {
       setBusy('')
     }
@@ -121,6 +164,17 @@ export function ExcelToolbar() {
             title="Map task Piping VT vào section chuẩn (giống app desktop)"
           >
             {busy === 'map' ? 'Mapping…' : 'Mapping'}
+          </button>
+          {/* FIX: nút riêng — file phẳng 01/02/03/04, chỉ update task có sẵn */}
+          <input ref={percentRef} type="file" accept=".xlsx,.xls,.xlsm" hidden onChange={onPercentFile} />
+          <button
+            type="button"
+            className="pm-btn blue"
+            disabled={!!busy}
+            onClick={() => percentRef.current?.click()}
+            title="Cập nhật %/Status/PIC/Review từ file Excel dạng 01/02/03/04 (không tạo task mới)"
+          >
+            {busy === 'percent' ? 'Updating…' : 'Update % / PIC'}
           </button>
         </>
       )}
