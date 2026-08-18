@@ -39,7 +39,6 @@ async function ensureSections(projectId, neededNames) {
   return byName
 }
 
-// Resolve PIC (tên đã chuẩn hóa từ picRaw) sang assignee_id thật trong bảng profiles.
 function buildProfileIndex(profiles) {
   const profileByNorm = new Map()
   ;(profiles || []).forEach((p) => {
@@ -70,15 +69,6 @@ function resolveAssignee(picRaw, profileByNorm) {
 
 /**
  * Apply Piping VT excel sections into current project (upsert by activity+drawing within target section).
- *
- * FIX so với bản gốc:
- * 1. Nhận thêm tham số `profiles` để resolve PIC (picRaw) → assignee_id thật.
- * 2. KHÔNG hard-code percent_complete: 0 / status: 'Not Started' khi insert —
- *    dùng đúng giá trị đã parse từ Excel.
- * 3. Ghi đủ 5 field mới: status, review_3d, first_unit, unit_issue_date,
- *    vvt_review, owner_review.
- * 4. Khi UPDATE task đã tồn tại, patch đầy đủ các field trên (bản gốc chỉ
- *    update zone/drawing_id/dates/activity, bỏ sót percent/status/reviews).
  */
 export async function applyPipingVtImport(projectId, excelSections, profiles = []) {
   const grouped = new Map()
@@ -143,25 +133,25 @@ export async function applyPipingVtImport(projectId, excelSections, profiles = [
       const d = compactDrawing(act.drawing_id)
       const found = (a && d && byActDraw.get(`${a}|||${d}`)) || (d && byDraw.get(d)) || (a && byAct.get(a))
 
-      if (found) {
-        const patch = {
-          zone: act.zone,
-          drawing_id: act.drawing_id || found.drawing_id,
-          start_date: act.start_date || null,
-          finish_date: act.finish_date || null,
-          late_date: act.late_date || null,
-          title: act.activity,
-          activity: act.activity,
-          percent_complete: act.percent_complete ?? 0,
-          status: act.status || 'Not Started',
-          review_3d: act.review_3d || null,
-          first_unit: act.first_unit || null,
-          unit_issue_date: act.unit_issue_date || null,
-          vvt_review: act.vvt_review || null,
-          owner_review: act.owner_review || null,
-        }
-        if (act.assignee_id) patch.assignee_id = act.assignee_id
+      const patch = {
+        zone: act.zone,
+        drawing_id: act.drawing_id || (found ? found.drawing_id : ''),
+        start_date: act.start_date || null,
+        finish_date: act.finish_date || null,
+        late_date: act.late_date || null,
+        title: act.activity,
+        activity: act.activity,
+        percent_complete: act.percent_complete,
+        status: act.status,
+        review_3d: act.review_3d,
+        first_unit: act.first_unit,
+        unit_issue_date: act.unit_issue_date,
+        vvt_review: act.vvt_review,
+        owner_review: act.owner_review,
+      }
+      if (act.assignee_id) patch.assignee_id = act.assignee_id
 
+      if (found) {
         const { error: upErr } = await supabase.from('tasks').update(patch).eq('id', found.id)
         if (upErr) throw upErr
         updated += 1
@@ -169,21 +159,7 @@ export async function applyPipingVtImport(projectId, excelSections, profiles = [
         const { error: inErr } = await supabase.from('tasks').insert({
           project_id: projectId,
           section_id: section.id,
-          title: act.activity,
-          activity: act.activity,
-          zone: act.zone,
-          drawing_id: act.drawing_id || '',
-          start_date: act.start_date,
-          finish_date: act.finish_date,
-          late_date: act.late_date,
-          percent_complete: act.percent_complete ?? 0,
-          status: act.status || 'Not Started',
-          review_3d: act.review_3d || null,
-          first_unit: act.first_unit || null,
-          unit_issue_date: act.unit_issue_date || null,
-          vvt_review: act.vvt_review || null,
-          owner_review: act.owner_review || null,
-          assignee_id: act.assignee_id || null,
+          ...patch,
         })
         if (inErr) throw inErr
         inserted += 1
@@ -194,3 +170,152 @@ export async function applyPipingVtImport(projectId, excelSections, profiles = [
   return { inserted, updated, sections: grouped.size }
 }
 
+function buildTaskIndexes(tasks) {
+  const byActDraw = new Map()
+  const byAct = new Map()
+  const byDraw = new Map()
+  const byZoneAct = new Map()
+
+  ;(tasks || []).forEach((t) => {
+    const a = normKey(t.activity)
+    const d = compactDrawing(t.drawing_id)
+    const z = normKey(t.zone)
+    if (a && d) byActDraw.set(`${a}|||${d}`, t)
+    if (a && !byAct.has(a)) byAct.set(a, t)
+    if (d && !byDraw.has(d)) byDraw.set(d, t)
+    if (z && a) byZoneAct.set(`${z}|||${a}`, t)
+  })
+
+  return { byActDraw, byAct, byDraw, byZoneAct }
+}
+
+function findDbTask(indexes, row) {
+  const a = normKey(row.activity)
+  const d = compactDrawing(row.drawingId)
+  const z = normKey(row.zone)
+
+  if (d && indexes.byDraw.has(d)) return { task: indexes.byDraw.get(d), how: 'drawing' }
+  if (a && d && indexes.byActDraw.has(`${a}|||${d}`)) {
+    return { task: indexes.byActDraw.get(`${a}|||${d}`), how: 'activity+drawing' }
+  }
+  if (z && a && indexes.byZoneAct.has(`${z}|||${a}`)) {
+    return { task: indexes.byZoneAct.get(`${z}|||${a}`), how: 'zone+activity' }
+  }
+  if (a && indexes.byAct.has(a)) return { task: indexes.byAct.get(a), how: 'activity' }
+
+  if (a) {
+    for (const [key, task] of indexes.byAct.entries()) {
+      if (key.includes(a) || a.includes(key)) {
+        if (Math.min(key.length, a.length) >= 8) return { task, how: 'activity-fuzzy' }
+      }
+    }
+  }
+  return null
+}
+
+/**
+ * Update assignee + % + status + review fields từ file Excel dạng phẳng
+ * (01/02/03/04 progress sheets) — dùng cho nút "Update % / PIC" riêng biệt
+ * với "Import Plans".
+ *
+ * FIX so với bản gốc:
+ * 1. Update thêm status, review_3d, unit_issue_date, vvt_review,
+ *    owner_review (trước đây chỉ update assignee_id + percent_complete).
+ * 2. Task nào có `row.isMto` (từ parseMtoSheet) sẽ khớp CHỈ qua drawing_id
+ *    (Docs No) — không có zone/activity đầy đủ để khớp theo cách khác.
+ * 3. Chỉ ghi đè field nào THỰC SỰ có giá trị mới trong Excel (không ghi
+ *    đè bằng rỗng/undefined) — tránh xóa mất dữ liệu đã có trên web nếu
+ *    Excel không có cột đó.
+ */
+export async function applyPicPercentImport(projectId, excelTasks, profiles) {
+  const { data: tasks, error } = await supabase
+    .from('tasks')
+    .select(
+      'id, activity, drawing_id, zone, assignee_id, percent_complete, status, review_3d, first_unit, unit_issue_date, vvt_review, owner_review'
+    )
+    .eq('project_id', projectId)
+  if (error) throw error
+
+  const dbTasks = tasks || []
+  const indexes = buildTaskIndexes(dbTasks)
+  const profileByNorm = buildProfileIndex(profiles)
+
+  let matched = 0
+  let updated = 0
+  let matchedBy = {
+    drawing: 0,
+    'activity+drawing': 0,
+    'zone+activity': 0,
+    activity: 0,
+    'activity-fuzzy': 0,
+  }
+  const unmatchedSamples = []
+
+  for (const row of excelTasks) {
+    const hit = findDbTask(indexes, row)
+    if (!hit) {
+      if (unmatchedSamples.length < 5) {
+        unmatchedSamples.push({
+          activity: row.activity || '',
+          drawingId: row.drawingId || '',
+          sheet: row.sheetName || '',
+        })
+      }
+      continue
+    }
+
+    matched += 1
+    matchedBy[hit.how] = (matchedBy[hit.how] || 0) + 1
+    const task = hit.task
+
+    const patch = {}
+    const assigneeId = resolveAssignee(row.picFullNameNoDiacritics || row.picRaw, profileByNorm)
+    if (assigneeId && assigneeId !== task.assignee_id) {
+      patch.assignee_id = assigneeId
+    }
+    if (row.percentComplete > 0 && Math.abs(row.percentComplete - (Number(task.percent_complete) || 0)) > 0.01) {
+      patch.percent_complete = row.percentComplete
+    }
+    if (row.status && row.status !== task.status) {
+      patch.status = row.status
+    }
+    if (row.review && row.review !== task.review_3d) {
+      patch.review_3d = row.review
+    }
+    // Zone-list fields (First Unit/Unit issue/VVT/Owner) — chỉ ghi đè nếu
+    // Excel có giá trị thật, tránh xóa mất dữ liệu đã nhập tay trên web.
+    if (row.firstUnit && row.firstUnit !== task.first_unit) {
+      patch.first_unit = row.firstUnit
+    }
+    if (row.unitIssueDate && row.unitIssueDate !== task.unit_issue_date) {
+      patch.unit_issue_date = row.unitIssueDate
+    }
+    if (row.vvtReview && row.vvtReview !== task.vvt_review) {
+      patch.vvt_review = row.vvtReview
+    }
+    if (row.ownerReview && row.ownerReview !== task.owner_review) {
+      patch.owner_review = row.ownerReview
+    }
+
+    if (Object.keys(patch).length) {
+      const { error: upErr } = await supabase.from('tasks').update(patch).eq('id', task.id)
+      if (upErr) throw upErr
+      updated += 1
+      Object.assign(task, patch)
+    }
+  }
+
+  return {
+    matched,
+    updated,
+    totalExcel: excelTasks.length,
+    dbTasks: dbTasks.length,
+    matchedBy,
+    unmatchedSamples,
+    dbSamples: dbTasks.slice(0, 5).map((t) => ({
+      activity: t.activity || '',
+      drawingId: t.drawing_id || '',
+      zone: t.zone || '',
+    })),
+  }
+}
