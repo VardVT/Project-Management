@@ -20,7 +20,6 @@ export function SectionTasksPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [newActivity, setNewActivity] = useState('')
-  // FIX: state chọn nhiều task cùng lúc (checkbox tròn ở cột đầu)
   const [selectedIds, setSelectedIds] = useState(new Set())
 
   async function load() {
@@ -149,8 +148,6 @@ export function SectionTasksPage() {
           Ship {currentProject?.ship_id} · {filtered.length} task
           {caps.canEditAssignedOnly ? ' (chỉ task của bạn)' : ''}
         </p>
-        {/* FIX: link sang trang Review riêng (3D Review/First unit/Unit issue/
-            VVT review/Owner review) — thay vì nhồi hết vào 1 bảng. */}
         <Link className="back-link" to={`/sections/${sectionId}/reviews`}>
           Xem cột Review (3D/VVT/Owner…) →
         </Link>
@@ -194,21 +191,18 @@ export function SectionTasksPage() {
         <p className="muted">Đang tải…</p>
       ) : (
         <div className="pm-table-wrap">
-          {/* FIX: colgroup đặt width riêng từng cột — Activity/Zone cần
-              nhiều chỗ hơn để đọc tên dài, %/Status/Review hẹp lại vì
-              nội dung ngắn (số, dropdown, nút). */}
           <table className="pm-table">
             <colgroup>
-              <col style={{ width: '3.2rem' }} />   {/* Chọn */}
-              <col style={{ width: '17rem' }} />    {/* Section */}
-              <col style={{ width: '30rem' }} />    {/* Activity */}
-              <col style={{ width: '25rem' }} />    {/* Drawing */}
-              <col style={{ width: '12rem' }} />    {/* Assigned */}
-              <col style={{ width: '10.5rem' }} />  {/* Start */}
-              <col style={{ width: '10.5rem' }} />  {/* Finish */}
-              <col style={{ width: '7.5rem' }} />   {/* % */}
-              <col style={{ width: '11.25rem' }} /> {/* Status */}
-              <col style={{ width: '8.25rem' }} />  {/* Review */}
+              <col style={{ width: '3.2rem' }} />
+              <col style={{ width: '17rem' }} />
+              <col style={{ width: '30rem' }} />
+              <col style={{ width: '25rem' }} />
+              <col style={{ width: '12rem' }} />
+              <col style={{ width: '10.5rem' }} />
+              <col style={{ width: '10.5rem' }} />
+              <col style={{ width: '7.5rem' }} />
+              <col style={{ width: '11.25rem' }} />
+              <col style={{ width: '8.25rem' }} />
             </colgroup>
             <thead>
               <tr>
