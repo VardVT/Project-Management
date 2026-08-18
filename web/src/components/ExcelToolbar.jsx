@@ -5,12 +5,14 @@ import { fileToArrayBuffer } from '../lib/excelParse'
 import { parseEngineeringPlansWorkbook } from '../lib/engineeringPlansParse'
 import { applyEngineeringPlansImport } from '../lib/engineeringPlansImport'
 import { applyPipingVtSectionMapping } from '../lib/pipingVtMapping'
+import { downloadReportXlsx } from '../lib/exportReport'
+
 export function ExcelToolbar() {
   const { caps, user } = useAuth()
   const { currentProject, reloadSections, loadProjects, selectProject } = useProject()
   const plansRef = useRef(null)
   const [busy, setBusy] = useState('')
-  if (!caps.canImportExcel) return null
+
   async function onPlansFile(e) {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -22,8 +24,6 @@ export function ExcelToolbar() {
     setBusy('import')
     try {
       const buf = await fileToArrayBuffer(file)
-      // FIX: truyền thêm file.name để parser ưu tiên lấy mã tàu (NB số)
-      // từ TÊN FILE thay vì từ cột Vessel bên trong file.
       const parsed = parseEngineeringPlansWorkbook(buf, file.name)
       if (!parsed.tasks.length) {
         window.alert('Không thấy task (Vessel số + Activity Name) trong file.')
@@ -49,6 +49,7 @@ export function ExcelToolbar() {
       setBusy('')
     }
   }
+
   async function onMapping() {
     if (!currentProject?.id) {
       window.alert('Hãy Import Plans / chọn project trước.')
@@ -75,27 +76,65 @@ export function ExcelToolbar() {
       setBusy('')
     }
   }
+
+  // FIX: xuất báo cáo dạng dữ liệu thô (4 sheet 01/02/03/04), chỉ Admin/Manager
+  async function onExportReport() {
+    if (!currentProject?.id) {
+      window.alert('Hãy chọn project trước.')
+      return
+    }
+    setBusy('export')
+    try {
+      const counts = await downloadReportXlsx(currentProject.id, currentProject.ship_id)
+      window.alert(
+        `Đã xuất file.\n3D model: ${counts.threeD} task\nISO export: ${counts.iso} task\n` +
+          `2D drawing: ${counts.twoD} task\nMTO: ${counts.mto} task`
+      )
+    } catch (err) {
+      window.alert(err.message || 'Export thất bại')
+    } finally {
+      setBusy('')
+    }
+  }
+
+  if (!caps.canImportExcel && !caps.canExportReport) return null
+
   return (
     <>
-      <input ref={plansRef} type="file" accept=".xlsx,.xls" hidden onChange={onPlansFile} />
-      <button
-        type="button"
-        className="pm-btn blue"
-        disabled={!!busy}
-        onClick={() => plansRef.current?.click()}
-        title="Import Engineering Plans (WBS + Resources + Drawing/Activity)"
-      >
-        {busy === 'import' ? 'Importing…' : 'Import Plans'}
-      </button>
-      <button
-        type="button"
-        className="pm-btn blue"
-        disabled={!!busy}
-        onClick={onMapping}
-        title="Map task Piping VT vào section chuẩn (giống app desktop)"
-      >
-        {busy === 'map' ? 'Mapping…' : 'Mapping'}
-      </button>
+      {caps.canImportExcel && (
+        <>
+          <input ref={plansRef} type="file" accept=".xlsx,.xls" hidden onChange={onPlansFile} />
+          <button
+            type="button"
+            className="pm-btn blue"
+            disabled={!!busy}
+            onClick={() => plansRef.current?.click()}
+            title="Import Engineering Plans (WBS + Resources + Drawing/Activity)"
+          >
+            {busy === 'import' ? 'Importing…' : 'Import Plans'}
+          </button>
+          <button
+            type="button"
+            className="pm-btn blue"
+            disabled={!!busy}
+            onClick={onMapping}
+            title="Map task Piping VT vào section chuẩn (giống app desktop)"
+          >
+            {busy === 'map' ? 'Mapping…' : 'Mapping'}
+          </button>
+        </>
+      )}
+      {caps.canExportReport && (
+        <button
+          type="button"
+          className="pm-btn green"
+          disabled={!!busy || !currentProject?.id}
+          onClick={onExportReport}
+          title="Xuất dữ liệu thô 4 sheet (01/02/03/04) để copy-paste vào file Excel chủ"
+        >
+          {busy === 'export' ? 'Exporting…' : 'Export Report'}
+        </button>
+      )}
     </>
   )
 }
