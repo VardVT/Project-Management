@@ -90,7 +90,7 @@ export async function applyPipingVtImport(projectId, excelSections, profiles = [
         first_unit: act.firstUnit || null,
         unit_issue_date: act.unitIssueDate || null,
         vvt_review: act.vvtReview || null,
-        owner_review: act.ownerReview || null,
+        owners_review: act.ownerReview || null,
         assignee_id: resolveAssignee(act.picRaw, profileByNorm),
       }
       if (isMtoTask({ ...task, drawingId: task.drawing_id })) {
@@ -147,7 +147,7 @@ export async function applyPipingVtImport(projectId, excelSections, profiles = [
         first_unit: act.first_unit,
         unit_issue_date: act.unit_issue_date,
         vvt_review: act.vvt_review,
-        owner_review: act.owner_review,
+        owners_review: act.owners_review,
       }
       if (act.assignee_id) patch.assignee_id = act.assignee_id
 
@@ -220,7 +220,7 @@ function findDbTask(indexes, row) {
  *
  * FIX so với bản gốc:
  * 1. Update thêm status, review_3d, unit_issue_date, vvt_review,
- *    owner_review (trước đây chỉ update assignee_id + percent_complete).
+ *    owners_review (trước đây chỉ update assignee_id + percent_complete).
  * 2. Task nào có `row.isMto` (từ parseMtoSheet) sẽ khớp CHỈ qua drawing_id
  *    (Docs No) — không có zone/activity đầy đủ để khớp theo cách khác.
  * 3. Chỉ ghi đè field nào THỰC SỰ có giá trị mới trong Excel (không ghi
@@ -231,7 +231,7 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles) {
   const { data: tasks, error } = await supabase
     .from('tasks')
     .select(
-      'id, activity, drawing_id, zone, assignee_id, percent_complete, status, review_3d, first_unit, unit_issue_date, vvt_review, owner_review'
+      'id, activity, drawing_id, zone, assignee_id, percent_complete, status, review_3d, first_unit, unit_issue_date, vvt_review, owners_review'
     )
     .eq('project_id', projectId)
   if (error) throw error
@@ -293,8 +293,8 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles) {
     if (row.vvtReview && row.vvtReview !== task.vvt_review) {
       patch.vvt_review = row.vvtReview
     }
-    if (row.ownerReview && row.ownerReview !== task.owner_review) {
-      patch.owner_review = row.ownerReview
+    if (row.ownerReview && row.ownerReview !== task.owners_review) {
+      patch.owners_review = row.ownerReview
     }
 
     if (Object.keys(patch).length) {
