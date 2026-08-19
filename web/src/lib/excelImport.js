@@ -217,15 +217,6 @@ function findDbTask(indexes, row) {
  * Update assignee + % + status + review fields từ file Excel dạng phẳng
  * (01/02/03/04 progress sheets) — dùng cho nút "Update % / PIC" riêng biệt
  * với "Import Plans".
- *
- * FIX so với bản gốc:
- * 1. Update thêm status, review_3d, unit_issue_date, vvt_review,
- *    owners_review (trước đây chỉ update assignee_id + percent_complete).
- * 2. Task nào có `row.isMto` (từ parseMtoSheet) sẽ khớp CHỈ qua drawing_id
- *    (Docs No) — không có zone/activity đầy đủ để khớp theo cách khác.
- * 3. Chỉ ghi đè field nào THỰC SỰ có giá trị mới trong Excel (không ghi
- *    đè bằng rỗng/undefined) — tránh xóa mất dữ liệu đã có trên web nếu
- *    Excel không có cột đó.
  */
 export async function applyPicPercentImport(projectId, excelTasks, profiles) {
   const { data: tasks, error } = await supabase
@@ -273,17 +264,22 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles) {
     if (assigneeId && assigneeId !== task.assignee_id) {
       patch.assignee_id = assigneeId
     }
-    if (row.percentComplete > 0 && Math.abs(row.percentComplete - (Number(task.percent_complete) || 0)) > 0.01) {
+
+    // FIX: Cho phép cập nhật % hợp lệ (bao gồm cả 0%) nếu lệch khác nhau > 0.01
+    if (
+      typeof row.percentComplete === 'number' &&
+      !isNaN(row.percentComplete) &&
+      Math.abs(row.percentComplete - (Number(task.percent_complete) || 0)) > 0.01
+    ) {
       patch.percent_complete = row.percentComplete
     }
+
     if (row.status && row.status !== task.status) {
       patch.status = row.status
     }
     if (row.review && row.review !== task.review_3d) {
       patch.review_3d = row.review
     }
-    // Zone-list fields (First Unit/Unit issue/VVT/Owner) — chỉ ghi đè nếu
-    // Excel có giá trị thật, tránh xóa mất dữ liệu đã nhập tay trên web.
     if (row.firstUnit && row.firstUnit !== task.first_unit) {
       patch.first_unit = row.firstUnit
     }
