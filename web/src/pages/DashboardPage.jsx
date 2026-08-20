@@ -10,6 +10,17 @@ import {
   MultiVesselStatusStackedBar,
   GroupBenchmarkChart,
 } from '../components/Charts'
+import {
+  IconDashboard,
+  IconSummary,
+  IconTable,
+  IconTarget,
+  IconCompare,
+  IconRefresh,
+  IconSearch,
+  IconVessel,
+  IconArrowRight,
+} from '../components/Icons'
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10)
@@ -43,7 +54,6 @@ export function DashboardPage() {
   const loadAllVesselsData = useCallback(async () => {
     try {
       setError('')
-      // 1. Fetch all projects/vessels
       const { data: projects, error: pErr } = await supabase
         .from('projects')
         .select('id, name, ship_id, department, status, start_date, end_date, created_at, ship_leader_id, owner_id')
@@ -56,7 +66,6 @@ export function DashboardPage() {
         return
       }
 
-      // 2. Fetch all sections
       const { data: sections, error: sErr } = await supabase
         .from('sections')
         .select('id, header_name, sort_order, project_id')
@@ -64,7 +73,6 @@ export function DashboardPage() {
 
       if (sErr) throw sErr
 
-      // 3. Fetch all tasks with progress & review fields
       const { data: tasks, error: tErr } = await supabase
         .from('tasks')
         .select('id, project_id, section_id, percent_complete, status, start_date, finish_date, late_date, pending_review, activity, zone, drawing_id')
@@ -84,12 +92,10 @@ export function DashboardPage() {
         tasksByProject.get(t.project_id).push(t)
       })
 
-      // 4. Compute metrics for each vessel
       const processed = projects.map((p) => {
         const pSections = sectionsByProject.get(p.id) || []
         const pTasks = tasksByProject.get(p.id) || []
 
-        // Structure sections with tasks for computeWeightedProgress
         const sectionsWithTasks = pSections.map((s) => ({
           header_name: s.header_name,
           tasks: pTasks.filter((t) => t.section_id === s.id),
@@ -97,7 +103,6 @@ export function DashboardPage() {
 
         const stats = computeWeightedProgress(sectionsWithTasks)
 
-        // Status counts
         const statusCounts = { 'Not Started': 0, 'In Progress': 0, Completed: 0, 'On Hold': 0 }
         let pendingReviewCount = 0
         let overdueCount = 0
@@ -113,7 +118,6 @@ export function DashboardPage() {
           }
         })
 
-        // 4 Technical Groups mapping (3D: 65%, ISO: 15%, 2D: 10%, MTO: 10%)
         const findGroupPercent = (name) => {
           const g = (stats.groups || []).find((grp) => grp.name.toLowerCase().includes(name.toLowerCase()))
           return g ? g.avgPercent : 0
@@ -124,7 +128,6 @@ export function DashboardPage() {
         const group2D = findGroupPercent('2D')
         const groupMTO = findGroupPercent('MTO')
 
-        // Start & finish dates calculated from tasks or project settings
         const allStarts = pTasks.map((t) => t.start_date).filter(Boolean).sort()
         const allFinishes = pTasks.map((t) => t.finish_date).filter(Boolean).sort()
         const calcStart = p.start_date || allStarts[0] || null
@@ -158,7 +161,7 @@ export function DashboardPage() {
 
       setVesselDataList(processed)
     } catch (err) {
-      setError(err.message || 'Lỗi khi tải dữ liệu hạm đội tàu')
+      setError(err.message || 'Error loading fleet data')
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -260,7 +263,6 @@ export function DashboardPage() {
   const filteredAndSortedVessels = useMemo(() => {
     let list = [...vesselDataList]
 
-    // Search filter
     if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase().trim()
       list = list.filter(
@@ -271,7 +273,6 @@ export function DashboardPage() {
       )
     }
 
-    // Status filter
     if (statusFilter === 'IN_PROGRESS') {
       list = list.filter((v) => v.overallProgress < 100 && v.status !== 'Completed')
     } else if (statusFilter === 'COMPLETED') {
@@ -280,7 +281,6 @@ export function DashboardPage() {
       list = list.filter((v) => v.overdueCount > 0 || v.pendingReviewCount > 0)
     }
 
-    // Sort
     list.sort((a, b) => {
       if (sortBy === 'PROGRESS_DESC') return b.overallProgress - a.overallProgress
       if (sortBy === 'PROGRESS_ASC') return a.overallProgress - b.overallProgress
@@ -297,14 +297,13 @@ export function DashboardPage() {
     return list
   }, [vesselDataList, searchTerm, statusFilter, sortBy])
 
-  // --- Comparison Selection Handler ---
   function toggleCompareSelection(id) {
     setSelectedForCompare((prev) => {
       if (prev.includes(id)) {
         return prev.filter((item) => item !== id)
       } else {
         if (prev.length >= 4) {
-          alert('Chỉ có thể so sánh tối đa 4 tàu cùng lúc để đảm bảo hiển thị trực quan.')
+          alert('Select up to 4 vessels to compare side-by-side.')
           return prev
         }
         return [...prev, id]
@@ -319,18 +318,19 @@ export function DashboardPage() {
   if (!caps.showDashboard) {
     return (
       <div className="pm-panel">
-        <h2>Dashboard</h2>
-        <p className="muted">Role của bạn không có quyền xem trang Admin Dashboard.</p>
-        <Link to="/summary">Đi tới Summary →</Link>
+        <h2>Fleet Dashboard</h2>
+        <p className="muted">Your current access level does not include executive fleet overview.</p>
+        <Link to="/summary" className="pm-btn primary" style={{ marginTop: '12px' }}>
+          Go to Vessel Summary →
+        </Link>
       </div>
     )
   }
 
   if (loading) {
     return (
-      <div className="dash-loading-state">
-        <div className="dash-spinner" />
-        <p>Đang tổng hợp dữ liệu toàn bộ hạm đội tàu…</p>
+      <div className="pm-panel" style={{ textAlign: 'center', padding: '40px' }}>
+        <p className="muted">Aggregating fleet progress and engineering metrics…</p>
       </div>
     )
   }
@@ -342,195 +342,187 @@ export function DashboardPage() {
         <div className="dash-hero-info">
           <div className="dash-hero-badge">
             <span className="live-dot" />
-            Admin Executive Fleet View
+            Executive Fleet Overview
           </div>
-          <h2>Fleet Multi-Vessel Dashboard</h2>
+          <h2>Fleet Engineering Dashboard</h2>
           <p className="dash-hero-subtitle">
-            Tổng hợp tiến độ & so sánh đa chiều toàn bộ <strong>{vesselDataList.length} Vessel</strong> theo chuẩn dữ liệu kỹ thuật
+            Consolidated engineering progress across <strong>{vesselDataList.length} Active Vessels</strong>
           </p>
         </div>
 
         <div className="dash-hero-actions">
           <button
             type="button"
-            className="dash-action-btn refresh"
+            className="pm-btn secondary"
             onClick={handleRefresh}
             disabled={refreshing}
-            title="Làm mới dữ liệu từ Supabase"
+            title="Reload live metrics from database"
           >
-            {refreshing ? 'Đang cập nhật…' : '🔄 Refresh Live Data'}
+            <IconRefresh size={14} />
+            <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
           </button>
         </div>
       </div>
 
       {error ? <p className="error">{error}</p> : null}
 
-      {/* 2. Fleet Executive KPI Rollup (4 Cards) */}
+      {/* 2. Fleet Executive KPI Rollup */}
       <div className="fleet-kpi-grid">
-        <div className="fleet-kpi-card highlight-blue">
+        <div className="fleet-kpi-card">
           <div className="fleet-kpi-header">
-            <span className="fleet-kpi-title">Tổng số Vessel</span>
-            <span className="fleet-kpi-icon">🚢</span>
+            <span className="fleet-kpi-title">Active Vessels</span>
+            <IconVessel size={18} className="muted" />
           </div>
           <div className="fleet-kpi-val">{fleetRollup.totalVessels}</div>
           <div className="fleet-kpi-sub">
-            <span className="pill ok">{fleetRollup.activeVessels} Đang thi công</span>
-            <span className="pill muted-pill">{fleetRollup.completedVessels} Hoàn thành</span>
+            <span className="pill ok">{fleetRollup.activeVessels} In Progress</span>
+            <span className="pill muted-pill">{fleetRollup.completedVessels} Completed</span>
           </div>
         </div>
 
-        <div className="fleet-kpi-card highlight-teal">
+        <div className="fleet-kpi-card">
           <div className="fleet-kpi-header">
-            <span className="fleet-kpi-title">Tiến độ Hạm Đội (Bình quân)</span>
-            <span className="fleet-kpi-icon">📊</span>
+            <span className="fleet-kpi-title">Average Progress</span>
+            <IconDashboard size={18} className="muted" />
           </div>
           <div className="fleet-kpi-val-row">
             <span className="fleet-kpi-val">{fleetRollup.avgProgress}%</span>
-            <div className="fleet-kpi-donut">
-              <DonutRing percent={fleetRollup.avgProgress} size={48} stroke={6} color="#10b981" />
-            </div>
+            <DonutRing percent={fleetRollup.avgProgress} size={42} stroke={5} color="#059669" />
           </div>
           <div className="fleet-kpi-sub">
             <span>3D: <strong>{fleetRollup.fleet3D}%</strong> · ISO: <strong>{fleetRollup.fleetISO}%</strong></span>
           </div>
         </div>
 
-        <div className="fleet-kpi-card highlight-amber">
+        <div className="fleet-kpi-card">
           <div className="fleet-kpi-header">
-            <span className="fleet-kpi-title">Khối lượng Công việc</span>
-            <span className="fleet-kpi-icon">📝</span>
+            <span className="fleet-kpi-title">Engineering Workload</span>
+            <IconSummary size={18} className="muted" />
           </div>
-          <div className="fleet-kpi-val">{fleetRollup.totalTasks} <span className="unit">tasks</span></div>
+          <div className="fleet-kpi-val">
+            {fleetRollup.totalTasks} <span className="unit">tasks</span>
+          </div>
           <div className="fleet-kpi-sub">
-            <span>Đã xong <strong>{fleetRollup.completedTasks}</strong> ({fleetRollup.totalTasks ? Math.round((fleetRollup.completedTasks / fleetRollup.totalTasks) * 100) : 0}%)</span>
+            <span>Done: <strong>{fleetRollup.completedTasks}</strong> ({fleetRollup.totalTasks ? Math.round((fleetRollup.completedTasks / fleetRollup.totalTasks) * 100) : 0}%)</span>
           </div>
         </div>
 
-        <div className={`fleet-kpi-card ${fleetRollup.totalOverdue > 0 || fleetRollup.totalPendingReview > 0 ? 'highlight-danger' : 'highlight-ok'}`}>
+        <div className="fleet-kpi-card">
           <div className="fleet-kpi-header">
-            <span className="fleet-kpi-title">Cảnh báo & Duyệt</span>
-            <span className="fleet-kpi-icon">{fleetRollup.totalOverdue > 0 ? '⚠️' : '✅'}</span>
+            <span className="fleet-kpi-title">Review & Overdue Queue</span>
+            <IconTarget size={18} className="muted" />
           </div>
           <div className="fleet-kpi-val">
-            {fleetRollup.totalPendingReview} <span className="unit">cần duyệt</span>
+            {fleetRollup.totalPendingReview} <span className="unit">pending</span>
           </div>
           <div className="fleet-kpi-sub">
             {fleetRollup.totalOverdue > 0 ? (
-              <span className="text-danger">⚠️ <strong>{fleetRollup.totalOverdue}</strong> task quá hạn deadline</span>
+              <span style={{ color: 'var(--danger)', fontWeight: 600 }}>⚠️ {fleetRollup.totalOverdue} overdue</span>
             ) : (
-              <span className="text-ok">✅ Không có task trễ hạn</span>
+              <span style={{ color: 'var(--success)', fontWeight: 600 }}>✓ All on schedule</span>
             )}
           </div>
         </div>
       </div>
 
-      {/* Zero State if no vessels */}
       {vesselDataList.length === 0 ? (
-        <div className="pm-panel empty-fleet-state">
-          <div className="empty-icon">🚢</div>
-          <h3>Chưa có Vessel nào trong hệ thống</h3>
-          <p className="muted">
-            Hãy tạo dự án / vessel mới để bắt đầu theo dõi tiến độ và kích hoạt các công cụ phân tích so sánh đa tàu.
-          </p>
+        <div className="pm-panel" style={{ textAlign: 'center', padding: '40px' }}>
+          <IconVessel size={36} className="muted" />
+          <h3 style={{ marginTop: '12px' }}>No Vessels in System</h3>
+          <p className="muted">Create a new vessel project to begin tracking engineering milestones.</p>
         </div>
       ) : (
         <>
           {/* 3. Control & Filter Toolbar */}
           <div className="dash-controls-bar">
-            {/* View Mode Switcher */}
             <div className="dash-view-tabs">
               <button
                 type="button"
                 className={`dash-tab-btn ${viewMode === 'overview' ? 'active' : ''}`}
                 onClick={() => setViewMode('overview')}
               >
-                📊 Tổng Quan & Xếp Hạng
+                <IconSummary size={14} />
+                <span>Overview & Rank</span>
               </button>
               <button
                 type="button"
                 className={`dash-tab-btn ${viewMode === 'matrix' ? 'active' : ''}`}
                 onClick={() => setViewMode('matrix')}
               >
-                📋 Ma Trận So Sánh Đa Tàu
+                <IconTable size={14} />
+                <span>Fleet Matrix</span>
               </button>
               <button
                 type="button"
                 className={`dash-tab-btn ${viewMode === 'benchmark' ? 'active' : ''}`}
                 onClick={() => setViewMode('benchmark')}
               >
-                🎯 Đối Chuẩn Nhóm Kỹ Thuật (3D/ISO/2D/MTO)
+                <IconTarget size={14} />
+                <span>Technical Benchmark</span>
               </button>
               <button
                 type="button"
                 className={`dash-tab-btn ${viewMode === 'compare' ? 'active' : ''}`}
                 onClick={() => setViewMode('compare')}
               >
-                ⚔️ So Sánh Song Song ({selectedForCompare.length})
+                <IconCompare size={14} />
+                <span>Compare ({selectedForCompare.length})</span>
               </button>
             </div>
 
-            {/* Search & Filters */}
             <div className="dash-filters-group">
               <div className="dash-search-wrap">
-                <span className="search-icon">🔍</span>
+                <IconSearch size={14} className="search-icon" />
                 <input
                   type="text"
-                  placeholder="Tìm theo Ship ID, tên..."
+                  placeholder="Search ship ID, name…"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="dash-search-input"
                 />
-                {searchTerm && (
-                  <button type="button" className="search-clear" onClick={() => setSearchTerm('')}>
-                    ×
-                  </button>
-                )}
               </div>
 
-              {/* Status Filter Pills */}
               <div className="dash-status-pills">
                 <button
                   type="button"
                   className={`pill-btn ${statusFilter === 'ALL' ? 'active' : ''}`}
                   onClick={() => setStatusFilter('ALL')}
                 >
-                  Tất cả ({vesselDataList.length})
+                  All ({vesselDataList.length})
                 </button>
                 <button
                   type="button"
                   className={`pill-btn ${statusFilter === 'IN_PROGRESS' ? 'active' : ''}`}
                   onClick={() => setStatusFilter('IN_PROGRESS')}
                 >
-                  Đang làm ({fleetRollup.activeVessels})
+                  Active ({fleetRollup.activeVessels})
                 </button>
                 <button
                   type="button"
                   className={`pill-btn ${statusFilter === 'COMPLETED' ? 'active' : ''}`}
                   onClick={() => setStatusFilter('COMPLETED')}
                 >
-                  Hoàn thành ({fleetRollup.completedVessels})
+                  Done ({fleetRollup.completedVessels})
                 </button>
                 <button
                   type="button"
                   className={`pill-btn ${statusFilter === 'ATTENTION' ? 'active' : ''}`}
                   onClick={() => setStatusFilter('ATTENTION')}
                 >
-                  Cần chú ý ({fleetRollup.attentionVessels})
+                  Attention ({fleetRollup.attentionVessels})
                 </button>
               </div>
 
-              {/* Sorter */}
               <select
-                className="dash-select"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                title="Sắp xếp danh sách tàu"
+                style={{ height: '30px', fontSize: '12px' }}
               >
-                <option value="PROGRESS_DESC">% Tiến độ: Cao → Thấp</option>
-                <option value="PROGRESS_ASC">% Tiến độ: Thấp → Cao</option>
-                <option value="TASKS_DESC">Số lượng Tasks: Nhiều nhất</option>
-                <option value="SHIP_ID">Tên / Ship ID</option>
-                <option value="DEADLINE">Hạn hoàn thành gần nhất</option>
+                <option value="PROGRESS_DESC">Progress: High → Low</option>
+                <option value="PROGRESS_ASC">Progress: Low → High</option>
+                <option value="TASKS_DESC">Workload: Most Tasks</option>
+                <option value="SHIP_ID">Vessel Name / ID</option>
+                <option value="DEADLINE">Earliest Deadline</option>
               </select>
             </div>
           </div>
@@ -538,16 +530,15 @@ export function DashboardPage() {
           {/* 4. VIEW MODE: OVERVIEW & RANKING */}
           {viewMode === 'overview' && (
             <div className="dash-main-grid">
-              {/* Left Column: Visual Comparative Bars */}
               <div className="dash-panel-card">
                 <div className="dash-card-head">
                   <div>
-                    <h3>Bảng Xếp Hạng & Tiến Độ Đa Tàu</h3>
+                    <h3>Vessel Progress Rankings</h3>
                     <p className="muted">
-                      So sánh % Overall và phân rã 4 nhóm <strong>3D (65%)</strong> · <strong>ISO (15%)</strong> · <strong>2D (10%)</strong> · <strong>MTO (10%)</strong>
+                      Overall weighted progress across 4 technical groups (3D: 65% · ISO: 15% · 2D: 10% · MTO: 10%)
                     </p>
                   </div>
-                  <span className="badge-count">{filteredAndSortedVessels.length} vessels</span>
+                  <span className="pill muted-pill">{filteredAndSortedVessels.length} vessels</span>
                 </div>
 
                 <MultiVesselComparisonBar
@@ -556,30 +547,21 @@ export function DashboardPage() {
                 />
               </div>
 
-              {/* Right Column: Status Distribution Breakdown */}
               <div className="dash-panel-card">
                 <div className="dash-card-head">
                   <div>
-                    <h3>Phân Bố Trạng Thái Công Việc Từng Tàu</h3>
-                    <p className="muted">Tỷ lệ Hoàn thành (Xanh lá) vs Đang làm (Vàng) vs Chưa làm (Xanh lam)</p>
+                    <h3>Status Breakdown by Vessel</h3>
+                    <p className="muted">Ratio of Completed (Green), In Progress (Amber), and Not Started (Slate)</p>
                   </div>
                 </div>
 
                 <MultiVesselStatusStackedBar vessels={filteredAndSortedVessels} />
-
-                <div className="status-legend-bar">
-                  <span className="leg-item"><span className="dot dot-comp" /> Đã hoàn thành</span>
-                  <span className="leg-item"><span className="dot dot-inprog" /> Đang thực hiện</span>
-                  <span className="leg-item"><span className="dot dot-notstart" /> Chưa bắt đầu</span>
-                  <span className="leg-item"><span className="dot dot-onhold" /> On Hold / Tạm ngưng</span>
-                </div>
               </div>
 
-              {/* Full Width: Vessel Cards Grid */}
               <div className="dash-card-wide-wrap">
                 <div className="dash-card-head">
-                  <h3>Thẻ Chi Tiết Từng Vessel</h3>
-                  <p className="muted">Bấm vào thẻ để chuyển thẳng vào chế độ quản lý và xem báo cáo chi tiết của tàu đó</p>
+                  <h3>Vessel Directory & Quick Actions</h3>
+                  <p className="muted">Click any vessel card to access its engineering summary and drawings</p>
                 </div>
 
                 <div className="vessel-cards-grid">
@@ -595,26 +577,25 @@ export function DashboardPage() {
 
                           <button
                             type="button"
-                            className={`compare-checkbox-btn ${isSelected ? 'selected' : ''}`}
+                            className={`pm-btn tiny ${isSelected ? 'primary' : 'ghost'}`}
                             onClick={() => toggleCompareSelection(v.id)}
-                            title={isSelected ? 'Bỏ chọn so sánh' : 'Chọn để so sánh song song'}
+                            title={isSelected ? 'Remove from comparator' : 'Add to side-by-side comparison'}
                           >
-                            {isSelected ? '✓ Đang so sánh' : '+ So sánh'}
+                            {isSelected ? '✓ Selected' : '+ Compare'}
                           </button>
                         </div>
 
                         <div className="v-card-body">
                           <div className="v-gauge-wrap">
-                            <DonutRing percent={v.overallProgress} size={84} stroke={10} />
+                            <DonutRing percent={v.overallProgress} size={78} stroke={9} />
                             <div className="v-gauge-sub">
                               <strong>{v.totalTasks}</strong> tasks
-                              <span className="v-sec-count">{v.sectionCount} sections</span>
                             </div>
                           </div>
 
                           <div className="v-groups-mini-list">
                             <div className="v-mini-row">
-                              <span>3D Drawing (65%)</span>
+                              <span>3D Pipe (65%)</span>
                               <div className="v-mini-bar-track">
                                 <div className="v-mini-bar-fill c-3d" style={{ width: `${v.group3D}%` }} />
                               </div>
@@ -630,7 +611,7 @@ export function DashboardPage() {
                             </div>
 
                             <div className="v-mini-row">
-                              <span>2D Drawing (10%)</span>
+                              <span>2D Plan (10%)</span>
                               <div className="v-mini-bar-track">
                                 <div className="v-mini-bar-fill c-2d" style={{ width: `${v.group2D}%` }} />
                               </div>
@@ -648,20 +629,18 @@ export function DashboardPage() {
                         </div>
 
                         <div className="v-card-footer">
-                          <div className="v-dates">
-                            <span>📅 {v.startDate || '—'} → {v.endDate || '—'}</span>
-                            {v.durationDays ? <span className="v-days">({v.durationDays} ngày)</span> : null}
-                          </div>
+                          <span className="muted">
+                            {v.startDate && v.endDate ? `${v.startDate} → ${v.endDate}` : 'Dates not set'}
+                          </span>
 
-                          <div className="v-card-actions">
-                            <button
-                              type="button"
-                              className="v-open-btn"
-                              onClick={() => handleNavigateToVessel(v)}
-                            >
-                              Mở Vessel này →
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            className="pm-btn tiny secondary"
+                            onClick={() => handleNavigateToVessel(v)}
+                          >
+                            <span>Open Vessel</span>
+                            <IconArrowRight size={12} />
+                          </button>
                         </div>
                       </div>
                     )
@@ -673,35 +652,35 @@ export function DashboardPage() {
 
           {/* 5. VIEW MODE: COMPARATIVE MATRIX TABLE */}
           {viewMode === 'matrix' && (
-            <div className="dash-panel-card dash-matrix-panel">
+            <div className="dash-panel-card">
               <div className="dash-card-head">
                 <div>
-                  <h3>Ma Trận So Sánh Đa Chiều Hạm Đội (Fleet Cross-Vessel Matrix)</h3>
-                  <p className="muted">Xem toàn diện tất cả các thông số, phân rã nhóm kỹ thuật và chỉ số rủi ro của từng tàu</p>
+                  <h3>Fleet Cross-Vessel Engineering Matrix</h3>
+                  <p className="muted">Full tabular breakdown with technical weights and schedule adherence</p>
                 </div>
-                <div className="matrix-export-note">
-                  Hiển thị <strong>{filteredAndSortedVessels.length}</strong> / {vesselDataList.length} tàu
-                </div>
+                <span className="pill muted-pill">
+                  Showing {filteredAndSortedVessels.length} / {vesselDataList.length} vessels
+                </span>
               </div>
 
               <div className="pm-table-wrap">
-                <table className="pm-table matrix-table">
+                <table className="pm-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '40px' }}>So sánh</th>
-                      <th>Ship ID / Vessel</th>
-                      <th>Phòng ban</th>
-                      <th>Tiến độ Tổng (% Weighted)</th>
-                      <th>3D Pipe (65%)</th>
+                      <th style={{ width: '40px' }}>Comp</th>
+                      <th>Vessel / ID</th>
+                      <th>Dept</th>
+                      <th>Overall Progress</th>
+                      <th>3D (65%)</th>
                       <th>ISO (15%)</th>
                       <th>2D (10%)</th>
                       <th>MTO (10%)</th>
-                      <th>Số Task</th>
-                      <th>Đã xong</th>
-                      <th>Chờ duyệt</th>
-                      <th>Quá hạn</th>
-                      <th>Thời gian</th>
-                      <th>Thao tác</th>
+                      <th>Tasks</th>
+                      <th>Done</th>
+                      <th>Pending</th>
+                      <th>Overdue</th>
+                      <th>Schedule</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -709,69 +688,65 @@ export function DashboardPage() {
                       const isSelected = selectedForCompare.includes(v.id)
                       return (
                         <tr key={v.id} className={isSelected ? 'row-selected' : ''}>
-                          <td style={{ textAlign: 'center' }}>
+                          <td>
                             <input
                               type="checkbox"
+                              className="pm-checkbox-circle"
                               checked={isSelected}
                               onChange={() => toggleCompareSelection(v.id)}
-                              title="Chọn để so sánh song song"
                             />
                           </td>
                           <td>
-                            <strong className="matrix-ship-id">{v.ship_id}</strong>
+                            <strong>{v.ship_id}</strong>
                           </td>
                           <td>
-                            <span className="v-dept-tag">{v.department}</span>
+                            <span className="v-dept-badge">{v.department}</span>
                           </td>
                           <td>
-                            <div className="matrix-progress-cell">
-                              <div className="matrix-progress-bar">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                              <div style={{ width: '80px', height: '6px', background: 'var(--bg-deep)', borderRadius: '999px', overflow: 'hidden' }}>
                                 <div
-                                  className="matrix-progress-fill"
                                   style={{
                                     width: `${v.overallProgress}%`,
-                                    background:
-                                      v.overallProgress >= 100
-                                        ? '#10b981'
-                                        : v.overallProgress >= 50
-                                        ? '#0ea5e9'
-                                        : '#f59e0b',
+                                    height: '100%',
+                                    background: v.overallProgress >= 100 ? 'var(--success)' : 'var(--primary)',
+                                    borderRadius: '999px',
                                   }}
                                 />
                               </div>
                               <strong>{v.overallProgress}%</strong>
                             </div>
                           </td>
-                          <td className="matrix-num">{v.group3D}%</td>
-                          <td className="matrix-num">{v.groupISO}%</td>
-                          <td className="matrix-num">{v.group2D}%</td>
-                          <td className="matrix-num">{v.groupMTO}%</td>
-                          <td className="matrix-num"><strong>{v.totalTasks}</strong></td>
-                          <td className="matrix-num text-ok">{v.statusCounts?.Completed || 0}</td>
-                          <td className="matrix-num">
+                          <td>{v.group3D}%</td>
+                          <td>{v.groupISO}%</td>
+                          <td>{v.group2D}%</td>
+                          <td>{v.groupMTO}%</td>
+                          <td><strong>{v.totalTasks}</strong></td>
+                          <td style={{ color: 'var(--success)', fontWeight: 600 }}>{v.statusCounts?.Completed || 0}</td>
+                          <td>
                             {v.pendingReviewCount > 0 ? (
-                              <span className="pill-warn">{v.pendingReviewCount}</span>
+                              <span className="status-chip doing">{v.pendingReviewCount}</span>
                             ) : (
                               '0'
                             )}
                           </td>
-                          <td className="matrix-num">
+                          <td>
                             {v.overdueCount > 0 ? (
-                              <span className="pill-danger">⚠️ {v.overdueCount}</span>
+                              <span className="status-chip on-hold">⚠️ {v.overdueCount}</span>
                             ) : (
-                              <span className="text-muted">0</span>
+                              <span className="muted">0</span>
                             )}
                           </td>
-                          <td className="matrix-dates">
+                          <td className="muted">
                             {v.startDate && v.endDate ? `${v.startDate} → ${v.endDate}` : '—'}
                           </td>
                           <td>
                             <button
                               type="button"
-                              className="matrix-view-btn"
+                              className="pm-btn tiny secondary"
                               onClick={() => handleNavigateToVessel(v)}
                             >
-                              Xem →
+                              <span>View</span>
                             </button>
                           </td>
                         </tr>
@@ -788,9 +763,9 @@ export function DashboardPage() {
             <div className="dash-panel-card">
               <div className="dash-card-head">
                 <div>
-                  <h3>Đối Chuẩn Chuyên Môn Kỹ Thuật (Group Benchmarking)</h3>
+                  <h3>Technical Group Benchmarking</h3>
                   <p className="muted">
-                    So sánh trực quan mức độ hoàn thành của từng tàu trên 4 trụ cột kỹ thuật: <strong>3D (65%)</strong>, <strong>ISO (15%)</strong>, <strong>2D (10%)</strong>, <strong>MTO (10%)</strong>
+                    Cross-vessel comparison across the 4 key disciplines: <strong>3D (65%)</strong>, <strong>ISO (15%)</strong>, <strong>2D (10%)</strong>, and <strong>MTO (10%)</strong>
                   </p>
                 </div>
               </div>
@@ -804,109 +779,79 @@ export function DashboardPage() {
             <div className="dash-panel-card">
               <div className="dash-card-head">
                 <div>
-                  <h3>So Sánh Đối Đầu Song Song (Side-by-Side Vessel Comparator)</h3>
+                  <h3>Side-by-Side Vessel Comparator</h3>
                   <p className="muted">
-                    Đặt từ 2 đến 4 tàu cạnh nhau để phân tích sự chênh lệch tiến độ, khối lượng và hiệu suất thực tế.
+                    Evaluate 2 to 4 vessels simultaneously to identify variance in engineering pace and resource allocation.
                   </p>
                 </div>
-                <div className="compare-picker-prompt">
-                  <span>Chọn tàu cần so sánh:</span>
-                  <div className="compare-chips-list">
-                    {vesselDataList.map((v) => {
-                      const isSel = selectedForCompare.includes(v.id)
-                      return (
-                        <button
-                          key={v.id}
-                          type="button"
-                          className={`chip-toggle ${isSel ? 'active' : ''}`}
-                          onClick={() => toggleCompareSelection(v.id)}
-                        >
-                          {isSel ? '✓ ' : '+ '} {v.ship_id}
-                        </button>
-                      )
-                    })}
-                  </div>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <span className="muted" style={{ fontSize: '11.5px' }}>Toggle:</span>
+                  {vesselDataList.map((v) => {
+                    const isSel = selectedForCompare.includes(v.id)
+                    return (
+                      <button
+                        key={v.id}
+                        type="button"
+                        className={`pm-btn tiny ${isSel ? 'primary' : 'ghost'}`}
+                        onClick={() => toggleCompareSelection(v.id)}
+                      >
+                        {isSel ? '✓ ' : '+ '} {v.ship_id}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
               {comparedVessels.length < 2 ? (
-                <div className="compare-notice">
-                  <div className="compare-empty-icon">⚔️</div>
-                  <h4>Chưa chọn đủ Vessel để so sánh đối đầu</h4>
-                  <p>
-                    {comparedVessels.length === 0
-                      ? 'Mặc định chưa có vessel nào được chọn. Vui lòng bấm chọn các tàu từ danh sách trên (hoặc bấm "+ So sánh" trên thẻ tàu / ô checkbox trong bảng Ma trận) để chọn từ 2 đến 4 tàu so sánh song song.'
-                      : `Bạn đã chọn 1 tàu (Vessel ${comparedVessels[0].ship_id}). Vui lòng chọn thêm ít nhất 1 tàu nữa để tiến hành so sánh đối đầu.`}
+                <div className="pm-panel" style={{ textAlign: 'center', padding: '40px' }}>
+                  <IconCompare size={32} className="muted" />
+                  <h4 style={{ marginTop: '12px' }}>Select at least 2 vessels</h4>
+                  <p className="muted">
+                    Click '+ Compare' above or on any vessel card to view direct comparisons.
                   </p>
                 </div>
               ) : (
-                <div className="side-by-side-grid" style={{ gridTemplateColumns: `repeat(${comparedVessels.length}, 1fr)` }}>
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${comparedVessels.length}, 1fr)`, gap: '16px', marginTop: '12px' }}>
                   {comparedVessels.map((v) => (
-                    <div key={v.id} className="side-compare-col">
-                      <div className="side-col-header">
+                    <div key={v.id} className="pm-panel" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div style={{ textAlign: 'center' }}>
                         <span className="v-dept-badge">{v.department}</span>
-                        <h4>Vessel {v.ship_id}</h4>
-                        <div className="side-gauge-center">
-                          <DonutRing percent={v.overallProgress} size={110} stroke={12} />
-                        </div>
+                        <h4 style={{ margin: '4px 0 10px' }}>Vessel {v.ship_id}</h4>
+                        <DonutRing percent={v.overallProgress} size={96} stroke={10} />
                       </div>
 
-                      <div className="side-col-metrics">
-                        <div className="metric-row">
-                          <span className="metric-lbl">Tổng số tasks</span>
-                          <strong className="metric-val">{v.totalTasks}</strong>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span className="muted">Total Tasks</span>
+                          <strong>{v.totalTasks}</strong>
                         </div>
-                        <div className="metric-row">
-                          <span className="metric-lbl">Đã hoàn thành</span>
-                          <strong className="metric-val text-ok">
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span className="muted">Completed</span>
+                          <strong style={{ color: 'var(--success)' }}>
                             {v.statusCounts?.Completed || 0} ({v.totalTasks ? Math.round(((v.statusCounts?.Completed || 0) / v.totalTasks) * 100) : 0}%)
                           </strong>
                         </div>
-                        <div className="metric-row">
-                          <span className="metric-lbl">Đang thi công</span>
-                          <strong className="metric-val text-amber">{v.statusCounts?.['In Progress'] || 0}</strong>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span className="muted">In Progress</span>
+                          <strong style={{ color: 'var(--warning)' }}>{v.statusCounts?.['In Progress'] || 0}</strong>
                         </div>
-                        <div className="metric-row">
-                          <span className="metric-lbl">Task chờ duyệt</span>
-                          <strong className="metric-val">{v.pendingReviewCount}</strong>
-                        </div>
-                        <div className="metric-row">
-                          <span className="metric-lbl">Task quá hạn</span>
-                          <strong className={`metric-val ${v.overdueCount > 0 ? 'text-danger' : 'text-ok'}`}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span className="muted">Overdue</span>
+                          <strong style={{ color: v.overdueCount > 0 ? 'var(--danger)' : 'var(--success)' }}>
                             {v.overdueCount > 0 ? `⚠️ ${v.overdueCount}` : '0'}
                           </strong>
                         </div>
                       </div>
 
-                      <div className="side-col-groups">
-                        <h5>Tiến độ nhóm kỹ thuật</h5>
-                        <div className="side-group-item">
-                          <div className="s-head"><span>3D Pipe Drawing (65%)</span><strong>{v.group3D}%</strong></div>
-                          <div className="s-track"><div className="s-fill c-3d" style={{ width: `${v.group3D}%` }} /></div>
-                        </div>
-                        <div className="side-group-item">
-                          <div className="s-head"><span>ISO Generating (15%)</span><strong>{v.groupISO}%</strong></div>
-                          <div className="s-track"><div className="s-fill c-iso" style={{ width: `${v.groupISO}%` }} /></div>
-                        </div>
-                        <div className="side-group-item">
-                          <div className="s-head"><span>2D Drawing (10%)</span><strong>{v.group2D}%</strong></div>
-                          <div className="s-track"><div className="s-fill c-2d" style={{ width: `${v.group2D}%` }} /></div>
-                        </div>
-                        <div className="side-group-item">
-                          <div className="s-head"><span>MTO (10%)</span><strong>{v.groupMTO}%</strong></div>
-                          <div className="s-track"><div className="s-fill c-mto" style={{ width: `${v.groupMTO}%` }} /></div>
-                        </div>
-                      </div>
-
-                      <div className="side-col-footer">
-                        <button
-                          type="button"
-                          className="v-open-btn"
-                          onClick={() => handleNavigateToVessel(v)}
-                        >
-                          Chuyển đến {v.ship_id} →
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        className="pm-btn secondary"
+                        onClick={() => handleNavigateToVessel(v)}
+                        style={{ marginTop: 'auto' }}
+                      >
+                        <span>Open Vessel {v.ship_id}</span>
+                        <IconArrowRight size={13} />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -918,5 +863,3 @@ export function DashboardPage() {
     </div>
   )
 }
-
-

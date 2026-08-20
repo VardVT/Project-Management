@@ -4,17 +4,18 @@ import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
 import { GROUP_DENSITIES, getDashboardGroupFromSectionName } from '../lib/progress'
 import { DonutRing, MultiSegmentDonut, VerticalBarChart } from '../components/Charts'
+import { IconVessel } from '../components/Icons'
 
 const BUCKET_COLOR = {
-  'Not Started (0%)': 'var(--sky)',
-  '1-25%': 'var(--brass)',
-  '26-50%': 'var(--brass)',
-  '51-75%': 'var(--brass)',
-  '76-99%': 'var(--brass)',
-  'Completed (100%)': 'var(--ok)',
+  'Not Started (0%)': 'var(--ink-muted)',
+  '1-25%': 'var(--warning)',
+  '26-50%': 'var(--warning)',
+  '51-75%': 'var(--warning)',
+  '76-99%': 'var(--warning)',
+  'Completed (100%)': 'var(--success)',
 }
 
-const PIE_COLORS = { notStarted: 'var(--sky)', inProgress: 'var(--brass)', completed: 'var(--ok)' }
+const PIE_COLORS = { notStarted: '#64748b', inProgress: '#d97706', completed: '#059669' }
 
 function daysBetween(startIso, endIso) {
   if (!startIso || !endIso) return null
@@ -22,12 +23,6 @@ function daysBetween(startIso, endIso) {
   return Number.isFinite(d) ? Math.max(0, d) : null
 }
 
-/**
- * Tính bảng nhóm (giống mockup Excel: Projects | Tasks | Start | End | Days
- * | %Progress | Remaining | Density) + phần dữ liệu pie theo từng nhóm.
- * Nhóm cố định theo GROUP_DENSITIES (3D drawing / 2D drawing / Iso generating / MTO)
- * — dùng đúng logic getDashboardGroupFromSectionName đã có sẵn trong progress.js.
- */
 function buildGroupTable(tasks, sections) {
   const sectionNameById = new Map(sections.map((s) => [s.id, s.header_name]))
   const groupNames = Object.keys(GROUP_DENSITIES)
@@ -81,11 +76,11 @@ function buildGroupTable(tasks, sections) {
   const allEnd = allEnds[allEnds.length - 1] || null
 
   const allRow = {
-    name: 'Toàn dự án',
+    name: 'Total Project',
     total: totalAll,
     avgPercent: overall,
     remaining: 100 - overall,
-    density: '—',
+    density: '100%',
     start: allStart,
     end: allEnd,
     days: daysBetween(allStart, allEnd),
@@ -94,7 +89,6 @@ function buildGroupTable(tasks, sections) {
   return { allRow, rows }
 }
 
-/** Phân bố % toàn dự án theo 6 khoảng, giống "Task Summary" trong mockup. */
 function buildPercentBuckets(tasks) {
   const buckets = {
     'Not Started (0%)': 0,
@@ -154,12 +148,14 @@ function RichProjectDashboard({ eyebrow, title }) {
 
   if (!currentProject?.id) {
     return (
-      <div className="pm-panel">
-        <p className="muted">Chưa chọn project / vessel.</p>
+      <div className="pm-panel" style={{ textAlign: 'center', padding: '40px' }}>
+        <IconVessel size={32} className="muted" />
+        <h3 style={{ marginTop: '12px' }}>No Vessel Selected</h3>
+        <p className="muted">Select a vessel from the sidebar to view its engineering progress summary.</p>
       </div>
     )
   }
-  if (loading) return <p className="muted">Đang tải…</p>
+  if (loading) return <p className="muted">Loading vessel metrics…</p>
 
   const { allRow, rows } = buildGroupTable(tasks, sections)
   const buckets = buildPercentBuckets(rows.length ? tasks.filter((t) => t.percent_complete != null) : [])
@@ -170,63 +166,77 @@ function RichProjectDashboard({ eyebrow, title }) {
 
   return (
     <div className="stack">
-      <div className={`pm-hero shell-manager`}>
+      <div className="pm-hero shell-manager">
         <p className="eyebrow">{eyebrow}</p>
         <h2>{title}</h2>
         <p className="muted">
-          Ship <strong>{currentProject.ship_id}</strong> · {allRow.total} tasks
-          {allRow.start ? ` · Starts on ${allRow.start}` : ''}
-          {allRow.end ? ` · Ends on ${allRow.end}` : ''}
+          Vessel <strong>{currentProject.ship_id}</strong> · {allRow.total} engineering tasks
+          {allRow.start ? ` · Start: ${allRow.start}` : ''}
+          {allRow.end ? ` · Finish: ${allRow.end}` : ''}
         </p>
       </div>
 
       {error ? <p className="error">{error}</p> : null}
 
-      <div className="dash-grid">
-        <div className="dash-card">
-          <h3>Overall progress</h3>
-          <div className="dash-card-center">
-            <DonutRing percent={allRow.avgPercent} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px' }}>
+        <div className="pm-panel">
+          <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 700 }}>Overall Progress</h3>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0' }}>
+            <DonutRing percent={allRow.avgPercent} size={130} stroke={14} />
           </div>
         </div>
 
-        <div className="dash-card">
-          <h3>Due this week</h3>
+        <div className="pm-panel">
+          <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 700 }}>Due This Week</h3>
           {dueThisWeek.length ? (
-            <ul className="overdue-list">
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {dueThisWeek.map((t) => (
-                <li key={t.id}>
-                  <div className="overdue-main">
+                <li
+                  key={t.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 10px',
+                    background: 'var(--surface-subtle)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '12.5px',
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <strong>{t.activity || '—'}</strong>
-                    <span className="muted">{t.zone || ''}</span>
+                    <span className="muted">{t.zone || 'No zone'}</span>
                   </div>
-                  <span className="overdue-date">{t.finish_date}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--warning)', fontVariantNumeric: 'tabular-nums' }}>
+                    {t.finish_date}
+                  </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="muted">Không có task đến hạn trong tuần này.</p>
+            <p className="muted">No engineering tasks due in the next 7 days.</p>
           )}
         </div>
 
-        <div className="dash-card dash-card-wide">
-          <h3>Projects overview</h3>
+        <div className="pm-panel" style={{ gridColumn: '1 / -1' }}>
+          <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 700 }}>Technical Group Breakdown</h3>
           <div className="pm-table-wrap">
-            <table className="pm-table summary-table">
+            <table className="pm-table">
               <thead>
                 <tr>
-                  <th>Group</th>
+                  <th>Technical Group</th>
                   <th>Tasks</th>
                   <th>Start</th>
                   <th>End</th>
                   <th>Days</th>
                   <th>% Progress</th>
                   <th>Remaining</th>
-                  <th>Density</th>
+                  <th>Weight</th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="summary-total-row">
+                <tr style={{ background: 'var(--primary-subtle)', fontWeight: 700 }}>
                   <td>{allRow.name}</td>
                   <td>{allRow.total}</td>
                   <td>{allRow.start || '—'}</td>
@@ -245,7 +255,7 @@ function RichProjectDashboard({ eyebrow, title }) {
                     <td>{r.days ?? '—'}</td>
                     <td>{r.avgPercent}%</td>
                     <td>{r.remaining}%</td>
-                    <td>{r.density}</td>
+                    <td>{r.density}%</td>
                   </tr>
                 ))}
               </tbody>
@@ -256,16 +266,16 @@ function RichProjectDashboard({ eyebrow, title }) {
         {rows
           .filter((r) => r.total > 0)
           .map((r) => (
-            <div className="dash-card" key={r.name}>
-              <h3>{r.name}</h3>
-              <div className="donut-wrap-block">
-                <MultiSegmentDonut segments={r.pie} solid centerLabel={`${r.total}`} />
-                <div className="donut-legend">
+            <div className="pm-panel" key={r.name}>
+              <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 700 }}>{r.name} Discipline</h3>
+              <div style={{ display: 'flex', gap: '18px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <MultiSegmentDonut segments={r.pie} solid centerLabel={`${r.total}`} size={110} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px' }}>
                   {r.pie.map((s) => (
-                    <div className="legend-row" key={s.name}>
-                      <span className="legend-dot" style={{ background: s.color }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} key={s.name}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.color }} />
                       <span>{s.name}</span>
-                      <strong>
+                      <strong style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>
                         {s.value} ({Math.round((s.value / r.total) * 100)}%)
                       </strong>
                     </div>
@@ -275,9 +285,9 @@ function RichProjectDashboard({ eyebrow, title }) {
             </div>
           ))}
 
-        <div className="dash-card dash-card-wide">
-          <h3>Task summary (theo % hoàn thành)</h3>
-          <VerticalBarChart items={buckets} height={180} />
+        <div className="pm-panel" style={{ gridColumn: '1 / -1' }}>
+          <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 700 }}>Progress Distribution Histogram</h3>
+          <VerticalBarChart items={buckets} height={160} />
         </div>
       </div>
     </div>
@@ -291,23 +301,25 @@ export function SummaryPage() {
     return (
       <div className="stack">
         <div className="pm-hero shell-engineer">
-          <p className="eyebrow">Engineer Summary</p>
-          <h2>Việc của tôi</h2>
+          <p className="eyebrow">Engineer Work Summary</p>
+          <h2>My Assigned Tasks</h2>
           <p className="muted">
-            {profile?.display_name} — chỉ thấy / cập nhật task được gán. % tối đa{' '}
-            <strong>{caps.percentCap}%</strong> trước khi review.
+            {profile?.display_name || 'Engineer'} — Displaying assigned tasks. Max self-report cap is{' '}
+            <strong>{caps.percentCap}%</strong> prior to formal review request.
           </p>
         </div>
         <div className="pm-panel">
-          <p className="muted">Mở menu Vessel → Task để làm việc. Nút Submit Review có trên từng task.</p>
+          <p className="muted">
+            Use the sidebar under <strong>Vessel → Tasks</strong> to update activities and submit for review.
+          </p>
         </div>
       </div>
     )
   }
 
   if (caps.shell === 'senior') {
-    return <RichProjectDashboard eyebrow="Senior Summary" title="Theo dõi & Review" />
+    return <RichProjectDashboard eyebrow="Senior Engineer Summary" title="Vessel Discipline Control" />
   }
 
-  return <RichProjectDashboard eyebrow="Manager Summary" title="Tổng quan dự án" />
+  return <RichProjectDashboard eyebrow="Executive Summary" title="Vessel Engineering Overview" />
 }

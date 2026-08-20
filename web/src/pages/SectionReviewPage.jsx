@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
 import { displaySectionName } from '../lib/roles'
+import { IconSearch, IconChevronLeft } from '../components/Icons'
 
 export function SectionReviewPage() {
   const { sectionId } = useParams()
@@ -21,7 +22,6 @@ export function SectionReviewPage() {
     setLoading(true)
     setError('')
 
-    // FIX: owners_review (đúng tên cột thật trong DB, có chữ "s")
     let query = supabase
       .from('tasks')
       .select('id, zone, activity, drawing_id, assignee_id, review_3d, first_unit, unit_issue_date, vvt_review, owners_review')
@@ -54,7 +54,7 @@ export function SectionReviewPage() {
     const task = tasks.find((t) => t.id === id)
     if (!task) return
     if (caps.canEditAssignedOnly && task.assignee_id !== user.id) {
-      setError('Bạn chỉ sửa được task được gán.')
+      setError('You are only authorized to edit your assigned tasks.')
       return
     }
     const { error: err } = await supabase.from('tasks').update(patch).eq('id', id)
@@ -63,25 +63,33 @@ export function SectionReviewPage() {
   }
 
   if (!section) {
-    return <p className="muted">Section không tồn tại hoặc chưa load project.</p>
+    return (
+      <div className="pm-panel">
+        <p className="muted">Section not found or vessel not loaded.</p>
+      </div>
+    )
   }
 
   return (
     <div className="stack">
-      <div className="section-head">
-        <h2>{displaySectionName(section.header_name)} · Review</h2>
+      <div className="pm-hero shell-manager">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+          <h2>{displaySectionName(section.header_name)} · Engineering Review Matrix</h2>
+          <Link to={`/sections/${sectionId}`} className="pm-btn secondary tiny">
+            <IconChevronLeft size={12} />
+            <span>Back to Tasks Grid</span>
+          </Link>
+        </div>
         <p className="muted">
-          Ship {currentProject?.ship_id} · {filtered.length} task
-          {caps.canEditAssignedOnly ? ' (chỉ task của bạn)' : ''}
+          Vessel <strong>{currentProject?.ship_id}</strong> · Tracking 3D, VVT, Unit Issue, and Owner Review sign-offs
         </p>
-        <Link className="back-link" to={`/sections/${sectionId}`}>
-          ← Quay lại danh sách task
-        </Link>
       </div>
 
-      <div className="pm-filter-bar">
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', maxWidth: '360px' }}>
+        <IconSearch size={14} style={{ position: 'absolute', left: '8px', color: 'var(--ink-faint)' }} />
         <input
-          placeholder="Tìm zone / activity / drawing…"
+          style={{ width: '100%', paddingLeft: '28px' }}
+          placeholder="Filter zone, activity, drawing ID…"
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
         />
@@ -90,30 +98,30 @@ export function SectionReviewPage() {
       {error ? <p className="error">{error}</p> : null}
 
       {loading ? (
-        <p className="muted">Đang tải…</p>
+        <p className="muted">Loading review status matrix…</p>
       ) : (
         <div className="pm-table-wrap">
           <table className="pm-table">
             <colgroup>
-              <col style={{ width: '12rem' }} />
-              <col style={{ width: '25rem' }} />
-              <col style={{ width: '25rem' }} />
-              <col style={{ width: '12rem' }} />
-              <col style={{ width: '10.5rem' }} />
-              <col style={{ width: '12rem' }} />
-              <col style={{ width: '10.5rem' }} />
-              <col style={{ width: '10.5rem' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '280px' }} />
+              <col style={{ width: '220px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '120px' }} />
             </colgroup>
             <thead>
               <tr>
                 <th>Zone</th>
-                <th>Activity</th>
-                <th>Drawing</th>
+                <th>Activity Description</th>
+                <th>Drawing ID</th>
                 <th>3D Review</th>
-                <th>First unit</th>
-                <th>Unit issue</th>
-                <th>VVT review</th>
-                <th>Owner review</th>
+                <th>First Unit</th>
+                <th>Unit Issue Date</th>
+                <th>VVT Review</th>
+                <th>Owner Review</th>
               </tr>
             </thead>
             <tbody>
@@ -123,7 +131,7 @@ export function SectionReviewPage() {
                 return (
                   <tr key={t.id}>
                     <td>{t.zone || '—'}</td>
-                    <td>{t.activity || '—'}</td>
+                    <td style={{ textAlign: 'left' }}>{t.activity || '—'}</td>
                     <td>{t.drawing_id || '—'}</td>
                     <td>
                       <input
@@ -158,7 +166,6 @@ export function SectionReviewPage() {
                       />
                     </td>
                     <td>
-                      {/* FIX: field state vẫn đọc/ghi đúng cột owners_review */}
                       <input
                         disabled={!canEdit}
                         value={t.owners_review || ''}
@@ -171,7 +178,11 @@ export function SectionReviewPage() {
               })}
             </tbody>
           </table>
-          {filtered.length === 0 && <p className="muted">Không có task.</p>}
+          {filtered.length === 0 && (
+            <p className="muted" style={{ textAlign: 'center', padding: '24px' }}>
+              No tasks found for review.
+            </p>
+          )}
         </div>
       )}
     </div>

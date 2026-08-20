@@ -1,6 +1,7 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { ProjectProvider } from './hooks/useProject'
+import { NotificationProvider } from './components/NotificationContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AppShell } from './components/AppShell'
 import { LoginPage } from './pages/LoginPage'
@@ -12,11 +13,13 @@ import { ReviewsPage } from './pages/ReviewsPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { UsersPage } from './pages/UsersPage'
 import { ComingSoonPage } from './pages/ComingSoonPage'
+
 function HomeRedirect() {
   const { caps } = useAuth()
   if (caps.showDashboard) return <Navigate to="/dashboard" replace />
   return <Navigate to="/summary" replace />
 }
+
 function AuthedTree() {
   return (
     <ProjectProvider>
@@ -38,17 +41,20 @@ function AuthedTree() {
     </ProjectProvider>
   )
 }
+
 export default function App() {
   return (
-    <AuthProvider>
-      <HashRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route element={<ProtectedRoute />}>
-            <Route path="/*" element={<AuthedTree />} />
-          </Route>
-        </Routes>
-      </HashRouter>
-    </AuthProvider>
+    <NotificationProvider>
+      <AuthProvider>
+        <HashRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/*" element={<AuthedTree />} />
+            </Route>
+          </Routes>
+        </HashRouter>
+      </AuthProvider>
+    </NotificationProvider>
   )
 }

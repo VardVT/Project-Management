@@ -5,25 +5,36 @@ import { useProject } from '../hooks/useProject'
 import { displaySectionName } from '../lib/roles'
 import { NewProjectModal } from './NewProjectModal'
 import { ExcelToolbar } from './ExcelToolbar'
+import { useNotification } from './NotificationContext'
+import {
+  IconDashboard,
+  IconVessel,
+  IconTask,
+  IconSummary,
+  IconReview,
+  IconCalendar,
+  IconUsers,
+  IconReport,
+  IconPlus,
+  IconTrash,
+  IconLogOut,
+  IconChevronDown,
+  IconChevronRight,
+} from './Icons'
 
 export function AppShell() {
   const { profile, user, caps, signOut } = useAuth()
   const { currentProject, projects, sections, selectProject, deleteProject } = useProject()
+  const { confirm, toast } = useNotification()
   const navigate = useNavigate()
 
-  // FIX: sidebar giờ phân cấp theo Vessel — mỗi vessel là 1 mục cấp 1,
-  // bấm vào mở ra Task/Summary (cấp 2). expandedVessels: các vessel đang
-  // mở rộng. taskOpen: có đang hiện danh sách section (Task) của vessel
-  // hiện tại (currentProject) hay không — vì `sections` trong context chỉ
-  // phản ánh đúng project đang chọn, nên list section chỉ hiện dưới đúng
-  // vessel trùng currentProject.
   const [expandedVessels, setExpandedVessels] = useState(new Set())
   const [taskOpen, setTaskOpen] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [switching, setSwitching] = useState(null) // id vessel đang chuyển, để disable tạm
+  const [switching, setSwitching] = useState(null)
 
-  const name = profile?.display_name || user?.email || 'User'
+  const name = profile?.display_name || user?.email?.split('@')[0] || 'User'
   const ship = currentProject?.ship_id || currentProject?.name || '—'
   const dept = currentProject?.department || 'Piping'
 
@@ -59,17 +70,20 @@ export function AppShell() {
 
   async function onDeleteProject() {
     if (!currentProject?.id || !caps.canDeleteProject) return
-    const label = currentProject.ship_id || currentProject.name || 'project này'
-    const ok = window.confirm(
-      `Xóa project ${label}?\nToàn bộ section + task sẽ bị xóa. Không hoàn tác được.`
-    )
+    const label = currentProject.ship_id || currentProject.name || 'this vessel'
+    const ok = await confirm({
+      title: `Delete Vessel ${label}?`,
+      message: 'All sections, drawings and engineering tasks will be permanently removed. This action cannot be undone.',
+      confirmText: 'Delete Vessel',
+      isDanger: true,
+    })
     if (!ok) return
     setDeleting(true)
     try {
       await deleteProject(currentProject.id)
       navigate('/dashboard')
     } catch (err) {
-      window.alert(err.message || 'Xóa project thất bại')
+      toast.error('Delete Failed', err.message || 'Failed to delete vessel')
     } finally {
       setDeleting(false)
     }
@@ -82,23 +96,24 @@ export function AppShell() {
           <div className="pm-avatar" style={profile?.theme_color ? { background: profile.theme_color } : undefined}>
             {name.slice(0, 1).toUpperCase()}
           </div>
-          <div>
-            <div className="pm-user-name">{name}</div>
-            <div className={`pm-role-badge role-${caps.shell}`}>{caps.label}</div>
+          <div className="pm-user-info">
+            <div className="pm-user-name" title={name}>{name}</div>
+            <div className={`pm-role-badge role-${caps.shell}`}>{caps.label || 'Engineer'}</div>
           </div>
         </div>
 
         <nav className="pm-menu">
+          <div className="pm-menu-section-label">Overview</div>
           {caps.showDashboard && (
             <NavLink to="/dashboard" className="pm-menu-item">
-              00 Dashboard
+              <IconDashboard size={17} />
+              <span>Fleet Dashboard</span>
             </NavLink>
           )}
 
-          {/* FIX: liệt kê thẳng từng Vessel (project) — không có nhãn cha
-              "Vessel" bọc ngoài, mỗi tàu là 1 mục cấp 1 độc lập. */}
+          <div className="pm-menu-section-label">Vessels & Engineering</div>
           {projects.length === 0 ? (
-            <span className="pm-submenu-empty">Chưa có vessel nào</span>
+            <span className="pm-submenu-empty">No vessels loaded</span>
           ) : (
             projects.map((v) => {
               const isCurrent = currentProject?.id === v.id
@@ -111,8 +126,11 @@ export function AppShell() {
                     onClick={() => toggleVessel(v.id)}
                     disabled={switching === v.id}
                   >
-                    Vessel {v.ship_id || v.name}
-                    <span>{isExpanded ? '▼' : '▶'}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <IconVessel size={16} />
+                      <span>Vessel {v.ship_id || v.name}</span>
+                    </div>
+                    {isExpanded ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
                   </button>
 
                   {isExpanded && (
@@ -123,20 +141,18 @@ export function AppShell() {
                         onClick={() => onClickTask(v)}
                         disabled={switching === v.id}
                       >
-                        {switching === v.id ? 'Đang chuyển…' : 'Task'}
+                        <IconTask size={14} />
+                        <span>{switching === v.id ? 'Switching…' : 'Tasks'}</span>
                       </button>
 
-                      {/* Danh sách section chỉ hiện đúng dưới vessel đang
-                          là currentProject (vì sections context chỉ phản
-                          ánh 1 project tại 1 thời điểm) và khi Task đang mở. */}
                       {isCurrent && taskOpen && (
                         <div className="pm-submenu pm-submenu-nested">
                           {sections.length === 0 ? (
-                            <span className="pm-submenu-empty">Chưa có section</span>
+                            <span className="pm-submenu-empty">No sections</span>
                           ) : (
                             sections.map((s) => (
                               <NavLink key={s.id} to={`/sections/${s.id}`} className="pm-menu-item sub2">
-                                {displaySectionName(s.header_name)}
+                                <span>{displaySectionName(s.header_name)}</span>
                               </NavLink>
                             ))
                           )}
@@ -149,7 +165,8 @@ export function AppShell() {
                         onClick={() => onClickSummary(v)}
                         disabled={switching === v.id}
                       >
-                        Summary
+                        <IconSummary size={14} />
+                        <span>Summary</span>
                       </button>
                     </div>
                   )}
@@ -158,33 +175,32 @@ export function AppShell() {
             })
           )}
 
+          <div className="pm-menu-section-label">Management</div>
           {caps.showReviewRequests && (
             <NavLink to="/reviews" className="pm-menu-item">
-              Review Requests
+              <IconReview size={17} />
+              <span>Review Requests</span>
             </NavLink>
           )}
 
           {caps.showCalendar && (
             <NavLink to="/calendar" className="pm-menu-item">
-              Calendar
+              <IconCalendar size={17} />
+              <span>Milestones & Calendar</span>
             </NavLink>
           )}
 
           {caps.canManageUsers && (
             <NavLink to="/users" className="pm-menu-item">
-              Users
+              <IconUsers size={17} />
+              <span>Team Members</span>
             </NavLink>
           )}
 
           {caps.showReports && (
             <NavLink to="/reports" className="pm-menu-item muted-link">
-              Reports
-            </NavLink>
-          )}
-
-          {caps.showPlanDrawing && (
-            <NavLink to="/plan-drawing" className="pm-menu-item muted-link">
-              Plan Drawing
+              <IconReport size={17} />
+              <span>Reports</span>
             </NavLink>
           )}
         </nav>
@@ -192,47 +208,60 @@ export function AppShell() {
 
       <div className="pm-main">
         <header className="pm-header">
-          <div className="pm-ship-panel">
-            <div className="pm-ship-id">{ship}</div>
-            <div className="pm-dept">{dept}</div>
+          <div className="pm-header-left">
+            <div className="pm-ship-indicator">
+              <IconVessel size={15} />
+              <span className="ship-id">Vessel {ship}</span>
+              <span className="dept-tag">{dept}</span>
+            </div>
+
+            <div className="pm-header-title">
+              <h1>Progress Management</h1>
+              <span className="subtitle">Piping Engineering & Production Control</span>
+            </div>
           </div>
 
-          <div className="pm-header-center">
-            <h1>Progress Management</h1>
-            <div className="pm-actions">
+          <div className="pm-header-actions">
+            <div className="pm-action-group">
               {caps.canCreateProject && (
-                <button type="button" className="pm-btn purple" onClick={() => setShowNew(true)}>
-                  New
+                <button
+                  type="button"
+                  className="pm-btn primary"
+                  onClick={() => setShowNew(true)}
+                  title="Create new vessel project"
+                >
+                  <IconPlus size={15} />
+                  <span>New Vessel</span>
                 </button>
               )}
               <ExcelToolbar />
-              {caps.canDeleteProject && currentProject?.id ? (
-                <button
-                  type="button"
-                  className="pm-btn danger"
-                  disabled={deleting}
-                  onClick={onDeleteProject}
-                  title="Xóa project hiện tại (section + task)"
-                >
-                  {deleting ? 'Deleting…' : 'Xóa'}
-                </button>
-              ) : null}
-              {caps.canManageUsers && (
-                <button type="button" className="pm-btn green" onClick={() => navigate('/users')}>
-                  Users
-                </button>
-              )}
+            </div>
+
+            {caps.canDeleteProject && currentProject?.id ? (
               <button
                 type="button"
-                className="pm-btn ghost"
-                onClick={async () => {
-                  await signOut()
-                  navigate('/login')
-                }}
+                className="pm-btn danger"
+                disabled={deleting}
+                onClick={onDeleteProject}
+                title="Delete current vessel"
               >
-                Đăng xuất
+                <IconTrash size={14} />
+                <span>{deleting ? 'Deleting…' : 'Delete'}</span>
               </button>
-            </div>
+            ) : null}
+
+            <button
+              type="button"
+              className="pm-btn ghost"
+              onClick={async () => {
+                await signOut()
+                navigate('/login')
+              }}
+              title="Sign out of system"
+            >
+              <IconLogOut size={15} />
+              <span>Sign out</span>
+            </button>
           </div>
         </header>
 

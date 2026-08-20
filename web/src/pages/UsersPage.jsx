@@ -2,18 +2,20 @@ import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { IconSave, IconTrash, IconCheck, IconCross, IconPlus } from '../components/Icons'
+import { useNotification } from '../components/NotificationContext'
 
 const POSITIONS = ['Admin', 'Manager', 'Senior', 'Engineer', 'Designer']
 
 export function UsersPage() {
   const { caps, createUser, deleteUser } = useAuth()
+  const { confirm, toast } = useNotification()
   const [users, setUsers] = useState([])
   const [error, setError] = useState('')
   const [savingId, setSavingId] = useState('')
   const [deletingId, setDeletingId] = useState('')
   const [loading, setLoading] = useState(true)
 
-  // State cho dòng nhập liệu khi bấm dấu cộng ở cuối bảng
   const [addingUser, setAddingUser] = useState(null)
   const [addingLoading, setAddingLoading] = useState(false)
 
@@ -36,7 +38,6 @@ export function UsersPage() {
     return <Navigate to="/" replace />
   }
 
-  // ---- LƯU THAY ĐỔI USER CŨ (UPDATE) ----
   async function saveUser(user) {
     setSavingId(user.id)
     setError('')
@@ -57,21 +58,19 @@ export function UsersPage() {
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...fields } : u)))
   }
 
-  // ---- MỞ DÒNG TRỐNG THÊM MỚI ----
   function startAdding() {
     setAddingUser({
       email: '',
       display_name: '',
       employee_id: '',
       position: 'Engineer',
-      theme_color: '#2f6f9f'
+      theme_color: '#2563eb',
     })
   }
 
-  // ---- TẠO USER MỚI QUA EDGE FUNCTION ----
   async function handleCreateNew() {
     if (!addingUser.email || !addingUser.display_name) {
-      setError('Vui lòng nhập đầy đủ Email và Tên hiển thị.')
+      setError('Please provide both Email and Display Name.')
       return
     }
     setAddingLoading(true)
@@ -79,7 +78,7 @@ export function UsersPage() {
     try {
       await createUser(addingUser)
       setAddingUser(null)
-      await load() // Tải lại danh sách
+      await load()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -87,14 +86,20 @@ export function UsersPage() {
     }
   }
 
-  // ---- XÓA USER ----
   async function handleDelete(u) {
-    if (!window.confirm(`Bạn có chắc muốn xóa nhân sự: ${u.display_name || u.email}?`)) return
+    const ok = await confirm({
+      title: `Remove ${u.display_name || u.email}?`,
+      message: 'This will remove the user from the team directory. Their Supabase Auth account will also be deleted.',
+      confirmText: 'Remove User',
+      isDanger: true,
+    })
+    if (!ok) return
     setDeletingId(u.id)
     setError('')
     try {
       await deleteUser(u.id)
       setUsers((prev) => prev.filter((user) => user.id !== u.id))
+      toast.success('User Removed', `${u.display_name || u.email} has been removed.`)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -105,38 +110,60 @@ export function UsersPage() {
   return (
     <div className="stack">
       <div className="pm-hero shell-manager">
-        <h2>User Management</h2>
-        <p className="muted">Quản lý trực tiếp thông tin nhân sự. Bấm dấu cộng ở cuối bảng để thêm tài khoản mới (Mật khẩu mặc định: pass01).</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2>Engineering Team Directory</h2>
+            <p className="muted" style={{ marginTop: '2px' }}>
+              Manage engineering profiles, discipline roles, and permissions. (Default initial password: <code>pass01</code>)
+            </p>
+          </div>
+          {!addingUser && (
+            <button type="button" className="pm-btn primary" onClick={startAdding}>
+              <IconPlus size={14} />
+              <span>Add Member</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {error ? <p className="error" style={{ color: 'red' }}>{error}</p> : null}
-      
+      {error ? <p className="error">{error}</p> : null}
+
       {loading ? (
-        <p className="muted">Đang tải…</p>
+        <p className="muted">Loading team directory…</p>
       ) : (
         <div className="pm-table-wrap">
           <table className="pm-table">
             <thead>
               <tr>
-                <th>Mã NV</th>
-                <th>Tên</th>
-                <th>Email</th>
-                <th>Position</th>
-                <th>Theme</th>
-                <th style={{ width: '90px', textAlign: 'center' }}>Actions</th>
+                <th style={{ width: '100px' }}>Emp ID</th>
+                <th style={{ width: '220px' }}>Display Name</th>
+                <th style={{ width: '240px' }}>Corporate Email</th>
+                <th style={{ width: '140px' }}>Discipline Position</th>
+                <th style={{ width: '90px' }}>Theme</th>
+                <th style={{ width: '100px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {/* DANH SÁCH USER HIỆN TẠI */}
               {users.map((u) => (
                 <tr key={u.id}>
                   <td>
-                    <input value={u.employee_id || ''} onChange={(e) => patch(u.id, { employee_id: e.target.value })} />
+                    <input
+                      value={u.employee_id || ''}
+                      placeholder="e.g. 01"
+                      onChange={(e) => patch(u.id, { employee_id: e.target.value })}
+                    />
                   </td>
                   <td>
-                    <input value={u.display_name || ''} onChange={(e) => patch(u.id, { display_name: e.target.value })} />
+                    <input
+                      value={u.display_name || ''}
+                      placeholder="Engineer name…"
+                      onChange={(e) => patch(u.id, { display_name: e.target.value })}
+                      style={{ textAlign: 'left' }}
+                    />
                   </td>
-                  <td className="muted">{u.email}</td>
+                  <td style={{ textAlign: 'left' }} className="muted">
+                    {u.email}
+                  </td>
                   <td>
                     <select value={u.position || 'Engineer'} onChange={(e) => patch(u.id, { position: e.target.value })}>
                       {POSITIONS.map((p) => (
@@ -147,65 +174,67 @@ export function UsersPage() {
                   <td>
                     <input
                       type="color"
-                      value={u.theme_color || '#2f6f9f'}
+                      value={u.theme_color || '#2563eb'}
                       onChange={(e) => patch(u.id, { theme_color: e.target.value })}
+                      style={{ width: '32px', height: '24px', padding: 0, cursor: 'pointer', border: 'none' }}
                     />
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                      {/* Icon Lưu (💾) */}
-                      <button 
-                        type="button" 
-                        className="pm-btn tiny green" 
-                        title="Lưu thay đổi"
-                        disabled={savingId === u.id} 
+                      <button
+                        type="button"
+                        className="pm-btn tiny success icon-only"
+                        title="Save changes"
+                        disabled={savingId === u.id}
                         onClick={() => saveUser(u)}
                       >
-                        {savingId === u.id ? '…' : '💾'}
+                        <IconSave size={13} />
                       </button>
-                      {/* Icon Xóa (🗑️) */}
-                      <button 
-                        type="button" 
-                        className="pm-btn tiny" 
-                        title="Xóa user"
-                        style={{ backgroundColor: '#e53935', color: 'white' }} 
-                        disabled={deletingId === u.id} 
+                      <button
+                        type="button"
+                        className="pm-btn tiny danger icon-only"
+                        title="Delete member"
+                        disabled={deletingId === u.id}
                         onClick={() => handleDelete(u)}
                       >
-                        {deletingId === u.id ? '…' : '🗑️'}
+                        <IconTrash size={13} />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
 
-              {/* DÒNG NHẬP LIỆU MỚI KHI BẤM DẤU CỘNG */}
               {addingUser && (
-                <tr style={{ backgroundColor: 'rgba(47, 111, 159, 0.05)' }}>
+                <tr style={{ background: 'var(--primary-subtle)' }}>
                   <td>
-                    <input 
-                      placeholder="Mã NV..." 
-                      value={addingUser.employee_id} 
-                      onChange={(e) => setAddingUser({...addingUser, employee_id: e.target.value})} 
+                    <input
+                      placeholder="Emp ID…"
+                      value={addingUser.employee_id}
+                      onChange={(e) => setAddingUser({ ...addingUser, employee_id: e.target.value })}
                     />
                   </td>
                   <td>
-                    <input 
-                      placeholder="Tên hiển thị..." 
-                      value={addingUser.display_name} 
-                      onChange={(e) => setAddingUser({...addingUser, display_name: e.target.value})} 
+                    <input
+                      placeholder="Full Name…"
+                      value={addingUser.display_name}
+                      onChange={(e) => setAddingUser({ ...addingUser, display_name: e.target.value })}
+                      style={{ textAlign: 'left' }}
                     />
                   </td>
                   <td>
-                    <input 
+                    <input
                       type="email"
-                      placeholder="Email..." 
-                      value={addingUser.email} 
-                      onChange={(e) => setAddingUser({...addingUser, email: e.target.value})} 
+                      placeholder="user@corporate.com"
+                      value={addingUser.email}
+                      onChange={(e) => setAddingUser({ ...addingUser, email: e.target.value })}
+                      style={{ textAlign: 'left' }}
                     />
                   </td>
                   <td>
-                    <select value={addingUser.position} onChange={(e) => setAddingUser({...addingUser, position: e.target.value})}>
+                    <select
+                      value={addingUser.position}
+                      onChange={(e) => setAddingUser({ ...addingUser, position: e.target.value })}
+                    >
                       {POSITIONS.map((p) => (
                         <option key={p}>{p}</option>
                       ))}
@@ -215,30 +244,28 @@ export function UsersPage() {
                     <input
                       type="color"
                       value={addingUser.theme_color}
-                      onChange={(e) => setAddingUser({...addingUser, theme_color: e.target.value})}
+                      onChange={(e) => setAddingUser({ ...addingUser, theme_color: e.target.value })}
+                      style={{ width: '32px', height: '24px', padding: 0, cursor: 'pointer', border: 'none' }}
                     />
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                      {/* Icon Xác nhận tạo (✔) */}
-                      <button 
-                        type="button" 
-                        className="pm-btn tiny green" 
-                        title="Tạo nhân sự mới"
-                        disabled={addingLoading} 
+                      <button
+                        type="button"
+                        className="pm-btn tiny success icon-only"
+                        title="Confirm create"
+                        disabled={addingLoading}
                         onClick={handleCreateNew}
                       >
-                        {addingLoading ? '…' : '✔'}
+                        <IconCheck size={13} />
                       </button>
-                      {/* Icon Hủy (✕) */}
-                      <button 
-                        type="button" 
-                        className="pm-btn tiny" 
-                        title="Hủy"
-                        style={{ backgroundColor: '#9e9e9e', color: 'white' }} 
+                      <button
+                        type="button"
+                        className="pm-btn tiny ghost icon-only"
+                        title="Cancel"
                         onClick={() => setAddingUser(null)}
                       >
-                        ✕
+                        <IconCross size={13} />
                       </button>
                     </div>
                   </td>
@@ -246,20 +273,6 @@ export function UsersPage() {
               )}
             </tbody>
           </table>
-
-          {/* NÚT DẤU CỘNG Ở CUỐI BẢNG */}
-          {!addingUser && (
-            <div style={{ padding: '12px', textAlign: 'center', borderTop: '1px solid var(--border-color, #e0e0e0)' }}>
-              <button 
-                type="button" 
-                className="pm-btn" 
-                onClick={startAdding}
-                style={{ width: '100%', borderStyle: 'dashed', background: 'transparent', color: 'inherit' }}
-              >
-                + Thêm nhân sự mới
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div>

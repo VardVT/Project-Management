@@ -3,12 +3,13 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { EmailPicker } from '../components/EmailPicker'
 import { supabase } from '../lib/supabase'
+import { IconVessel } from '../components/Icons'
 
 function friendlyError(err) {
   const msg = err?.message || ''
-  if (msg.includes('Invalid login credentials')) return 'Email hoặc mật khẩu không đúng.'
-  if (msg.includes('Email not confirmed')) return 'Email chưa được xác nhận.'
-  return msg || 'Đăng nhập thất bại.'
+  if (msg.includes('Invalid login credentials')) return 'Invalid email or password.'
+  if (msg.includes('Email not confirmed')) return 'Email is not confirmed.'
+  return msg || 'Sign in failed.'
 }
 
 export function LoginPage() {
@@ -44,7 +45,7 @@ export function LoginPage() {
     e.preventDefault()
     setError('')
     if (!email) {
-      setError('Hãy chọn gmail từ danh sách.')
+      setError('Please select an engineer account from the directory.')
       return
     }
     setSubmitting(true)
@@ -60,12 +61,18 @@ export function LoginPage() {
   return (
     <div className="login-scene">
       <div className="login-card">
-        <p className="brand">Progress Management</p>
-        <h1>Chào mừng trở lại</h1>
-        <p className="muted">Chọn nhân viên theo mã số (tăng dần) hoặc gõ để tìm nhanh, rồi nhập mật khẩu.</p>
-        <form className="form" onSubmit={onSubmit}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+          <IconVessel size={20} style={{ color: 'var(--primary)' }} />
+          <p className="brand" style={{ margin: 0 }}>Progress Management</p>
+        </div>
+        <h1>Welcome Back</h1>
+        <p className="muted" style={{ marginBottom: '18px' }}>
+          Select your engineering profile and enter your password to continue.
+        </p>
+
+        <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <label>
-            Nhân viên / Gmail
+            Engineer Account
             <EmailPicker
               users={directory}
               value={email}
@@ -74,23 +81,26 @@ export function LoginPage() {
               disabled={directoryLoading}
             />
           </label>
+
           <label>
-            Mật khẩu
+            Password
             <input
               type="password"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Tối thiểu 6 ký tự"
+              placeholder="••••••••"
               minLength={6}
               required
             />
           </label>
-          <button type="submit" className="btn primary" disabled={submitting}>
-            {submitting ? 'Đang đăng nhập…' : 'Đăng nhập'}
+
+          <button type="submit" className="pm-btn primary" disabled={submitting} style={{ height: '36px', marginTop: '6px' }}>
+            {submitting ? 'Authenticating…' : 'Sign in to System'}
           </button>
         </form>
-        {error ? <p className="error">{error}</p> : null}
+
+        {error ? <p className="error" style={{ marginTop: '14px' }}>{error}</p> : null}
       </div>
     </div>
   )

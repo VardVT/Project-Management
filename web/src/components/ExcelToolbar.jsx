@@ -8,10 +8,13 @@ import { applyEngineeringPlansImport } from '../lib/engineeringPlansImport'
 import { applyPicPercentImport } from '../lib/excelImport'
 import { applyPipingVtSectionMapping } from '../lib/pipingVtMapping'
 import { downloadReportXlsx } from '../lib/exportReport'
+import { IconUpload, IconMap, IconRefresh, IconDownload } from './Icons'
+import { useNotification } from './NotificationContext'
 
 export function ExcelToolbar() {
   const { caps, user } = useAuth()
   const { currentProject, reloadSections, loadProjects, selectProject } = useProject()
+  const { toast } = useNotification()
   const plansRef = useRef(null)
   const percentRef = useRef(null)
   const [busy, setBusy] = useState('')
@@ -21,7 +24,7 @@ export function ExcelToolbar() {
     e.target.value = ''
     if (!file) return
     if (!user?.id) {
-      window.alert('Cần đăng nhập để import.')
+      toast.error('Not signed in', 'Please sign in to import plans.')
       return
     }
     setBusy('import')
@@ -29,7 +32,7 @@ export function ExcelToolbar() {
       const buf = await fileToArrayBuffer(file)
       const parsed = parseEngineeringPlansWorkbook(buf, file.name)
       if (!parsed.tasks.length) {
-        window.alert('Không thấy task (Vessel số + Activity Name) trong file.')
+        toast.warning('Empty Workbook', 'No engineering tasks found in workbook.')
         return
       }
       const shipGuess = parsed.shipHint || currentProject?.ship_id || ''
@@ -46,22 +49,20 @@ export function ExcelToolbar() {
       await loadProjects()
       await selectProject(result.project)
       await reloadSections()
+      toast.success('Import Complete', `Engineering plans imported successfully for Vessel ${shipGuess || result.project?.ship_id}.`)
     } catch (err) {
-      window.alert(err.message || 'Import Engineering Plans thất bại')
+      toast.error('Import Failed', err.message || 'Import Engineering Plans failed')
     } finally {
       setBusy('')
     }
   }
 
-  // FIX: luồng RIÊNG, tách khỏi "Import Plans" — dùng file Excel dạng
-  // phẳng (01/02/03/04 progress sheets) để cập nhật %/Status/PIC/Review
-  // vào các task đã có sẵn trên web (không tạo task mới, không tạo project mới).
   async function onPercentFile(e) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
     if (!currentProject?.id) {
-      window.alert('Hãy chọn project trước.')
+      toast.warning('No Vessel Selected', 'Please select a vessel project first.')
       return
     }
     setBusy('percent')
@@ -69,25 +70,18 @@ export function ExcelToolbar() {
       const buf = await fileToArrayBuffer(file)
       const parsed = parsePicPercentWorkbook(buf)
       if (!parsed.tasks.length) {
-        window.alert('Không đọc được task nào từ file (kiểm tra lại sheet 01/02/03/04).')
+        toast.warning('Empty File', 'No tasks read from file. Verify sheets 01/02/03/04.')
         return
       }
       const { data: profiles } = await supabase.from('profiles').select('id, display_name, email')
       const result = await applyPicPercentImport(currentProject.id, parsed.tasks, profiles || [])
       await reloadSections()
-      window.alert(
-        `Update % / PIC: khớp ${result.matched}/${result.totalExcel} task, đã cập nhật ${result.updated}.\n` +
-          `Khớp theo: ${Object.entries(result.matchedBy)
-            .map(([k, v]) => `${k}=${v}`)
-            .join(', ')}` +
-          (result.unmatchedSamples.length
-            ? `\n\nMột vài task không khớp được (ví dụ):\n${result.unmatchedSamples
-                .map((s) => `- ${s.activity} (${s.drawingId || 'no drawing'})`)
-                .join('\n')}`
-            : '')
+      toast.success(
+        'Sync Complete',
+        `Matched ${result.matched}/${result.totalExcel} tasks — ${result.updated} updated.`
       )
     } catch (err) {
-      window.alert(err.message || 'Update % / PIC thất bại')
+      toast.error('Sync Failed', err.message || 'Update Progress / PIC failed')
     } finally {
       setBusy('')
     }
@@ -95,7 +89,7 @@ export function ExcelToolbar() {
 
   async function onMapping() {
     if (!currentProject?.id) {
-      window.alert('Hãy Import Plans / chọn project trước.')
+      toast.warning('No Vessel Selected', 'Please select a vessel first.')
       return
     }
     setBusy('map')
@@ -103,38 +97,34 @@ export function ExcelToolbar() {
       const result = await applyPipingVtSectionMapping(currentProject.id)
       await reloadSections()
       if (!result.total) {
-        window.alert(result.message || 'Không có task Piping VT để mapping.')
+        toast.info('Nothing to Map', result.message || 'No Piping VT tasks found to map.')
         return
       }
-      const detail = Object.entries(result.byTarget || {})
-        .map(([k, v]) => `${k}: ${v}`)
-        .join('\n')
-      window.alert(
-        `Mapping Piping VT: ${result.moved}/${result.total} task.\n` +
-          `Đã dọn ${result.deletedOtherTasks || 0} task khác team, ${result.deletedSections || 0} section thừa.\n\n${detail}`
+      toast.success(
+        'Mapping Complete',
+        `${result.moved}/${result.total} tasks routed into standard technical sections.`
       )
     } catch (err) {
-      window.alert(err.message || 'Mapping thất bại')
+      toast.error('Mapping Failed', err.message || 'Mapping failed')
     } finally {
       setBusy('')
     }
   }
 
-  // FIX: xuất báo cáo dạng dữ liệu thô (4 sheet 01/02/03/04), chỉ Admin/Manager
   async function onExportReport() {
     if (!currentProject?.id) {
-      window.alert('Hãy chọn project trước.')
+      toast.warning('No Vessel Selected', 'Please select a vessel project first.')
       return
     }
     setBusy('export')
     try {
       const counts = await downloadReportXlsx(currentProject.id, currentProject.ship_id)
-      window.alert(
-        `Đã xuất file.\n3D model: ${counts.threeD} task\nISO export: ${counts.iso} task\n` +
-          `2D drawing: ${counts.twoD} task\nMTO: ${counts.mto} task`
+      toast.success(
+        'Export Complete',
+        `3D: ${counts.threeD} · ISO: ${counts.iso} · 2D: ${counts.twoD} · MTO: ${counts.mto} tasks exported.`
       )
     } catch (err) {
-      window.alert(err.message || 'Export thất bại')
+      toast.error('Export Failed', err.message || 'Export report failed')
     } finally {
       setBusy('')
     }
@@ -143,52 +133,58 @@ export function ExcelToolbar() {
   if (!caps.canImportExcel && !caps.canExportReport) return null
 
   return (
-    <>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
       {caps.canImportExcel && (
         <>
           <input ref={plansRef} type="file" accept=".xlsx,.xls" hidden onChange={onPlansFile} />
           <button
             type="button"
-            className="pm-btn blue"
+            className="pm-btn secondary"
             disabled={!!busy}
             onClick={() => plansRef.current?.click()}
-            title="Import Engineering Plans (WBS + Resources + Drawing/Activity)"
+            title="Import Engineering Plans (WBS + Activities + Drawings)"
           >
-            {busy === 'import' ? 'Importing…' : 'Import Plans'}
+            <IconUpload size={14} />
+            <span>{busy === 'import' ? 'Importing…' : 'Import Plans'}</span>
           </button>
+
           <button
             type="button"
-            className="pm-btn blue"
+            className="pm-btn secondary"
             disabled={!!busy}
             onClick={onMapping}
-            title="Map task Piping VT vào section chuẩn (giống app desktop)"
+            title="Auto-map Piping VT tasks into 4 technical sections"
           >
-            {busy === 'map' ? 'Mapping…' : 'Mapping'}
+            <IconMap size={14} />
+            <span>{busy === 'map' ? 'Mapping…' : 'Route Sections'}</span>
           </button>
-          {/* FIX: nút riêng — file phẳng 01/02/03/04, chỉ update task có sẵn */}
+
           <input ref={percentRef} type="file" accept=".xlsx,.xls,.xlsm" hidden onChange={onPercentFile} />
           <button
             type="button"
-            className="pm-btn blue"
+            className="pm-btn secondary"
             disabled={!!busy}
             onClick={() => percentRef.current?.click()}
-            title="Cập nhật %/Status/PIC/Review từ file Excel dạng 01/02/03/04 (không tạo task mới)"
+            title="Sync % progress and engineer assignments from 01/02/03/04 sheets"
           >
-            {busy === 'percent' ? 'Updating…' : 'Update % / PIC'}
+            <IconRefresh size={14} />
+            <span>{busy === 'percent' ? 'Syncing…' : 'Sync % / PIC'}</span>
           </button>
         </>
       )}
+
       {caps.canExportReport && (
         <button
           type="button"
-          className="pm-btn green"
+          className="pm-btn success"
           disabled={!!busy || !currentProject?.id}
           onClick={onExportReport}
-          title="Xuất dữ liệu thô 4 sheet (01/02/03/04) để copy-paste vào file Excel chủ"
+          title="Export 4 raw data sheets (01/02/03/04) to Excel"
         >
-          {busy === 'export' ? 'Exporting…' : 'Export Report'}
+          <IconDownload size={14} />
+          <span>{busy === 'export' ? 'Exporting…' : 'Export Excel'}</span>
         </button>
       )}
-    </>
+    </div>
   )
 }

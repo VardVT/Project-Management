@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+database.json
 
 # Vite local env
 web/.env
