@@ -152,15 +152,21 @@ export function SectionTasksPage() {
     }
   }
 
-  async function bulkSetStatus(status) {
-    if (!caps.canEditAllTasks || selectedIds.size === 0 || !status) return
+  async function bulkMoveSection(newSectionId) {
+    if (!caps.canEditAllTasks || selectedIds.size === 0 || !newSectionId) return
     setBulkBusy(true)
     try {
-      const { error: err } = await supabase.from('tasks').update({ status }).in('id', [...selectedIds])
+      const { error: err } = await supabase
+        .from('tasks')
+        .update({ section_id: newSectionId })
+        .in('id', [...selectedIds])
       if (err) throw err
+      // FIX: task vừa chuyển đi sẽ không còn thuộc section đang xem nữa —
+      // clear lựa chọn rồi load lại danh sách của section hiện tại.
+      setSelectedIds(new Set())
       await load()
     } catch (err) {
-      setError(err.message || 'Đổi status hàng loạt thất bại')
+      setError(err.message || 'Chuyển section hàng loạt thất bại')
     } finally {
       setBulkBusy(false)
     }
@@ -261,18 +267,20 @@ export function SectionTasksPage() {
             defaultValue=""
             disabled={bulkBusy}
             onChange={(e) => {
-              bulkSetStatus(e.target.value)
+              bulkMoveSection(e.target.value)
               e.target.value = ''
             }}
           >
             <option value="" disabled>
-              Đổi Status →
+              Chuyển Section →
             </option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
+            {sections
+              .filter((s) => s.id !== sectionId)
+              .map((s) => (
+                <option key={s.id} value={s.id}>
+                  {displaySectionName(s.header_name)}
+                </option>
+              ))}
           </select>
 
           <select
