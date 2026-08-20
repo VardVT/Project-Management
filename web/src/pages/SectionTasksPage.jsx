@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
@@ -9,6 +9,7 @@ const STATUSES = ['Not Started', 'In Progress', 'Completed', 'On Hold']
 
 export function SectionTasksPage() {
   const { sectionId } = useParams()
+  const navigate = useNavigate()
   const { user, caps } = useAuth()
   const { sections, currentProject } = useProject()
   const section = sections.find((s) => s.id === sectionId)
@@ -21,6 +22,7 @@ export function SectionTasksPage() {
   const [error, setError] = useState('')
   const [newActivity, setNewActivity] = useState('')
   const [selectedIds, setSelectedIds] = useState(new Set())
+  const [bulkBusy, setBulkBusy] = useState(false)
 
   async function load() {
     if (!sectionId || !currentProject) return
@@ -50,6 +52,7 @@ export function SectionTasksPage() {
 
   useEffect(() => {
     load()
+    setSelectedIds(new Set()) // FIX: đổi section thì clear luôn lựa chọn cũ
   }, [sectionId, currentProject?.id, caps.canEditAssignedOnly, user?.id])
 
   const filtered = useMemo(() => {
@@ -131,6 +134,55 @@ export function SectionTasksPage() {
     else await load()
   }
 
+  // FIX: 3 hành động hàng loạt trên các task đang được tích chọn qua checkbox
+  async function bulkDelete() {
+    if (!caps.canEditAllTasks || selectedIds.size === 0) return
+    const ok = window.confirm(`Xóa ${selectedIds.size} task đã chọn? Không hoàn tác được.`)
+    if (!ok) return
+    setBulkBusy(true)
+    try {
+      const { error: err } = await supabase.from('tasks').delete().in('id', [...selectedIds])
+      if (err) throw err
+      setSelectedIds(new Set())
+      await load()
+    } catch (err) {
+      setError(err.message || 'Xóa hàng loạt thất bại')
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
+  async function bulkSetStatus(status) {
+    if (!caps.canEditAllTasks || selectedIds.size === 0 || !status) return
+    setBulkBusy(true)
+    try {
+      const { error: err } = await supabase.from('tasks').update({ status }).in('id', [...selectedIds])
+      if (err) throw err
+      await load()
+    } catch (err) {
+      setError(err.message || 'Đổi status hàng loạt thất bại')
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
+  async function bulkSetAssignee(assigneeId) {
+    if (!caps.canEditAllTasks || selectedIds.size === 0) return
+    setBulkBusy(true)
+    try {
+      const { error: err } = await supabase
+        .from('tasks')
+        .update({ assignee_id: assigneeId || null })
+        .in('id', [...selectedIds])
+      if (err) throw err
+      await load()
+    } catch (err) {
+      setError(err.message || 'Gán người hàng loạt thất bại')
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
   function nameOf(id) {
     const p = profiles.find((x) => x.id === id)
     return p?.display_name || p?.email || '—'
@@ -143,7 +195,21 @@ export function SectionTasksPage() {
   return (
     <div className="stack">
       <div className="section-head">
-        <h2>{displaySectionName(section.header_name)}</h2>
+        <div className="section-head-row">
+          <h2>{displaySectionName(section.header_name)}</h2>
+          {/* FIX: dropdown nhảy nhanh sang section khác, không cần quay lại sidebar */}
+          <select
+            className="section-jump-select"
+            value={sectionId}
+            onChange={(e) => navigate(`/sections/${e.target.value}`)}
+          >
+            {sections.map((s) => (
+              <option key={s.id} value={s.id}>
+                {displaySectionName(s.header_name)}
+              </option>
+            ))}
+          </select>
+        </div>
         <p className="muted">
           Ship {currentProject?.ship_id} · {filtered.length} task
           {caps.canEditAssignedOnly ? ' (chỉ task của bạn)' : ''}
@@ -183,6 +249,59 @@ export function SectionTasksPage() {
             New Task
           </button>
         </form>
+      )}
+
+      {/* FIX: toolbar hành động hàng loạt — chỉ hiện khi có ít nhất 1 task
+          đang được chọn, và chỉ cho người có quyền sửa toàn bộ task. */}
+      {caps.canEditAllTasks && selectedIds.size > 0 && (
+        <div className="pm-bulk-toolbar">
+          <span className="pm-bulk-count">{selectedIds.size} task đã chọn</span>
+
+          <select
+            defaultValue=""
+            disabled={bulkBusy}
+            onChange={(e) => {
+              bulkSetStatus(e.target.value)
+              e.target.value = ''
+            }}
+          >
+            <option value="" disabled>
+              Đổi Status →
+            </option>
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+
+          <select
+            defaultValue=""
+            disabled={bulkBusy}
+            onChange={(e) => {
+              bulkSetAssignee(e.target.value)
+              e.target.value = ''
+            }}
+          >
+            <option value="" disabled>
+              Gán người →
+            </option>
+            <option value="">— Bỏ gán —</option>
+            {profiles.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.display_name || p.email}
+              </option>
+            ))}
+          </select>
+
+          <button type="button" className="pm-btn danger" disabled={bulkBusy} onClick={bulkDelete}>
+            {bulkBusy ? 'Đang xử lý…' : `Xóa ${selectedIds.size} task`}
+          </button>
+
+          <button type="button" className="pm-btn ghost" disabled={bulkBusy} onClick={() => setSelectedIds(new Set())}>
+            Bỏ chọn
+          </button>
+        </div>
       )}
 
       {error ? <p className="error">{error}</p> : null}
