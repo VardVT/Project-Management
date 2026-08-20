@@ -217,7 +217,7 @@ export function AppShell() {
 
             <div className="pm-header-title">
               <h1>Progress Management</h1>
-              <span className="subtitle">Piping Engineering & Production Control</span>
+              <span className="subtitle">Pipe and Machinery Manager</span>
             </div>
           </div>
 

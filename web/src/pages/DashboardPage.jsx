@@ -343,9 +343,6 @@ export function DashboardPage() {
             Executive Fleet Overview
           </div>
           <h2>Fleet Engineering Dashboard</h2>
-          <p className="dash-hero-subtitle">
-            Consolidated engineering progress across <strong>{vesselDataList.length} Active Vessels</strong>
-          </p>
         </div>
 
         <div className="dash-hero-actions">
@@ -532,9 +529,6 @@ export function DashboardPage() {
                 <div className="dash-card-head">
                   <div>
                     <h3>Vessel Progress Rankings</h3>
-                    <p className="muted">
-                      Overall weighted progress across 4 technical groups (3D: 65% · ISO: 15% · 2D: 10% · MTO: 10%)
-                    </p>
                   </div>
                   <span className="pill muted-pill">{filteredAndSortedVessels.length} vessels</span>
                 </div>
@@ -549,7 +543,6 @@ export function DashboardPage() {
                 <div className="dash-card-head">
                   <div>
                     <h3>Status Breakdown by Vessel</h3>
-                    <p className="muted">Ratio of Completed (Green), In Progress (Amber), and Not Started (Slate)</p>
                   </div>
                 </div>
 
@@ -559,7 +552,6 @@ export function DashboardPage() {
               <div className="dash-card-wide-wrap">
                 <div className="dash-card-head">
                   <h3>Vessel Directory & Quick Actions</h3>
-                  <p className="muted">Click any vessel card to access its engineering summary and drawings</p>
                 </div>
 
                 <div className="vessel-cards-grid">
@@ -654,7 +646,6 @@ export function DashboardPage() {
               <div className="dash-card-head">
                 <div>
                   <h3>Fleet Cross-Vessel Engineering Matrix</h3>
-                  <p className="muted">Full tabular breakdown with technical weights and schedule adherence</p>
                 </div>
                 <span className="pill muted-pill">
                   Showing {filteredAndSortedVessels.length} / {vesselDataList.length} vessels
@@ -762,9 +753,6 @@ export function DashboardPage() {
               <div className="dash-card-head">
                 <div>
                   <h3>Technical Group Benchmarking</h3>
-                  <p className="muted">
-                    Cross-vessel comparison across the 4 key disciplines: <strong>3D (65%)</strong>, <strong>ISO (15%)</strong>, <strong>2D (10%)</strong>, and <strong>MTO (10%)</strong>
-                  </p>
                 </div>
               </div>
 
@@ -778,9 +766,6 @@ export function DashboardPage() {
               <div className="dash-card-head">
                 <div>
                   <h3>Side-by-Side Vessel Comparator</h3>
-                  <p className="muted">
-                    Evaluate 2 to 4 vessels simultaneously to identify variance in engineering pace and resource allocation.
-                  </p>
                 </div>
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   <span className="muted" style={{ fontSize: '11.5px' }}>Toggle:</span>

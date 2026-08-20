@@ -66,9 +66,6 @@ export function LoginPage() {
           <p className="brand" style={{ margin: 0 }}>Progress Management</p>
         </div>
         <h1>Welcome Back</h1>
-        <p className="muted" style={{ marginBottom: '18px' }}>
-          Select your engineering profile and enter your password to continue.
-        </p>
 
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <label>

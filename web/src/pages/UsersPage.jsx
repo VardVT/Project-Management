@@ -114,7 +114,7 @@ export function UsersPage() {
           <div>
             <h2>Engineering Team Directory</h2>
             <p className="muted" style={{ marginTop: '2px' }}>
-              Manage engineering profiles, discipline roles, and permissions. (Default initial password: <code>pass01</code>)
+              Default initial password: <code>pass01</code>
             </p>
           </div>
           {!addingUser && (

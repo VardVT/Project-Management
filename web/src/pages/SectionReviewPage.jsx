@@ -81,7 +81,7 @@ export function SectionReviewPage() {
           </Link>
         </div>
         <p className="muted">
-          Vessel <strong>{currentProject?.ship_id}</strong> · Tracking 3D, VVT, Unit Issue, and Owner Review sign-offs
+          Vessel <strong>{currentProject?.ship_id}</strong>
         </p>
       </div>
 

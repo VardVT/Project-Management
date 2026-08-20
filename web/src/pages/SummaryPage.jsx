@@ -295,7 +295,7 @@ function RichProjectDashboard({ eyebrow, title }) {
 }
 
 export function SummaryPage() {
-  const { caps, profile } = useAuth()
+  const { caps } = useAuth()
 
   if (caps.shell === 'engineer') {
     return (
@@ -303,14 +303,10 @@ export function SummaryPage() {
         <div className="pm-hero shell-engineer">
           <p className="eyebrow">Engineer Work Summary</p>
           <h2>My Assigned Tasks</h2>
-          <p className="muted">
-            {profile?.display_name || 'Engineer'} — Displaying assigned tasks. Max self-report cap is{' '}
-            <strong>{caps.percentCap}%</strong> prior to formal review request.
-          </p>
         </div>
         <div className="pm-panel">
           <p className="muted">
-            Use the sidebar under <strong>Vessel → Tasks</strong> to update activities and submit for review.
+            Open <strong>Vessel → Tasks</strong> in the sidebar to update activities and submit for review.
           </p>
         </div>
       </div>

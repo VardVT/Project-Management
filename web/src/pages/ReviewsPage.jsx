@@ -83,9 +83,7 @@ export function ReviewsPage() {
       <div className="pm-panel" style={{ textAlign: 'center', padding: '40px' }}>
         <IconReview size={32} className="muted" />
         <h3 style={{ marginTop: '12px' }}>Review Requests</h3>
-        <p className="muted">
-          Your role does not have authorization to approve reviews. Submit reviews directly from your task grid.
-        </p>
+        <p className="muted">Your role cannot approve reviews.</p>
       </div>
     )
   }
@@ -94,9 +92,11 @@ export function ReviewsPage() {
     <div className="stack">
       <div className={`pm-hero shell-${caps.shell}`}>
         <h2>Engineering Review Queue</h2>
-        <p className="muted">
-          Pending sign-off requests for Vessel <strong>{currentProject?.ship_id || 'All'}</strong>
-        </p>
+        {currentProject?.ship_id ? (
+          <p className="muted">
+            Vessel <strong>{currentProject.ship_id}</strong>
+          </p>
+        ) : null}
       </div>
 
       {error ? <p className="error">{error}</p> : null}
