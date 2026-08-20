@@ -10,9 +10,9 @@ export function NotificationProvider({ children }) {
   const [promptInput, setPromptInput] = useState('')
 
   // --- TOAST NOTIFICATIONS ---
-  const addToast = useCallback((type, title, message, duration = 4500) => {
+  const addToast = useCallback((type, title, message, duration = 3800) => {
     const id = `${Date.now()}-${Math.random()}`
-    setToasts((prev) => [...prev, { id, type, title, message }])
+    setToasts((prev) => [...prev, { id, type, title, message, duration }])
     if (duration > 0) {
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id))
@@ -79,14 +79,14 @@ export function NotificationProvider({ children }) {
       {children}
 
       {/* TOASTS CONTAINER */}
-      <div className="pm-toast-container">
+      <div className="pm-toast-container" aria-live="polite" aria-relevant="additions">
         {toasts.map((t) => (
-          <div key={t.id} className={`pm-toast pm-toast-${t.type}`}>
+          <div key={t.id} className={`pm-toast pm-toast-${t.type}`} role="status">
             <div className="pm-toast-icon">
-              {t.type === 'success' && <IconCheck size={16} />}
-              {t.type === 'error' && <IconCross size={16} />}
-              {t.type === 'warning' && <IconAlertTriangle size={16} />}
-              {t.type === 'info' && <span style={{ fontSize: '14px', fontWeight: 700 }}>ℹ</span>}
+              {t.type === 'success' && <IconCheck size={15} />}
+              {t.type === 'error' && <IconCross size={15} />}
+              {t.type === 'warning' && <IconAlertTriangle size={15} />}
+              {t.type === 'info' && <span style={{ fontSize: '13px', fontWeight: 700 }}>i</span>}
             </div>
             <div className="pm-toast-content">
               <div className="pm-toast-title">{t.title}</div>
@@ -97,9 +97,15 @@ export function NotificationProvider({ children }) {
               className="pm-toast-close"
               onClick={() => removeToast(t.id)}
               title="Dismiss"
+              aria-label="Dismiss notification"
             >
               <IconCross size={12} />
             </button>
+            {t.duration > 0 && (
+              <div className="pm-toast-progress" aria-hidden="true">
+                <span style={{ animationDuration: `${t.duration}ms` }} />
+              </div>
+            )}
           </div>
         ))}
       </div>

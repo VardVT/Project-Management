@@ -21,6 +21,7 @@ import {
   IconVessel,
   IconArrowRight,
 } from '../components/Icons'
+import { useNotification } from '../components/NotificationContext'
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10)
@@ -36,6 +37,7 @@ export function DashboardPage() {
   const { caps } = useAuth()
   const { projects: contextProjects, selectProject } = useProject()
   const navigate = useNavigate()
+  const { toast } = useNotification()
 
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -298,17 +300,13 @@ export function DashboardPage() {
   }, [vesselDataList, searchTerm, statusFilter, sortBy])
 
   function toggleCompareSelection(id) {
-    setSelectedForCompare((prev) => {
-      if (prev.includes(id)) {
-        return prev.filter((item) => item !== id)
-      } else {
-        if (prev.length >= 4) {
-          alert('Select up to 4 vessels to compare side-by-side.')
-          return prev
-        }
-        return [...prev, id]
-      }
-    })
+    if (!selectedForCompare.includes(id) && selectedForCompare.length >= 4) {
+      toast.warning('Compare limit', 'Select up to 4 vessels to compare side-by-side.')
+      return
+    }
+    setSelectedForCompare((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    )
   }
 
   const comparedVessels = useMemo(() => {

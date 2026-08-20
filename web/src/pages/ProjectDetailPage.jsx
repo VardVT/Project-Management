@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useNotification } from '../components/NotificationContext'
 
 const STATUSES = [
   { value: 'todo', label: 'Todo' },
@@ -12,6 +13,7 @@ const STATUSES = [
 export function ProjectDetailPage() {
   const { id } = useParams()
   const { user } = useAuth()
+  const { confirm, toast } = useNotification()
   const [project, setProject] = useState(null)
   const [tasks, setTasks] = useState([])
   const [members, setMembers] = useState([])
@@ -107,15 +109,24 @@ export function ProjectDetailPage() {
 
   async function deleteBatchTasks() {
     if (!selectedTaskIds.length) return
-    if (!window.confirm(`Bạn có chắc muốn xóa ${selectedTaskIds.length} task đã chọn?`)) return
+    const ok = await confirm({
+      title: `Delete ${selectedTaskIds.length} task${selectedTaskIds.length > 1 ? 's' : ''}?`,
+      message: 'Selected tasks will be permanently removed. This cannot be undone.',
+      confirmText: `Delete ${selectedTaskIds.length}`,
+      isDanger: true,
+    })
+    if (!ok) return
 
     setError('')
     const { error: err } = await supabase.from('tasks').delete().in('id', selectedTaskIds)
 
-    if (err) setError(err.message)
-    else {
+    if (err) {
+      setError(err.message)
+      toast.error('Delete failed', err.message)
+    } else {
       setTasks((prev) => prev.filter((t) => !selectedTaskIds.includes(t.id)))
       setSelectedTaskIds([])
+      toast.success('Tasks deleted', `${selectedTaskIds.length} task${selectedTaskIds.length > 1 ? 's' : ''} removed.`)
     }
   }
 
