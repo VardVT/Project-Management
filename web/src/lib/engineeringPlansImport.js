@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
-import { normalizeVietnamese, statusFromPercent } from './progress'
+import { normalizeVietnamese, statusFromPercent, mapExcelSectionToTarget } from './progress'
+import { CANONICAL_SECTIONS } from './roles'
 
 async function ensureProject(shipId, userId) {
   const ship = String(shipId || '').trim()
@@ -62,6 +63,46 @@ async function ensureSections(projectId, sectionNames) {
   return byName
 }
 
+/**
+ * Gộp section alias (vd. "2D drawing") vào tên chuẩn ("Pipe 2D drawing")
+ * để task hiện đúng trên sidebar.
+ */
+export async function mergeAliasSectionsToCanonical(projectId) {
+  const { data: sections, error } = await supabase
+    .from('sections')
+    .select('id, header_name')
+    .eq('project_id', projectId)
+  if (error) throw error
+
+  const canonByName = await ensureSections(projectId, CANONICAL_SECTIONS)
+  let moved = 0
+
+  for (const section of sections || []) {
+    const targetName = mapExcelSectionToTarget(section.header_name)
+    if (!targetName || targetName === section.header_name) continue
+    const dest = canonByName.get(targetName)
+    if (!dest || dest.id === section.id) continue
+
+    const { data: movedRows, error: upErr } = await supabase
+      .from('tasks')
+      .update({ section_id: dest.id })
+      .eq('section_id', section.id)
+      .select('id')
+    if (upErr) throw upErr
+    moved += (movedRows || []).length
+
+    const { count } = await supabase
+      .from('tasks')
+      .select('id', { count: 'exact', head: true })
+      .eq('section_id', section.id)
+    if (!count) {
+      await supabase.from('sections').delete().eq('id', section.id)
+    }
+  }
+
+  return moved
+}
+
 function buildProfileIndex(profiles) {
   const map = new Map()
   for (const p of profiles || []) {
@@ -119,7 +160,13 @@ export async function applyEngineeringPlansImport({
     project = await ensureProject(ship, userId)
   }
 
-  const sectionNames = [...new Set(parsed.tasks.map((t) => t.sectionName).filter(Boolean))]
+  const sectionNames = [
+    ...new Set(
+      parsed.tasks
+        .map((t) => mapExcelSectionToTarget(t.sectionName))
+        .filter(Boolean),
+    ),
+  ]
   const sectionByName = await ensureSections(project.id, sectionNames)
 
   const { data: profiles } = await supabase.from('profiles').select('id, display_name, email')
@@ -147,7 +194,8 @@ export async function applyEngineeringPlansImport({
   const pendingUpdate = []
 
   for (const row of parsed.tasks) {
-    const section = sectionByName.get(row.sectionName)
+    const sectionName = mapExcelSectionToTarget(row.sectionName)
+    const section = sectionByName.get(sectionName)
     if (!section) continue
 
     let assigneeId = null
@@ -209,11 +257,14 @@ export async function applyEngineeringPlansImport({
     )
   }
 
+  const merged = await mergeAliasSectionsToCanonical(project.id)
+
   return {
     project,
     inserted,
     updated,
     assigned,
+    merged,
     sectionCount: sectionNames.length,
     taskCount: parsed.tasks.length,
   }

@@ -10,7 +10,7 @@ import {
   defaultSelectedSheetNames,
 } from '../lib/excelParse'
 import { parseEngineeringPlansWorkbook } from '../lib/engineeringPlansParse'
-import { applyEngineeringPlansImport } from '../lib/engineeringPlansImport'
+import { applyEngineeringPlansImport, mergeAliasSectionsToCanonical } from '../lib/engineeringPlansImport'
 import { applyPicPercentImport } from '../lib/excelImport'
 import { applyPipingVtSectionMapping } from '../lib/pipingVtMapping'
 import { downloadReportXlsx } from '../lib/exportReport'
@@ -153,6 +153,7 @@ export function ExcelToolbar() {
       const result = await applyPicPercentImport(projectId, parsed.tasks, profiles || [], {
         insertMissing: true,
       })
+      await mergeAliasSectionsToCanonical(projectId)
       await reloadSections()
       const added = result.inserted ? ` · ${result.inserted} new` : ''
       toast.success(

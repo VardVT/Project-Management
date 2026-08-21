@@ -106,7 +106,16 @@ export const SECTION_MAPPING = {
     '3D Pipe Drawing',
   ],
   'ISO generation': ['Iso generating', 'ISO generating', 'Iso Generating', 'ISO generation'],
-  'Pipe 2D drawing': ['Piping 2D drawing', 'Pipe 2D drawing'],
+  'Pipe 2D drawing': [
+    'Piping 2D drawing',
+    'Pipe 2D drawing',
+    '2D drawing',
+    '2D Drawing',
+    'Pipe 2D',
+    'Piping 2D',
+    'Sys diagram & 2D drawing',
+    '03. Sys diagram & 2D drawing',
+  ],
   MTO: ['MTO'],
 }
 
@@ -123,7 +132,9 @@ export function mapExcelSectionToTarget(headerName) {
   if (key.includes('iso')) return 'ISO generation'
   if (key.includes('pipe modeling') || key.includes('3d pipe')) return '3D Pipe Drawing'
   if (key.includes('3d equipment')) return '3D Equipment Modeling'
-  if (key.includes('2d')) return 'Pipe 2D drawing'
+  // "2D drawing", "sys diagram", sheet 03… → cùng về Pipe 2D drawing
+  // (tránh nhầm "2D & 3D Checking…" đã match exact ở General drawing phía trên)
+  if (key.includes('2d') || key.includes('sys diagram')) return 'Pipe 2D drawing'
   if (key.includes('arranagement') || key.includes('arrangement')) return 'General drawing'
   if (key.includes('production support') || key.includes('checking') || key.includes('coordination')) {
     return 'General drawing'
