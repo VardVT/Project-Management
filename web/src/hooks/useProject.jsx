@@ -18,7 +18,7 @@ export function ProjectProvider({ children }) {
     setError('')
     const { data, error: err } = await supabase
       .from('projects')
-      .select('id, name, ship_id, department, status, start_date, end_date, owner_id, ship_leader_id, created_at')
+      .select('id, name, ship_id, department, status, start_date, end_date, owner_id, ship_leader_id, created_at, group_weights')
       .order('created_at', { ascending: false })
     if (err) {
       setError(err.message)
@@ -133,6 +133,32 @@ export function ProjectProvider({ children }) {
     [user, caps.canDeleteProject, currentProject, loadProjects, selectProject]
   )
 
+  const updateGroupWeights = useCallback(
+    async (weights, projectId) => {
+      if (!user || !caps.canManageUsers) {
+        throw new Error('Only Manager/Admin can edit group weights.')
+      }
+      const id = projectId || currentProject?.id
+      if (!id) throw new Error('No vessel selected.')
+      const cleaned = {}
+      for (const [k, v] of Object.entries(weights || {})) {
+        const n = Number(v)
+        cleaned[k] = Number.isFinite(n) && n >= 0 ? n : 0
+      }
+      const { data, error } = await supabase
+        .from('projects')
+        .update({ group_weights: cleaned })
+        .eq('id', id)
+        .select('id, name, ship_id, department, status, start_date, end_date, owner_id, ship_leader_id, created_at, group_weights')
+        .single()
+      if (error) throw error
+      setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)))
+      setCurrentProject((prev) => (prev?.id === id ? { ...prev, ...data } : prev))
+      return data
+    },
+    [user, caps.canManageUsers, currentProject?.id]
+  )
+
   useEffect(() => {
     if (!user) {
       setProjects([])
@@ -166,6 +192,7 @@ export function ProjectProvider({ children }) {
       selectProject,
       createProject,
       deleteProject,
+      updateGroupWeights,
       reloadSections: () => loadSections(currentProject?.id),
     }),
     [
@@ -178,6 +205,7 @@ export function ProjectProvider({ children }) {
       selectProject,
       createProject,
       deleteProject,
+      updateGroupWeights,
       loadSections,
     ]
   )

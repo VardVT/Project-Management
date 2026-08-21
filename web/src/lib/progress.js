@@ -16,6 +16,17 @@ export const GROUP_DENSITIES = {
   MTO: 10,
 }
 
+/** Merge stored project weights with defaults (non-negative numbers only). */
+export function resolveGroupDensities(stored) {
+  const base = { ...GROUP_DENSITIES }
+  if (!stored || typeof stored !== 'object') return base
+  for (const key of Object.keys(base)) {
+    const n = Number(stored[key])
+    if (Number.isFinite(n) && n >= 0) base[key] = n
+  }
+  return base
+}
+
 export function getDashboardGroupFromSectionName(headerName) {
   const raw = String(headerName || '').trim()
   if (!raw) return null
@@ -35,8 +46,10 @@ export function getDashboardGroupFromSectionName(headerName) {
 
 /**
  * @param {Array<{header_name: string, tasks: Array<{percent_complete?: number}>}>} sectionsWithTasks
+ * @param {Record<string, number>|null} [densitiesOverride]
  */
-export function computeWeightedProgress(sectionsWithTasks) {
+export function computeWeightedProgress(sectionsWithTasks, densitiesOverride = null) {
+  const densities = resolveGroupDensities(densitiesOverride)
   const groupStats = {
     '3D drawing': { totalTasks: 0, totalPercentSum: 0 },
     '2D drawing': { totalTasks: 0, totalPercentSum: 0 },
@@ -71,11 +84,11 @@ export function computeWeightedProgress(sectionsWithTasks) {
   let weightedProgressSum = 0
   let totalDensity = 0
 
-  Object.keys(GROUP_DENSITIES).forEach((groupName) => {
+  Object.keys(densities).forEach((groupName) => {
     const g = groupStats[groupName]
     if (g.totalTasks > 0) {
       const avg = Math.round(g.totalPercentSum / g.totalTasks)
-      const density = GROUP_DENSITIES[groupName]
+      const density = densities[groupName]
       groups.push({ name: groupName, total: g.totalTasks, avgPercent: avg, density })
       weightedProgressSum += avg * density
       totalDensity += density

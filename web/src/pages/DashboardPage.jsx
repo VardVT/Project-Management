@@ -58,7 +58,7 @@ export function DashboardPage() {
       setError('')
       const { data: projects, error: pErr } = await supabase
         .from('projects')
-        .select('id, name, ship_id, department, status, start_date, end_date, created_at, ship_leader_id, owner_id')
+        .select('id, name, ship_id, department, status, start_date, end_date, created_at, ship_leader_id, owner_id, group_weights')
         .order('created_at', { ascending: false })
 
       if (pErr) throw pErr
@@ -103,7 +103,7 @@ export function DashboardPage() {
           tasks: pTasks.filter((t) => t.section_id === s.id),
         }))
 
-        const stats = computeWeightedProgress(sectionsWithTasks)
+        const stats = computeWeightedProgress(sectionsWithTasks, p.group_weights)
 
         const statusCounts = { 'Not Started': 0, 'In Progress': 0, Completed: 0, 'On Hold': 0 }
         let pendingReviewCount = 0

@@ -1,8 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
-import { GROUP_DENSITIES, getDashboardGroupFromSectionName } from '../lib/progress'
+import {
+  GROUP_DENSITIES,
+  getDashboardGroupFromSectionName,
+  resolveGroupDensities,
+} from '../lib/progress'
+import { ROLES } from '../lib/roles'
 import { DonutRing, MultiSegmentDonut, VerticalBarChart } from '../components/Charts'
 import { IconVessel } from '../components/Icons'
 
@@ -23,7 +28,8 @@ function daysBetween(startIso, endIso) {
   return Number.isFinite(d) ? Math.max(0, d) : null
 }
 
-function buildGroupTable(tasks, sections) {
+function buildGroupTable(tasks, sections, densities) {
+  const dens = resolveGroupDensities(densities)
   const sectionNameById = new Map(sections.map((s) => [s.id, s.header_name]))
   const groupNames = Object.keys(GROUP_DENSITIES)
   const byGroup = new Map(groupNames.map((g) => [g, []]))
@@ -53,7 +59,7 @@ function buildGroupTable(tasks, sections) {
       total,
       avgPercent,
       remaining: 100 - avgPercent,
-      density: GROUP_DENSITIES[name],
+      density: dens[name],
       start,
       end,
       days: daysBetween(start, end),
@@ -123,10 +129,20 @@ function inNext7Days(iso) {
 }
 
 function RichProjectDashboard({ eyebrow, title }) {
-  const { currentProject, sections } = useProject()
+  const { caps } = useAuth()
+  const { currentProject, sections, updateGroupWeights } = useProject()
+  const canEditWeights = caps.role === ROLES.ADMIN || caps.role === ROLES.MANAGER
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [weights, setWeights] = useState(() => resolveGroupDensities(null))
+  const [weightSaving, setWeightSaving] = useState(false)
+  const [weightMsg, setWeightMsg] = useState('')
+  const saveTimer = useRef(null)
+
+  useEffect(() => {
+    setWeights(resolveGroupDensities(currentProject?.group_weights))
+  }, [currentProject?.id, currentProject?.group_weights])
 
   useEffect(() => {
     if (!currentProject?.id) {
@@ -146,6 +162,29 @@ function RichProjectDashboard({ eyebrow, title }) {
       })
   }, [currentProject?.id])
 
+  function onWeightChange(groupName, raw) {
+    const n = Math.max(0, Number(raw))
+    const next = {
+      ...weights,
+      [groupName]: Number.isFinite(n) ? n : 0,
+    }
+    setWeights(next)
+    setWeightMsg('')
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(async () => {
+      setWeightSaving(true)
+      try {
+        await updateGroupWeights(next)
+        setWeightMsg('Weights saved')
+        setTimeout(() => setWeightMsg(''), 2000)
+      } catch (err) {
+        setError(err?.message || 'Could not save weights.')
+      } finally {
+        setWeightSaving(false)
+      }
+    }, 450)
+  }
+
   if (!currentProject?.id) {
     return (
       <div className="pm-panel" style={{ textAlign: 'center', padding: '40px' }}>
@@ -157,7 +196,8 @@ function RichProjectDashboard({ eyebrow, title }) {
   }
   if (loading) return <p className="muted">Loading vessel metrics…</p>
 
-  const { allRow, rows } = buildGroupTable(tasks, sections)
+  const { allRow, rows } = buildGroupTable(tasks, sections, weights)
+  const weightSumAll = Object.values(weights).reduce((s, n) => s + (Number(n) || 0), 0)
   const buckets = buildPercentBuckets(rows.length ? tasks.filter((t) => t.percent_complete != null) : [])
   const dueThisWeek = tasks
     .filter((t) => inNext7Days(t.finish_date))
@@ -220,7 +260,14 @@ function RichProjectDashboard({ eyebrow, title }) {
         </div>
 
         <div className="pm-panel" style={{ gridColumn: '1 / -1' }}>
-          <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 700 }}>Technical Group Breakdown</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 12 }}>
+            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Technical Group Breakdown</h3>
+            {canEditWeights ? (
+              <span className="muted" style={{ fontSize: '11.5px' }}>
+                {weightSaving ? 'Saving weights…' : weightMsg || `Weights sum ${weightSumAll}% · Overall updates live`}
+              </span>
+            ) : null}
+          </div>
           <div className="pm-table-wrap">
             <table className="pm-table">
               <thead>
@@ -255,7 +302,23 @@ function RichProjectDashboard({ eyebrow, title }) {
                     <td>{r.days ?? '—'}</td>
                     <td>{r.avgPercent}%</td>
                     <td>{r.remaining}%</td>
-                    <td>{r.density}%</td>
+                    <td>
+                      {canEditWeights ? (
+                        <label className="weight-edit">
+                          <input
+                            type="number"
+                            min={0}
+                            max={1000}
+                            step={1}
+                            value={weights[r.name] ?? r.density}
+                            onChange={(e) => onWeightChange(r.name, e.target.value)}
+                          />
+                          <span>%</span>
+                        </label>
+                      ) : (
+                        `${r.density}%`
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
