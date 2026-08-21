@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
-import { displaySectionName } from '../lib/roles'
+import { CANONICAL_SECTIONS, displaySectionName } from '../lib/roles'
 import { statusFromPercent } from '../lib/progress'
 
 const WINDOW_DAYS = 15
@@ -13,8 +13,7 @@ function startOfDay(d) {
 }
 
 function addDays(d, n) {
-  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
-  return x
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
 }
 
 function toIso(d) {
@@ -53,8 +52,7 @@ function barRange(t) {
 }
 
 function barTone(t) {
-  const st =
-    t.status === 'On Hold' ? 'On Hold' : statusFromPercent(t.percent_complete)
+  const st = t.status === 'On Hold' ? 'On Hold' : statusFromPercent(t.percent_complete)
   if (st === 'On Hold') return 'hold'
   if (st === 'In Progress') return 'progress'
   return 'idle'
@@ -62,9 +60,11 @@ function barTone(t) {
 
 export function CalendarPage() {
   const { caps, user } = useAuth()
-  const { currentProject, sections } = useProject()
-  const [sectionId, setSectionId] = useState('')
+  const { projects, currentProject, sections, selectProject } = useProject()
+  const [vesselId, setVesselId] = useState(currentProject?.id || '')
+  const [sectionKey, setSectionKey] = useState('')
   const [tasks, setTasks] = useState([])
+  const [allSections, setAllSections] = useState([])
   const [profiles, setProfiles] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -73,6 +73,10 @@ export function CalendarPage() {
   const today0 = useMemo(() => startOfDay(new Date()), [])
   const windowStart = useMemo(() => addDays(today0, -WINDOW_DAYS), [today0])
   const windowEnd = useMemo(() => addDays(today0, WINDOW_DAYS), [today0])
+
+  useEffect(() => {
+    if (currentProject?.id) setVesselId(currentProject.id)
+  }, [currentProject?.id])
 
   const dayColumns = useMemo(() => {
     return Array.from({ length: DAY_COUNT }, (_, i) => {
@@ -89,38 +93,118 @@ export function CalendarPage() {
     })
   }, [windowStart, today0])
 
+  const projectById = useMemo(() => {
+    const map = new Map()
+    projects.forEach((p) => map.set(p.id, p))
+    return map
+  }, [projects])
+
+  const sectionById = useMemo(() => {
+    const map = new Map()
+    ;(vesselId ? sections : allSections).forEach((s) => map.set(s.id, s))
+    return map
+  }, [vesselId, sections, allSections])
+
+  const sectionOptions = useMemo(() => {
+    if (!vesselId) {
+      return CANONICAL_SECTIONS.map((name) => ({
+        value: name,
+        label: displaySectionName(name),
+      }))
+    }
+    return sections.map((s) => ({
+      value: s.id,
+      label: displaySectionName(s.header_name),
+    }))
+  }, [vesselId, sections])
+
   useEffect(() => {
-    if (!currentProject?.id) {
+    if (!projects.length) {
       setTasks([])
       return
     }
-    setLoading(true)
-    setError('')
-    let query = supabase
-      .from('tasks')
-      .select(
-        'id, activity, drawing_id, zone, start_date, finish_date, late_date, percent_complete, section_id, assignee_id, status',
-      )
-      .eq('project_id', currentProject.id)
 
-    if (sectionId) query = query.eq('section_id', sectionId)
-    if (caps.canEditAssignedOnly) query = query.eq('assignee_id', user.id)
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      setError('')
 
-    Promise.all([
-      query,
-      supabase.from('profiles').select('id, display_name, email'),
-    ]).then(([{ data, error: err }, { data: profileData }]) => {
+      let taskQuery = supabase
+        .from('tasks')
+        .select(
+          'id, activity, drawing_id, zone, start_date, finish_date, late_date, percent_complete, section_id, assignee_id, status, project_id',
+        )
+
+      if (vesselId) {
+        taskQuery = taskQuery.eq('project_id', vesselId)
+        if (sectionKey) taskQuery = taskQuery.eq('section_id', sectionKey)
+      } else if (sectionKey) {
+        const { data: matchedSections, error: secErr } = await supabase
+          .from('sections')
+          .select('id, header_name, project_id')
+          .eq('header_name', sectionKey)
+        if (secErr) {
+          if (!cancelled) {
+            setError(secErr.message)
+            setLoading(false)
+          }
+          return
+        }
+        const ids = (matchedSections || []).map((s) => s.id)
+        if (!ids.length) {
+          if (!cancelled) {
+            setTasks([])
+            setAllSections([])
+            setSelectedId('')
+            setLoading(false)
+          }
+          return
+        }
+        taskQuery = taskQuery.in('section_id', ids)
+      }
+
+      if (caps.canEditAssignedOnly) taskQuery = taskQuery.eq('assignee_id', user.id)
+
+      const requests = [taskQuery, supabase.from('profiles').select('id, display_name, email')]
+      if (!vesselId) {
+        requests.push(supabase.from('sections').select('id, header_name, sort_order, project_id').order('sort_order'))
+      }
+
+      const results = await Promise.all(requests)
+      if (cancelled) return
+
+      const [{ data, error: err }, { data: profileData }, sectionsResult] = results
       if (err) setError(err.message)
       setTasks(data || [])
       setProfiles(profileData || [])
+      if (sectionsResult) setAllSections(sectionsResult.data || [])
       setSelectedId('')
       setLoading(false)
-    })
-  }, [currentProject?.id, sectionId, caps.canEditAssignedOnly, user?.id])
+    }
+
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [vesselId, sectionKey, caps.canEditAssignedOnly, user?.id, projects.length])
+
+  function onVesselChange(nextId) {
+    setVesselId(nextId)
+    setSectionKey('')
+    if (nextId) {
+      const p = projects.find((x) => x.id === nextId)
+      if (p) selectProject(p)
+    }
+  }
 
   const sectionName = (id) => {
-    const s = sections.find((x) => x.id === id)
+    const s = sectionById.get(id)
     return s ? displaySectionName(s.header_name) : 'Section'
+  }
+
+  const vesselLabel = (projectId) => {
+    const p = projectById.get(projectId)
+    return p?.ship_id || p?.name || 'Vessel'
   }
 
   const picName = (id) => {
@@ -136,8 +220,7 @@ export function CalendarPage() {
       const range = barRange(t)
       if (!range) continue
 
-      const overlaps =
-        range.from <= windowEnd && range.to >= windowStart
+      const overlaps = range.from <= windowEnd && range.to >= windowStart
       const overdueOpen = range.to < today0
       if (!overlaps && !overdueOpen) continue
 
@@ -163,28 +246,30 @@ export function CalendarPage() {
         tone: barTone(t),
         overdue: range.to < today0,
         label: t.activity || t.drawing_id || 'Task',
+        ship: vesselLabel(t.project_id),
       })
     }
 
     rows.sort((a, b) => {
+      if (!vesselId && a.ship !== b.ship) return String(a.ship).localeCompare(String(b.ship))
       if (a.startIdx !== b.startIdx) return a.startIdx - b.startIdx
       return String(a.label).localeCompare(String(b.label))
     })
     return rows
-  }, [tasks, windowStart, windowEnd, today0])
+  }, [tasks, windowStart, windowEnd, today0, vesselId, projectById])
 
   const selected = openRows.find((r) => r.task.id === selectedId) || null
   const todayIdx = WINDOW_DAYS
-
   const rangeLabel = `${dayColumns[0].monthShort} ${dayColumns[0].dayNum} – ${
     dayColumns[DAY_COUNT - 1].monthShort
   } ${dayColumns[DAY_COUNT - 1].dayNum}, ${dayColumns[DAY_COUNT - 1].date.getFullYear()}`
+  const activeVesselLabel = vesselId ? vesselLabel(vesselId) : 'All vessels'
 
-  if (!currentProject?.id) {
+  if (!projects.length) {
     return (
       <div className="pm-panel" style={{ textAlign: 'center', padding: 40 }}>
-        <h3 style={{ marginTop: 0 }}>No vessel selected</h3>
-        <p className="muted">Select a vessel to view the near-term Gantt timeline.</p>
+        <h3 style={{ marginTop: 0 }}>No vessels loaded</h3>
+        <p className="muted">Create or open a vessel project to view the near-term Gantt timeline.</p>
       </div>
     )
   }
@@ -196,7 +281,7 @@ export function CalendarPage() {
           <p className="eyebrow">Near-term schedule</p>
           <h2>Rolling Gantt · ±{WINDOW_DAYS} days</h2>
           <p className="muted">
-            Vessel <strong>{currentProject.ship_id}</strong> · {rangeLabel} · open tasks only
+            <strong>{activeVesselLabel}</strong> · {rangeLabel} · open tasks only
             {caps.canEditAssignedOnly ? ' · assigned to you' : ''}
           </p>
         </div>
@@ -213,17 +298,30 @@ export function CalendarPage() {
       </div>
 
       <div className="gantt-toolbar pm-panel">
-        <label className="gantt-filter">
-          <span>Section</span>
-          <select value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
-            <option value="">All sections</option>
-            {sections.map((s) => (
-              <option key={s.id} value={s.id}>
-                {displaySectionName(s.header_name)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="gantt-filters">
+          <label className="gantt-filter">
+            <span>Vessel</span>
+            <select value={vesselId} onChange={(e) => onVesselChange(e.target.value)}>
+              <option value="">All vessels</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.ship_id || p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="gantt-filter">
+            <span>Section</span>
+            <select value={sectionKey} onChange={(e) => setSectionKey(e.target.value)}>
+              <option value="">All sections</option>
+              {sectionOptions.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <div className="gantt-legend">
           <span>
             <i className="gantt-dot idle" /> Not started
@@ -290,13 +388,12 @@ export function CalendarPage() {
                     <button
                       type="button"
                       className={`gantt-label ${selectedId === row.task.id ? 'active' : ''}`}
-                      onClick={() =>
-                        setSelectedId((id) => (id === row.task.id ? '' : row.task.id))
-                      }
+                      onClick={() => setSelectedId((id) => (id === row.task.id ? '' : row.task.id))}
                       title={row.label}
                     >
                       <span className="gantt-label-title">{row.label}</span>
                       <span className="gantt-label-meta">
+                        {!vesselId ? `${row.ship} · ` : ''}
                         {sectionName(row.task.section_id)}
                         {row.task.zone ? ` · ${row.task.zone}` : ''}
                         {` · ${picName(row.task.assignee_id)}`}
@@ -304,9 +401,7 @@ export function CalendarPage() {
                     </button>
                     <div
                       className={`gantt-track ${selectedId === row.task.id ? 'active' : ''}`}
-                      onClick={() =>
-                        setSelectedId((id) => (id === row.task.id ? '' : row.task.id))
-                      }
+                      onClick={() => setSelectedId((id) => (id === row.task.id ? '' : row.task.id))}
                     >
                       {dayColumns.map((col) => (
                         <div
@@ -344,7 +439,7 @@ export function CalendarPage() {
           <div>
             <strong>{selected.label}</strong>
             <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
-              {sectionName(selected.task.section_id)}
+              {vesselLabel(selected.task.project_id)} · {sectionName(selected.task.section_id)}
               {selected.task.drawing_id ? ` · ${selected.task.drawing_id}` : ''}
               {selected.task.zone ? ` · ${selected.task.zone}` : ''}
             </div>
