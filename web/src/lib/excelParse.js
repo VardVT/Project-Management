@@ -44,12 +44,19 @@ function normalizeStatus(raw) {
   return String(raw || 'Not Started').trim()
 }
 
-/** Desktop sheet names (fuzzy) */
-const PROGRESS_SHEET_MATCHERS = [
-  (n) => n.includes('01.') || n.includes('3d model'),
-  (n) => n.includes('02.') || n.includes('iso export') || (n.includes('iso') && n.includes('export')),
-  (n) => n.includes('03.') || n.includes('sys diagram') || (n.includes('2d') && n.includes('drawing')),
-]
+/** Desktop sheet names (fuzzy) — dùng để gán nhóm, không còn “chỉ lấy sheet đầu tiên”. */
+function classifyProgressSheet(name) {
+  const n = normSheet(name)
+  if (!n || isZoneListSheet(name)) return null
+  if (isMtoSheet(name)) return 'MTO'
+  if (n.includes('01.') || n.includes('3d model') || (n.includes('3d') && n.includes('pipe'))) return '3D'
+  // ISO Braila / ISO VTT / 02. ISO export… đều thuộc nhóm ISO
+  if (n.includes('02.') || n.includes('iso')) return 'ISO'
+  if (n.includes('03.') || n.includes('sys diagram') || (n.includes('2d') && n.includes('drawing')) || n.includes('2d')) {
+    return '2D'
+  }
+  return null
+}
 
 function isMtoSheet(name) {
   const n = normSheet(name)
@@ -59,6 +66,115 @@ function isMtoSheet(name) {
 function isZoneListSheet(name) {
   const n = normSheet(name)
   return n.includes('zone list') && (n.includes('review') || n.includes('plan'))
+}
+
+function countProgressRows(wb, sheetName) {
+  if (isMtoSheet(sheetName)) {
+    return parseMtoSheet(wb, sheetName).length
+  }
+  const matrix = sheetToMatrix(wb.Sheets[sheetName])
+  const found = findHeader(
+    matrix,
+    mapProgressColumns,
+    (c) => c.activity != null && (c.percent != null || c.drawingId != null || c.zone != null),
+  )
+  if (!found?.cols?.activity) return 0
+  let count = 0
+  for (let r = found.headerRowIdx + 1; r < matrix.length; r++) {
+    const row = matrix[r]
+    if (!row || row.every((c) => String(c).trim() === '')) continue
+    if (String(cell(row, found.cols.activity)).trim()) count += 1
+  }
+  return count
+}
+
+/**
+ * Liệt kê mọi sheet progress có thể sync (kể cả nhiều biến thể ISO).
+ * @returns {{ name: string, group: string, rowCount: number }[]}
+ */
+export function listPicPercentSheetOptions(arrayBuffer) {
+  const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true })
+  const options = []
+  const seen = new Set()
+
+  for (const sheetName of wb.SheetNames) {
+    let group = classifyProgressSheet(sheetName)
+    if (!group) {
+      // fallback: sheet lạ nhưng có header Activity + %
+      if (isZoneListSheet(sheetName)) continue
+      const matrix = sheetToMatrix(wb.Sheets[sheetName])
+      const found = findHeader(matrix, mapProgressColumns, (c) => c.activity != null && c.percent != null)
+      if (!found) continue
+      group = 'Other'
+    }
+    if (seen.has(sheetName)) continue
+    seen.add(sheetName)
+    options.push({
+      name: sheetName,
+      group,
+      rowCount: countProgressRows(wb, sheetName),
+    })
+  }
+
+  const groupOrder = { '3D': 0, ISO: 1, '2D': 2, MTO: 3, Other: 4 }
+  return options
+    .filter((o) => o.rowCount > 0)
+    .sort((a, b) => (groupOrder[a.group] ?? 9) - (groupOrder[b.group] ?? 9) || a.name.localeCompare(b.name))
+}
+
+/**
+ * Gợi ý chọn mặc định: mỗi nhóm (3D/ISO/2D/MTO) lấy 1 sheet đầu tiên.
+ * User có thể đổi trong popup (vd. ISO Braila vs ISO VTT).
+ */
+export function defaultSelectedSheetNames(options) {
+  const picked = []
+  const usedGroups = new Set()
+  for (const opt of options || []) {
+    if (usedGroups.has(opt.group)) continue
+    usedGroups.add(opt.group)
+    picked.push(opt.name)
+  }
+  return picked
+}
+
+function pickProgressSheets(wb, selectedSheetNames) {
+  if (Array.isArray(selectedSheetNames) && selectedSheetNames.length) {
+    const allow = new Set(selectedSheetNames)
+    return wb.SheetNames.filter((n) => allow.has(n) && !isZoneListSheet(n) && !isMtoSheet(n))
+  }
+
+  // Legacy fallback: 1 sheet / nhóm (giữ hành vi cũ nếu không truyền selected)
+  const names = wb.SheetNames
+  const picked = []
+  const usedGroups = new Set()
+  for (const sheetName of names) {
+    const group = classifyProgressSheet(sheetName)
+    if (!group || group === 'MTO' || usedGroups.has(group)) continue
+    // chỉ auto-pick khi khớp pattern chuẩn; Other bỏ qua ở fallback
+    if (group === 'Other') continue
+    usedGroups.add(group)
+    picked.push(sheetName)
+  }
+
+  if (picked.length === 0) {
+    for (const sheetName of names) {
+      if (isZoneListSheet(sheetName) || isMtoSheet(sheetName)) continue
+      const matrix = sheetToMatrix(wb.Sheets[sheetName])
+      const found = findHeader(matrix, mapProgressColumns, (c) => c.activity != null && c.percent != null)
+      if (found) picked.push(sheetName)
+    }
+  }
+
+  return picked
+}
+
+export function sectionFromProgressSheet(sheetName) {
+  const group = classifyProgressSheet(sheetName)
+  if (group === 'MTO') return 'MTO'
+  if (group === 'ISO') return 'ISO generation'
+  if (group === '2D') return 'Pipe 2D drawing'
+  if (group === '3D') return '3D Pipe Drawing'
+  return mapExcelSectionToTarget(sheetName)
 }
 
 function mapProgressColumns(headerRow) {
@@ -184,31 +300,6 @@ function parseZoneListSheet(wb) {
   return { zoneInfo, sheetNameUsed }
 }
 
-function pickProgressSheets(wb) {
-  const names = wb.SheetNames
-  const picked = []
-  const used = new Set()
-
-  for (const matcher of PROGRESS_SHEET_MATCHERS) {
-    const hit = names.find((n) => !used.has(n) && matcher(normSheet(n)))
-    if (hit) {
-      used.add(hit)
-      picked.push(hit)
-    }
-  }
-
-  if (picked.length === 0) {
-    for (const sheetName of names) {
-      if (isZoneListSheet(sheetName) || isMtoSheet(sheetName)) continue
-      const matrix = sheetToMatrix(wb.Sheets[sheetName])
-      const found = findHeader(matrix, mapProgressColumns, (c) => c.activity != null && c.percent != null)
-      if (found) picked.push(sheetName)
-    }
-  }
-
-  return picked
-}
-
 /**
  * FIX: sheet MTO có cấu trúc HOÀN TOÀN khác (Docs No | Description |
  * File name | PIC | Status | Progress | QC status | Rev | Date | Remark)
@@ -267,14 +358,20 @@ function parseMtoSheet(wb, sheetName) {
  * - Sheets 01..03 → Activity, Zone, Drawing ID, %, Review
  * - Sheet 04 (MTO) → parser riêng (parseMtoSheet)
  * - PIC full name = mapping[zoneToPIC[zone]]
+ * @param {ArrayBuffer} arrayBuffer
+ * @param {string} [fileName]
+ * @param {{ sheetNames?: string[] }} [options]
  */
-export function parsePicPercentWorkbook(arrayBuffer, fileName) {
+export function parsePicPercentWorkbook(arrayBuffer, fileName, options = {}) {
   const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true })
   const { zoneInfo, sheetNameUsed: zoneSheet } = parseZoneListSheet(wb)
-  const progressSheets = pickProgressSheets(wb)
+  const selected = options.sheetNames
+  const progressSheets = pickProgressSheets(wb, selected)
   const tasks = []
   const sheetStats = []
   const shipHint = shipHintFromProgressFileName(fileName)
+  const allowMto =
+    !selected?.length || selected.some((n) => isMtoSheet(n) || classifyProgressSheet(n) === 'MTO')
 
   for (const sheetName of progressSheets) {
     const matrix = sheetToMatrix(wb.Sheets[sheetName])
@@ -328,6 +425,7 @@ export function parsePicPercentWorkbook(arrayBuffer, fileName) {
         vvtReview: zi?.vvt || '',
         ownerReview: zi?.owner || '',
         sheetName,
+        targetSection: sectionFromProgressSheet(sheetName),
       })
     }
 
@@ -342,11 +440,18 @@ export function parsePicPercentWorkbook(arrayBuffer, fileName) {
   }
 
   // FIX: parse riêng sheet MTO, gộp chung vào cùng danh sách tasks
-  const mtoSheetName = wb.SheetNames.find(isMtoSheet)
-  if (mtoSheetName) {
-    const mtoRows = parseMtoSheet(wb, mtoSheetName)
-    tasks.push(...mtoRows)
-    sheetStats.push({ sheetName: mtoSheetName, rows: mtoRows.length })
+  const mtoCandidates = selected?.length
+    ? wb.SheetNames.filter((n) => selected.includes(n) && isMtoSheet(n))
+    : wb.SheetNames.filter(isMtoSheet)
+  if (allowMto) {
+    for (const mtoSheetName of mtoCandidates) {
+      const mtoRows = parseMtoSheet(wb, mtoSheetName).map((row) => ({
+        ...row,
+        targetSection: 'MTO',
+      }))
+      tasks.push(...mtoRows)
+      sheetStats.push({ sheetName: mtoSheetName, rows: mtoRows.length })
+    }
   }
 
   return {
@@ -355,7 +460,7 @@ export function parsePicPercentWorkbook(arrayBuffer, fileName) {
     sheetStats,
     zoneSheet,
     zoneMappingCount: Object.keys(zoneInfo).length,
-    progressSheets: mtoSheetName ? [...progressSheets, mtoSheetName] : progressSheets,
+    progressSheets: [...progressSheets, ...mtoCandidates],
     allSheetNames: wb.SheetNames,
   }
 }

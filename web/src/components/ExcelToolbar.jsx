@@ -2,7 +2,13 @@ import { useRef, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
 import { supabase } from '../lib/supabase'
-import { fileToArrayBuffer, parsePicPercentWorkbook, shipHintFromProgressFileName } from '../lib/excelParse'
+import {
+  fileToArrayBuffer,
+  parsePicPercentWorkbook,
+  shipHintFromProgressFileName,
+  listPicPercentSheetOptions,
+  defaultSelectedSheetNames,
+} from '../lib/excelParse'
 import { parseEngineeringPlansWorkbook } from '../lib/engineeringPlansParse'
 import { applyEngineeringPlansImport } from '../lib/engineeringPlansImport'
 import { applyPicPercentImport } from '../lib/excelImport'
@@ -10,6 +16,7 @@ import { applyPipingVtSectionMapping } from '../lib/pipingVtMapping'
 import { downloadReportXlsx } from '../lib/exportReport'
 import { IconUpload, IconMap, IconRefresh, IconDownload } from './Icons'
 import { useNotification } from './NotificationContext'
+import { SyncSheetPickerModal } from './SyncSheetPickerModal'
 
 export function ExcelToolbar() {
   const { caps, user } = useAuth()
@@ -18,6 +25,7 @@ export function ExcelToolbar() {
   const plansRef = useRef(null)
   const percentRef = useRef(null)
   const [busy, setBusy] = useState('')
+  const [syncPicker, setSyncPicker] = useState(null)
 
   async function onPlansFile(e) {
     const file = e.target.files?.[0]
@@ -109,17 +117,47 @@ export function ExcelToolbar() {
       }
 
       const buf = await fileToArrayBuffer(file)
-      const parsed = parsePicPercentWorkbook(buf, file.name)
+      const sheets = listPicPercentSheetOptions(buf)
+      if (!sheets.length) {
+        toast.warning('Empty File', 'No progress sheets found. Verify sheets 01/02/03/04 or ISO variants.')
+        return
+      }
+
+      setSyncPicker({
+        fileName: file.name,
+        shipHint: shipHint || target.ship_id,
+        projectId: target.id,
+        buffer: buf,
+        sheets,
+        initialSelected: defaultSelectedSheetNames(sheets),
+      })
+    } catch (err) {
+      toast.error('Sync Failed', err.message || 'Could not read progress workbook')
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function confirmSyncSheets(selectedSheetNames) {
+    if (!syncPicker) return
+    const { buffer, fileName, projectId, shipHint } = syncPicker
+    setSyncPicker(null)
+    setBusy('percent')
+    try {
+      const parsed = parsePicPercentWorkbook(buffer, fileName, { sheetNames: selectedSheetNames })
       if (!parsed.tasks.length) {
-        toast.warning('Empty File', 'No tasks read from file. Verify sheets 01/02/03/04.')
+        toast.warning('Empty Selection', 'No tasks found in the selected sheets.')
         return
       }
       const { data: profiles } = await supabase.from('profiles').select('id, display_name, email')
-      const result = await applyPicPercentImport(target.id, parsed.tasks, profiles || [])
+      const result = await applyPicPercentImport(projectId, parsed.tasks, profiles || [], {
+        insertMissing: true,
+      })
       await reloadSections()
+      const added = result.inserted ? ` · ${result.inserted} new` : ''
       toast.success(
         'Sync Complete',
-        `Vessel ${shipHint || target.ship_id}: matched ${result.matched}/${result.totalExcel} — ${result.updated} updated.`,
+        `Vessel ${shipHint || projectId}: matched ${result.matched}/${result.totalExcel}, updated ${result.updated}${added}.`,
       )
     } catch (err) {
       toast.error('Sync Failed', err.message || 'Update Progress / PIC failed')
@@ -174,6 +212,7 @@ export function ExcelToolbar() {
   if (!caps.canImportExcel && !caps.canExportReport) return null
 
   return (
+    <>
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
       {caps.canImportExcel && (
         <>
@@ -227,5 +266,17 @@ export function ExcelToolbar() {
         </button>
       )}
     </div>
+
+    {syncPicker && (
+      <SyncSheetPickerModal
+        fileName={syncPicker.fileName}
+        shipHint={syncPicker.shipHint}
+        sheets={syncPicker.sheets}
+        initialSelected={syncPicker.initialSelected}
+        onCancel={() => setSyncPicker(null)}
+        onConfirm={confirmSyncSheets}
+      />
+    )}
+    </>
   )
 }

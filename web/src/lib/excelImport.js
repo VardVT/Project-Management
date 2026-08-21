@@ -217,8 +217,11 @@ function findDbTask(indexes, row) {
  * Update assignee + % + status + review fields từ file Excel dạng phẳng
  * (01/02/03/04 progress sheets) — dùng cho nút "Update % / PIC" riêng biệt
  * với "Import Plans".
+ *
+ * Task có trong Excel nhưng chưa có trong Plan sẽ được INSERT vào section
+ * tương ứng (theo sheet), nếu `insertMissing` = true (mặc định).
  */
-export async function applyPicPercentImport(projectId, excelTasks, profiles) {
+export async function applyPicPercentImport(projectId, excelTasks, profiles, { insertMissing = true } = {}) {
   const { data: tasks, error } = await supabase
     .from('tasks')
     .select(
@@ -233,6 +236,7 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles) {
 
   let matched = 0
   let updated = 0
+  let inserted = 0
   let matchedBy = {
     drawing: 0,
     'activity+drawing': 0,
@@ -241,6 +245,7 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles) {
     'activity-fuzzy': 0,
   }
   const unmatchedSamples = []
+  const toInsert = []
 
   for (const row of excelTasks) {
     const hit = findDbTask(indexes, row)
@@ -251,6 +256,9 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles) {
           drawingId: row.drawingId || '',
           sheet: row.sheetName || '',
         })
+      }
+      if (insertMissing && (row.activity || row.drawingId)) {
+        toInsert.push(row)
       }
       continue
     }
@@ -301,9 +309,76 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles) {
     }
   }
 
+  if (insertMissing && toInsert.length) {
+    const sectionNames = [
+      ...new Set(
+        toInsert.map((row) => {
+          if (row.isMto || row.targetSection === 'MTO') return 'MTO'
+          if (row.targetSection) return row.targetSection
+          return mapExcelSectionToTarget(row.sheetName || row.zone || '')
+        }),
+      ),
+    ]
+    const sectionByName = await ensureSections(projectId, [...new Set([...CANONICAL_SECTIONS, ...sectionNames])])
+
+    const payloads = []
+    for (const row of toInsert) {
+      const sectionName =
+        row.isMto || row.targetSection === 'MTO'
+          ? 'MTO'
+          : row.targetSection || mapExcelSectionToTarget(row.sheetName || row.zone || '')
+      const section = sectionByName.get(sectionName)
+      if (!section) continue
+      const assigneeId = resolveAssignee(row.picFullNameNoDiacritics || row.picRaw, profileByNorm)
+      const activity = row.activity || row.drawingId || 'Untitled'
+      payloads.push({
+        project_id: projectId,
+        section_id: section.id,
+        title: activity,
+        activity,
+        drawing_id: row.drawingId || '',
+        zone: row.zone || sectionName,
+        percent_complete: typeof row.percentComplete === 'number' ? row.percentComplete : 0,
+        status: row.status || 'Not Started',
+        review_3d: row.review || null,
+        first_unit: row.firstUnit || null,
+        unit_issue_date: row.unitIssueDate || null,
+        vvt_review: row.vvtReview || null,
+        owners_review: row.ownerReview || null,
+        assignee_id: assigneeId,
+      })
+    }
+
+    const BATCH = 80
+    for (let i = 0; i < payloads.length; i += BATCH) {
+      const chunk = payloads.slice(i, i + BATCH)
+      const { error: inErr } = await supabase.from('tasks').insert(chunk)
+      if (inErr) throw inErr
+      inserted += chunk.length
+
+      // giữ index cập nhật để tránh insert trùng trong cùng lần sync
+      chunk.forEach((p) => {
+        const fake = {
+          id: `new-${inserted}`,
+          activity: p.activity,
+          drawing_id: p.drawing_id,
+          zone: p.zone,
+        }
+        const a = normKey(fake.activity)
+        const d = compactDrawing(fake.drawing_id)
+        const z = normKey(fake.zone)
+        if (a && d) indexes.byActDraw.set(`${a}|||${d}`, fake)
+        if (a && !indexes.byAct.has(a)) indexes.byAct.set(a, fake)
+        if (d && !indexes.byDraw.has(d)) indexes.byDraw.set(d, fake)
+        if (z && a) indexes.byZoneAct.set(`${z}|||${a}`, fake)
+      })
+    }
+  }
+
   return {
     matched,
     updated,
+    inserted,
     totalExcel: excelTasks.length,
     dbTasks: dbTasks.length,
     matchedBy,
