@@ -4,6 +4,12 @@ import { normalizeRole, getCapabilities } from '../lib/roles'
 
 const AuthContext = createContext(null)
 
+export const DEFAULT_TEMP_PASSWORD = 'Pass01'
+
+function isTempPassword(password) {
+  return String(password || '').trim().toLowerCase() === DEFAULT_TEMP_PASSWORD.toLowerCase()
+}
+
 // Token phiên lưu riêng theo trình duyệt (localStorage) — đại diện cho
 // "phiên đăng nhập trên thiết bị/trình duyệt này". Nếu ai đó đăng nhập lại
 // cùng tài khoản ở nơi khác, DB sẽ có active_session_id MỚI, khác token này.
@@ -162,10 +168,38 @@ export function AuthProvider({ children }) {
       const token = genSessionToken()
       setLocalSessionToken(token)
       if (data?.user?.id) {
-        await supabase.from('profiles').update({ active_session_id: token }).eq('id', data.user.id)
+        const patch = { active_session_id: token }
+        // Đăng nhập bằng Pass01 → bắt buộc đổi mật khẩu trước khi vào app
+        if (isTempPassword(password)) {
+          patch.must_change_password = true
+        }
+        await supabase.from('profiles').update(patch).eq('id', data.user.id)
+        await fetchProfile(data.user.id)
       }
       setKicked(false)
       return data
+    },
+
+    async changePassword(newPassword) {
+      const pwd = String(newPassword || '').trim()
+      if (pwd.length < 6) throw new Error('Password must be at least 6 characters.')
+      if (isTempPassword(pwd)) {
+        throw new Error(`Please choose a password other than ${DEFAULT_TEMP_PASSWORD}.`)
+      }
+      const userId = session?.user?.id
+      if (!userId) throw new Error('Not signed in.')
+
+      const { error } = await supabase.auth.updateUser({ password: pwd })
+      if (error) throw error
+
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({ must_change_password: false })
+        .eq('id', userId)
+      if (profileErr) throw profileErr
+
+      await fetchProfile(userId)
+      return true
     },
 
     async signOut() {

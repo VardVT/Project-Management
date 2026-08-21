@@ -114,7 +114,7 @@ export function UsersPage() {
           <div>
             <h2>Engineering Team Directory</h2>
             <p className="muted" style={{ marginTop: '2px' }}>
-              Default initial password: <code>pass01</code>
+              Default first login: <code>Pass01</code> — users must set a new password after signing in.
             </p>
           </div>
           {!addingUser && (

@@ -86,7 +86,7 @@ export function LoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="Pass01 on first login"
               minLength={6}
               required
             />

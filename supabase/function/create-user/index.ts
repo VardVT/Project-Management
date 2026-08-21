@@ -15,10 +15,10 @@ serve(async (req) => {
     )
     const { email, display_name, employee_id, position, theme_color } = await req.json()
 
-    // 1. Tạo Auth User với password mặc định pass01
+    // 1. Tạo Auth User với password mặc định Pass01 (đổi bắt buộc lần đăng nhập đầu)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
-      password: "pass01",
+      password: "Pass01",
       email_confirm: true
     })
     if (authError) throw authError
@@ -31,7 +31,8 @@ serve(async (req) => {
       display_name,
       employee_id,
       position,
-      theme_color
+      theme_color,
+      must_change_password: true,
     }, { onConflict: 'id' })
 
     if (profileError) {
