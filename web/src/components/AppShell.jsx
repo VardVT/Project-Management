@@ -204,7 +204,7 @@ export function AppShell() {
             </NavLink>
           )}
 
-          {caps.canManageUsers && (
+          {caps.showTeamDirectory && (
             <NavLink to="/users" className="pm-menu-item">
               <IconUsers size={17} />
               <span>Team Members</span>

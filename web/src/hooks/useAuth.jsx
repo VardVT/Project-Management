@@ -71,7 +71,12 @@ export function AuthProvider({ children }) {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
         (payload) => {
-          const newToken = payload.new?.active_session_id
+          const row = payload.new
+          if (row?.app_access === false) {
+            forceLogout()
+            return
+          }
+          const newToken = row?.active_session_id
           const myToken = getLocalSessionToken()
           if (newToken && myToken && newToken !== myToken) {
             forceLogout()
@@ -106,14 +111,18 @@ export function AuthProvider({ children }) {
 
       if (currentSession?.user) {
         const p = await fetchProfile(currentSession.user.id)
-        // FIX: khi load lại trang (không phải vừa đăng nhập), so sánh token
-        // cục bộ với token trong DB — nếu lệch nghĩa là phiên này đã bị
-        // thay thế bởi 1 lần đăng nhập khác trong lúc mình không mở app.
-        const myToken = getLocalSessionToken()
-        if (p?.active_session_id && myToken && p.active_session_id !== myToken) {
+        if (p && p.app_access === false) {
           await forceLogout()
         } else {
-          watchSession(currentSession.user.id)
+          // FIX: khi load lại trang (không phải vừa đăng nhập), so sánh token
+          // cục bộ với token trong DB — nếu lệch nghĩa là phiên này đã bị
+          // thay thế bởi 1 lần đăng nhập khác trong lúc mình không mở app.
+          const myToken = getLocalSessionToken()
+          if (p?.active_session_id && myToken && p.active_session_id !== myToken) {
+            await forceLogout()
+          } else {
+            watchSession(currentSession.user.id)
+          }
         }
       }
       setLoading(false)
@@ -162,6 +171,19 @@ export function AuthProvider({ children }) {
     async signIn(email, password) {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
+
+      // Block disabled accounts before establishing session token
+      if (data?.user?.id) {
+        const { data: p } = await supabase
+          .from('profiles')
+          .select('app_access')
+          .eq('id', data.user.id)
+          .maybeSingle()
+        if (p && p.app_access === false) {
+          await supabase.auth.signOut()
+          throw new Error('Your app access is disabled. Contact a manager.')
+        }
+      }
 
       // FIX: sau khi đăng nhập thành công, sinh token phiên MỚI, ghi đè
       // active_session_id trong DB — mọi phiên cũ (thiết bị khác) sẽ thấy

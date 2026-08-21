@@ -1,29 +1,32 @@
 import { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { IconSave, IconTrash, IconCheck, IconCross, IconPlus } from '../components/Icons'
+import { UserAvatar } from '../components/UserAvatar'
+import { TeamProfileModal } from '../components/TeamProfileModal'
 import { useNotification } from '../components/NotificationContext'
 
 const POSITIONS = ['Admin', 'Manager', 'Senior', 'Engineer', 'Designer']
 
 export function UsersPage() {
-  const { caps, createUser, deleteUser } = useAuth()
+  const { caps, profile, createUser, deleteUser } = useAuth()
   const { confirm, toast } = useNotification()
+  const canManage = caps.canManageUsers
   const [users, setUsers] = useState([])
   const [error, setError] = useState('')
   const [savingId, setSavingId] = useState('')
   const [deletingId, setDeletingId] = useState('')
+  const [accessId, setAccessId] = useState('')
   const [loading, setLoading] = useState(true)
-
   const [addingUser, setAddingUser] = useState(null)
   const [addingLoading, setAddingLoading] = useState(false)
+  const [viewPerson, setViewPerson] = useState(null)
 
   async function load() {
     setLoading(true)
     const { data, error: err } = await supabase
       .from('profiles')
-      .select('id, email, display_name, employee_id, position, theme_color')
+      .select('id, email, display_name, employee_id, position, theme_color, avatar_url, app_access')
       .order('employee_id', { ascending: true, nullsFirst: false })
     if (err) setError(err.message)
     setUsers(data || [])
@@ -34,11 +37,8 @@ export function UsersPage() {
     load()
   }, [])
 
-  if (!caps.canManageUsers) {
-    return <Navigate to="/" replace />
-  }
-
   async function saveUser(user) {
+    if (!canManage) return
     setSavingId(user.id)
     setError('')
     const { error: err } = await supabase
@@ -47,11 +47,34 @@ export function UsersPage() {
         display_name: user.display_name,
         employee_id: user.employee_id || null,
         position: user.position,
-        theme_color: user.theme_color || null,
       })
       .eq('id', user.id)
     if (err) setError(err.message)
+    else toast.success('Saved', `${user.display_name || user.email} updated.`)
     setSavingId('')
+  }
+
+  async function setAppAccess(user, next) {
+    if (!canManage) return
+    if (user.id === profile?.id && !next) {
+      setError('You cannot turn off access for your own account.')
+      return
+    }
+    setAccessId(user.id)
+    setError('')
+    const { error: err } = await supabase.from('profiles').update({ app_access: next }).eq('id', user.id)
+    if (err) {
+      setError(err.message)
+    } else {
+      patch(user.id, { app_access: next })
+      toast.success(
+        next ? 'Access enabled' : 'Access disabled',
+        next
+          ? `${user.display_name || user.email} can sign in again.`
+          : `${user.display_name || user.email} is blocked from the app.`,
+      )
+    }
+    setAccessId('')
   }
 
   function patch(id, fields) {
@@ -64,7 +87,6 @@ export function UsersPage() {
       display_name: '',
       employee_id: '',
       position: 'Engineer',
-      theme_color: '#2563eb',
     })
   }
 
@@ -76,7 +98,7 @@ export function UsersPage() {
     setAddingLoading(true)
     setError('')
     try {
-      await createUser(addingUser)
+      await createUser({ ...addingUser, theme_color: '#2563eb' })
       setAddingUser(null)
       await load()
     } catch (err) {
@@ -87,10 +109,15 @@ export function UsersPage() {
   }
 
   async function handleDelete(u) {
+    if (u.id === profile?.id) {
+      setError('You cannot delete your own account.')
+      return
+    }
     const ok = await confirm({
       title: `Remove ${u.display_name || u.email}?`,
-      message: 'This will remove the user from the team directory. Their Supabase Auth account will also be deleted.',
-      confirmText: 'Remove User',
+      message:
+        'Permanent delete. Prefer turning Access off if you only want to block the app. This also deletes their Supabase Auth account.',
+      confirmText: 'Remove permanently',
       isDanger: true,
     })
     if (!ok) return
@@ -107,17 +134,24 @@ export function UsersPage() {
     }
   }
 
+  function openOverview(u, e) {
+    if (e?.target?.closest?.('input, select, button, label, a')) return
+    setViewPerson(u)
+  }
+
   return (
     <div className="stack">
       <div className="pm-hero shell-manager">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <div>
             <h2>Engineering Team Directory</h2>
             <p className="muted" style={{ marginTop: '2px' }}>
-              Default first login: <code>Pass01</code> — users must set a new password after signing in.
+              {canManage
+                ? 'Edit members, toggle Access, or click a row to view profile overview.'
+                : 'View-only — click a member to open their profile overview.'}
             </p>
           </div>
-          {!addingUser && (
+          {canManage && !addingUser && (
             <button type="button" className="pm-btn primary" onClick={startAdding}>
               <IconPlus size={14} />
               <span>Add Member</span>
@@ -132,79 +166,135 @@ export function UsersPage() {
         <p className="muted">Loading team directory…</p>
       ) : (
         <div className="pm-table-wrap">
-          <table className="pm-table">
+          <table className="pm-table users-directory-table">
             <thead>
               <tr>
-                <th style={{ width: '100px' }}>Emp ID</th>
-                <th style={{ width: '220px' }}>Display Name</th>
-                <th style={{ width: '240px' }}>Corporate Email</th>
-                <th style={{ width: '140px' }}>Discipline Position</th>
-                <th style={{ width: '90px' }}>Theme</th>
-                <th style={{ width: '100px' }}>Actions</th>
+                <th style={{ width: '90px' }}>Emp ID</th>
+                <th style={{ minWidth: '200px' }}>Display Name</th>
+                <th style={{ minWidth: '200px' }}>Corporate Email</th>
+                <th style={{ width: '130px' }}>Position</th>
+                <th style={{ width: '110px' }}>Access</th>
+                {canManage ? <th style={{ width: '100px' }}>Actions</th> : null}
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td>
-                    <input
-                      value={u.employee_id || ''}
-                      placeholder="e.g. 01"
-                      onChange={(e) => patch(u.id, { employee_id: e.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      value={u.display_name || ''}
-                      placeholder="Engineer name…"
-                      onChange={(e) => patch(u.id, { display_name: e.target.value })}
-                      style={{ textAlign: 'left' }}
-                    />
-                  </td>
-                  <td style={{ textAlign: 'left' }} className="muted">
-                    {u.email}
-                  </td>
-                  <td>
-                    <select value={u.position || 'Engineer'} onChange={(e) => patch(u.id, { position: e.target.value })}>
-                      {POSITIONS.map((p) => (
-                        <option key={p}>{p}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      type="color"
-                      value={u.theme_color || '#2563eb'}
-                      onChange={(e) => patch(u.id, { theme_color: e.target.value })}
-                      style={{ width: '32px', height: '24px', padding: 0, cursor: 'pointer', border: 'none' }}
-                    />
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                      <button
-                        type="button"
-                        className="pm-btn tiny success icon-only"
-                        title="Save changes"
-                        disabled={savingId === u.id}
-                        onClick={() => saveUser(u)}
-                      >
-                        <IconSave size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        className="pm-btn tiny danger icon-only"
-                        title="Delete member"
-                        disabled={deletingId === u.id}
-                        onClick={() => handleDelete(u)}
-                      >
-                        <IconTrash size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {users.map((u) => {
+                const accessOn = u.app_access !== false
+                return (
+                  <tr
+                    key={u.id}
+                    className={`users-dir-row ${accessOn ? '' : 'access-off'} ${canManage ? '' : 'clickable'}`}
+                    onClick={(e) => openOverview(u, e)}
+                    title="View profile overview"
+                  >
+                    <td>
+                      {canManage ? (
+                        <input
+                          value={u.employee_id || ''}
+                          placeholder="e.g. 01"
+                          onChange={(e) => patch(u.id, { employee_id: e.target.value })}
+                        />
+                      ) : (
+                        <span className="users-dir-text">{u.employee_id || '—'}</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="users-dir-name-cell">
+                        <button
+                          type="button"
+                          className="users-dir-avatar-btn"
+                          title="View profile"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setViewPerson(u)
+                          }}
+                        >
+                          <UserAvatar
+                            name={u.display_name || u.email || 'U'}
+                            avatarUrl={u.avatar_url}
+                            themeColor={u.theme_color}
+                            size={28}
+                            rounded="full"
+                          />
+                        </button>
+                        {canManage ? (
+                          <input
+                            value={u.display_name || ''}
+                            placeholder="Engineer name…"
+                            onChange={(e) => patch(u.id, { display_name: e.target.value })}
+                            style={{ textAlign: 'left', flex: 1 }}
+                          />
+                        ) : (
+                          <span className="users-dir-text strong">{u.display_name || '—'}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'left' }} className="muted">
+                      {u.email}
+                    </td>
+                    <td>
+                      {canManage ? (
+                        <select
+                          value={u.position || 'Engineer'}
+                          onChange={(e) => patch(u.id, { position: e.target.value })}
+                        >
+                          {POSITIONS.map((p) => (
+                            <option key={p}>{p}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="users-dir-text">{u.position || 'Engineer'}</span>
+                      )}
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      {canManage ? (
+                        <label className={`access-switch ${accessOn ? 'on' : 'off'}`} title={accessOn ? 'On' : 'Off'}>
+                          <input
+                            type="checkbox"
+                            checked={accessOn}
+                            disabled={accessId === u.id || u.id === profile?.id}
+                            onChange={(e) => setAppAccess(u, e.target.checked)}
+                          />
+                          <span className="access-switch-track">
+                            <span className="access-switch-knob" />
+                          </span>
+                          <span className="access-switch-label">{accessOn ? 'On' : 'Off'}</span>
+                        </label>
+                      ) : (
+                        <span className={`access-badge ${accessOn ? 'on' : 'off'}`}>
+                          {accessOn ? 'On' : 'Off'}
+                        </span>
+                      )}
+                    </td>
+                    {canManage ? (
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            className="pm-btn tiny success icon-only"
+                            title="Save changes"
+                            disabled={savingId === u.id}
+                            onClick={() => saveUser(u)}
+                          >
+                            <IconSave size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className="pm-btn tiny danger icon-only"
+                            title="Delete permanently"
+                            disabled={deletingId === u.id || u.id === profile?.id}
+                            onClick={() => handleDelete(u)}
+                          >
+                            <IconTrash size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    ) : null}
+                  </tr>
+                )
+              })}
 
-              {addingUser && (
+              {canManage && addingUser && (
                 <tr style={{ background: 'var(--primary-subtle)' }}>
                   <td>
                     <input
@@ -241,12 +331,7 @@ export function UsersPage() {
                     </select>
                   </td>
                   <td>
-                    <input
-                      type="color"
-                      value={addingUser.theme_color}
-                      onChange={(e) => setAddingUser({ ...addingUser, theme_color: e.target.value })}
-                      style={{ width: '32px', height: '24px', padding: 0, cursor: 'pointer', border: 'none' }}
-                    />
+                    <span className="access-badge on">On</span>
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
@@ -275,6 +360,8 @@ export function UsersPage() {
           </table>
         </div>
       )}
+
+      {viewPerson ? <TeamProfileModal person={viewPerson} onClose={() => setViewPerson(null)} /> : null}
     </div>
   )
 }

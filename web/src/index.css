@@ -2378,3 +2378,107 @@ label {
     font-size: 28px;
   }
 }
+
+/* Team directory */
+.users-dir-row.clickable {
+  cursor: pointer;
+}
+.users-dir-row.clickable:hover,
+.users-dir-row:hover {
+  background: var(--surface-subtle);
+}
+.users-dir-row.access-off {
+  opacity: 0.72;
+}
+.users-dir-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.users-dir-avatar-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.users-dir-text {
+  font-size: 12.5px;
+  color: var(--ink-primary);
+}
+.users-dir-text.strong {
+  font-weight: 650;
+}
+.access-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.access-badge.on {
+  background: var(--success-subtle, #ecfdf5);
+  color: var(--success, #059669);
+  border: 1px solid var(--success-border, #a7f3d0);
+}
+.access-badge.off {
+  background: var(--surface-subtle);
+  color: var(--ink-muted);
+  border: 1px solid var(--border);
+}
+.access-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+.access-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.access-switch-track {
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  position: relative;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+.access-switch.on .access-switch-track {
+  background: #22c55e;
+}
+.access-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+.access-switch.on .access-switch-knob {
+  transform: translateX(14px);
+}
+.access-switch-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  min-width: 22px;
+}
+.access-switch.on .access-switch-label {
+  color: var(--success, #059669);
+}
+.access-switch input:disabled + .access-switch-track {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
