@@ -147,6 +147,57 @@ export function normalizePercent(value) {
   return n
 }
 
+/** 0% → Not Started · 100% → Completed · còn lại → In Progress */
+export function statusFromPercent(percent) {
+  const n = Number(percent)
+  if (!Number.isFinite(n) || n <= 0) return 'Not Started'
+  if (n >= 100) return 'Completed'
+  return 'In Progress'
+}
+
+/**
+ * Đổi status thì chỉnh % đi kèm.
+ * On Hold giữ nguyên % hiện tại.
+ * In Progress: nếu đang 0/100 thì đặt 10%, không thì giữ %.
+ */
+export function percentFromStatus(status, currentPercent = 0) {
+  const s = String(status || '').trim()
+  if (s === 'Not Started') return 0
+  if (s === 'Completed') return 100
+  if (s === 'On Hold') {
+    const cur = Number(currentPercent)
+    return Number.isFinite(cur) ? Math.min(100, Math.max(0, cur)) : 0
+  }
+  const cur = Number(currentPercent)
+  if (!Number.isFinite(cur) || cur <= 0 || cur >= 100) return 10
+  return cur
+}
+
+/**
+ * Đồng bộ % ↔ status trong patch trước khi ghi DB.
+ * Ưu tiên % làm nguồn sự thật (trừ khi status = On Hold).
+ */
+export function syncPercentAndStatus(patch, current = {}) {
+  const next = { ...patch }
+  const hasPercent = next.percent_complete != null
+  const hasStatus = next.status != null
+
+  if (hasPercent && hasStatus) {
+    if (String(next.status) !== 'On Hold') {
+      next.status = statusFromPercent(next.percent_complete)
+    }
+    return next
+  }
+  if (hasPercent) {
+    next.status = statusFromPercent(next.percent_complete)
+    return next
+  }
+  if (hasStatus && String(next.status) !== 'On Hold') {
+    next.percent_complete = percentFromStatus(next.status, current.percent_complete)
+  }
+  return next
+}
+
 export function excelDateToIso(value) {
   if (value == null || value === '') return null
   if (typeof value === 'number') {

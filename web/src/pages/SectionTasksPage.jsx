@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
 import { displaySectionName } from '../lib/roles'
+import { syncPercentAndStatus, statusFromPercent, percentFromStatus } from '../lib/progress'
 import { useNotification } from '../components/NotificationContext'
 import { RightDrawer } from '../components/RightDrawer'
 import { IconPlus, IconTrash, IconSearch, IconArrowRight, IconFilter, IconCross } from '../components/Icons'
@@ -107,6 +108,10 @@ export function SectionTasksPage() {
     if (!caps.canCreateTask || !newTask.activity.trim() || !currentProject) return
     setAddBusy(true)
     try {
+      const linked = syncPercentAndStatus({
+        percent_complete: Number(newTask.percent_complete) || 0,
+        status: newTask.status,
+      })
       const { error: err } = await supabase.from('tasks').insert({
         project_id: currentProject.id,
         section_id: sectionId,
@@ -117,8 +122,8 @@ export function SectionTasksPage() {
         assignee_id: newTask.assignee_id || null,
         start_date: newTask.start_date || null,
         finish_date: newTask.finish_date || null,
-        percent_complete: Number(newTask.percent_complete) || 0,
-        status: newTask.status,
+        percent_complete: linked.percent_complete,
+        status: linked.status,
       })
       if (err) throw err
       toast.success('Task Created', `"${newTask.activity.trim()}" added to ${displaySectionName(section?.header_name)}.`)
@@ -147,6 +152,8 @@ export function SectionTasksPage() {
         patch.percent_complete = caps.percentCap
       }
     }
+
+    patch = syncPercentAndStatus(patch, task)
 
     const { error: err } = await supabase.from('tasks').update(patch).eq('id', id)
     if (err) setError(err.message)
@@ -241,7 +248,15 @@ export function SectionTasksPage() {
   }
 
   function patchNew(fields) {
-    setNewTask((prev) => ({ ...prev, ...fields }))
+    setNewTask((prev) => {
+      const next = { ...prev, ...fields }
+      if (fields.percent_complete != null) {
+        next.status = statusFromPercent(Number(fields.percent_complete) || 0)
+      } else if (fields.status != null) {
+        next.percent_complete = percentFromStatus(fields.status, prev.percent_complete)
+      }
+      return next
+    })
   }
 
   if (!section) {

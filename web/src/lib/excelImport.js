@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { isMtoTask, mapExcelSectionToTarget, normalizeVietnamese } from './progress'
+import { isMtoTask, mapExcelSectionToTarget, normalizeVietnamese, statusFromPercent } from './progress'
 import { CANONICAL_SECTIONS } from './roles'
 
 function normKey(s) {
@@ -282,8 +282,12 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles, { i
       patch.percent_complete = row.percentComplete
     }
 
-    if (row.status && row.status !== task.status) {
-      patch.status = row.status
+    if (row.status === 'On Hold') {
+      if (row.status !== task.status) patch.status = 'On Hold'
+    } else if (patch.percent_complete != null) {
+      patch.status = statusFromPercent(patch.percent_complete)
+    } else if (row.status && row.status !== task.status) {
+      patch.status = statusFromPercent(task.percent_complete)
     }
     if (row.review && row.review !== task.review_3d) {
       patch.review_3d = row.review
@@ -331,6 +335,7 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles, { i
       if (!section) continue
       const assigneeId = resolveAssignee(row.picFullNameNoDiacritics || row.picRaw, profileByNorm)
       const activity = row.activity || row.drawingId || 'Untitled'
+      const pct = typeof row.percentComplete === 'number' ? row.percentComplete : 0
       payloads.push({
         project_id: projectId,
         section_id: section.id,
@@ -338,8 +343,8 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles, { i
         activity,
         drawing_id: row.drawingId || '',
         zone: row.zone || sectionName,
-        percent_complete: typeof row.percentComplete === 'number' ? row.percentComplete : 0,
-        status: row.status || 'Not Started',
+        percent_complete: pct,
+        status: row.status === 'On Hold' ? 'On Hold' : statusFromPercent(pct),
         review_3d: row.review || null,
         first_unit: row.firstUnit || null,
         unit_issue_date: row.unitIssueDate || null,

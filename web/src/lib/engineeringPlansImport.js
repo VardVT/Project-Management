@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { normalizeVietnamese } from './progress'
+import { normalizeVietnamese, statusFromPercent } from './progress'
 
 async function ensureProject(shipId, userId) {
   const ship = String(shipId || '').trim()
@@ -169,7 +169,7 @@ export async function applyEngineeringPlansImport({
       resource: row.resource,
       wbs_path: row.wbsPath,
       external_activity_id: row.externalActivityId,
-      status: row.status || 'Not Started',
+      status: statusFromPercent(row.percentComplete || 0),
       percent_complete: row.percentComplete || 0,
       start_date: row.startDate,
       finish_date: row.finishDate,
