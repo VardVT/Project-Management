@@ -88,9 +88,43 @@ function countProgressRows(wb, sheetName) {
   for (let r = found.headerRowIdx + 1; r < matrix.length; r++) {
     const row = matrix[r]
     if (!row || row.every((c) => String(c).trim() === '')) continue
-    if (String(cell(row, found.cols.activity)).trim()) count += 1
+    if (!String(cell(row, found.cols.activity)).trim()) continue
+    if (!isNumberedDataRow(row, found.cols, sheetName)) continue
+    count += 1
   }
   return count
+}
+
+/** Dòng thật trong sheet progress thường có cột No = 1,2,3…; dòng tool/helper để trống. */
+function isRowNumberValue(raw) {
+  if (raw == null || raw === '') return false
+  if (typeof raw === 'number') return Number.isFinite(raw) && raw > 0
+  const s = String(raw).trim()
+  if (!s) return false
+  return /^\d+(\.0+)?$/.test(s) && Number(s) > 0
+}
+
+/**
+ * Sheet 3D: chỉ nhận dòng có đánh số (cột No).
+ * Các sheet khác giữ hành vi cũ; nếu có cột No thì cũng ưu tiên dòng đã đánh số.
+ */
+function isNumberedDataRow(row, cols, sheetName) {
+  const group = classifyProgressSheet(sheetName)
+  const strict3d = group === '3D'
+
+  if (cols.no != null) {
+    const numbered = isRowNumberValue(cell(row, cols.no))
+    if (strict3d) return numbered
+    // Sheet khác: nếu có cột No mà ô trống → bỏ (tránh kéo dòng tool)
+    if (!numbered && String(cell(row, cols.no)).trim() === '') return false
+    return true
+  }
+
+  if (strict3d) {
+    // Header lệch / không map được No → fallback cột A
+    return isRowNumberValue(row?.[0])
+  }
+  return true
 }
 
 /**
@@ -188,7 +222,20 @@ function mapProgressColumns(headerRow) {
     const h = normHeader(raw)
     if (!h) return
 
-    if (cols.activity == null && (h === 'activity' || h.includes('activity'))) cols.activity = idx
+    // Cột đánh số dòng (No / STT) — phân biệt dòng task thật vs dòng tool
+    if (
+      cols.no == null &&
+      (h === 'no' ||
+        h === 'no.' ||
+        h === '#' ||
+        h === 'stt' ||
+        h === 'nr' ||
+        h === 'row' ||
+        h === 'row no' ||
+        h === 'row no.')
+    ) {
+      cols.no = idx
+    } else if (cols.activity == null && (h === 'activity' || h.includes('activity'))) cols.activity = idx
     else if (cols.zone == null && (h === 'zone' || h.includes('zone'))) cols.zone = idx
     else if (
       cols.drawingId == null &&
@@ -400,6 +447,8 @@ export function parsePicPercentWorkbook(arrayBuffer, fileName, options = {}) {
 
       const activity = String(cell(row, cols.activity)).trim()
       if (!activity) continue
+      // Sheet 3D: bỏ dòng tool/helper — chỉ lấy dòng có đánh số (cột No)
+      if (!isNumberedDataRow(row, cols, sheetName)) continue
 
       const zone = String(cell(row, cols.zone)).trim()
       const drawingId = String(cell(row, cols.drawingId)).trim()
