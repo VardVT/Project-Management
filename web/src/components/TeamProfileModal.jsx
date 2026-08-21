@@ -39,10 +39,15 @@ function ContactRow({ icon, label, value }) {
   )
 }
 
-function PersonChip({ person }) {
+function PersonChip({ person, onClick }) {
   const name = person.display_name || person.email || 'User'
   return (
-    <div className="profile-org-chip" title={person.email || name}>
+    <button
+      type="button"
+      className="profile-org-chip clickable"
+      title={`View ${name}`}
+      onClick={() => onClick?.(person)}
+    >
       <UserAvatar
         name={name}
         avatarUrl={person.avatar_url}
@@ -55,7 +60,7 @@ function PersonChip({ person }) {
         <div className="profile-org-name">{name}</div>
         <div className="profile-org-role">{person.position || 'Engineer'}</div>
       </div>
-    </div>
+    </button>
   )
 }
 
@@ -83,7 +88,7 @@ export function TeamProfileModal({ person, onClose, onPersonUpdated }) {
     async function loadTeam() {
       const { data } = await supabase
         .from('profiles')
-        .select('id, display_name, email, position, theme_color, avatar_url, app_access')
+        .select('id, display_name, email, position, theme_color, avatar_url, app_access, employee_id')
         .order('display_name', { ascending: true })
       if (!mounted) return
       setTeam((data || []).filter((p) => p.id !== currentPerson?.id))
@@ -306,7 +311,7 @@ export function TeamProfileModal({ person, onClose, onPersonUpdated }) {
               {managers[0] && (
                 <div className="profile-org-block">
                   <div className="profile-org-label">Manager</div>
-                  <PersonChip person={managers[0]} />
+                  <PersonChip person={managers[0]} onClick={setCurrentPerson} />
                 </div>
               )}
               {colleagues.length > 0 && (
@@ -314,7 +319,7 @@ export function TeamProfileModal({ person, onClose, onPersonUpdated }) {
                   <div className="profile-org-label">Works with</div>
                   <div className="profile-org-grid">
                     {colleagues.map((p) => (
-                      <PersonChip key={p.id} person={p} />
+                      <PersonChip key={p.id} person={p} onClick={setCurrentPerson} />
                     ))}
                   </div>
                 </div>

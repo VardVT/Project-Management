@@ -3232,3 +3232,16 @@ label {
 .pm-table td .assignee-cell {
   width: 100%;
 }
+
+.profile-org-chip.clickable {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.profile-org-chip.clickable:hover {
+  background: var(--surface-subtle);
+  border-color: var(--border);
+}

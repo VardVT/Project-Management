@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth, DEFAULT_TEMP_PASSWORD } from '../hooks/useAuth'
 import { normalizeRole, ROLES } from '../lib/roles'
 import { UserAvatar } from './UserAvatar'
+import { TeamProfileModal } from './TeamProfileModal'
 import {
   IconCross,
   IconSave,
@@ -51,10 +52,15 @@ function ContactRow({ icon, label, value }) {
   )
 }
 
-function PersonChip({ person }) {
+function PersonChip({ person, onClick }) {
   const name = person.display_name || person.email || 'User'
   return (
-    <div className="profile-org-chip" title={person.email || name}>
+    <button
+      type="button"
+      className="profile-org-chip clickable"
+      title={`View ${name}`}
+      onClick={() => onClick?.(person)}
+    >
       <UserAvatar
         name={name}
         avatarUrl={person.avatar_url}
@@ -67,7 +73,7 @@ function PersonChip({ person }) {
         <div className="profile-org-name">{name}</div>
         <div className="profile-org-role">{person.position || 'Engineer'}</div>
       </div>
-    </div>
+    </button>
   )
 }
 
@@ -87,6 +93,7 @@ export function ProfileModal({ onClose }) {
   const [confirmPw, setConfirmPw] = useState('')
   const [pwBusy, setPwBusy] = useState(false)
   const [team, setTeam] = useState([])
+  const [viewPerson, setViewPerson] = useState(null)
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
@@ -105,7 +112,7 @@ export function ProfileModal({ onClose }) {
     async function loadTeam() {
       const { data } = await supabase
         .from('profiles')
-        .select('id, display_name, email, position, theme_color, employee_id, avatar_url')
+        .select('id, display_name, email, position, theme_color, employee_id, avatar_url, app_access')
         .order('display_name', { ascending: true })
       if (!mounted) return
       setTeam((data || []).filter((p) => p.id !== profile?.id))
@@ -229,6 +236,7 @@ export function ProfileModal({ onClose }) {
   }
 
   return (
+    <>
     <div className="pm-modal-backdrop" onClick={onClose}>
       <div className="pm-modal profile-card-modal" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="profile-card-close" onClick={onClose} title="Close">
@@ -324,7 +332,7 @@ export function ProfileModal({ onClose }) {
                   {managers[0] && (
                     <div className="profile-org-block">
                       <div className="profile-org-label">Manager</div>
-                      <PersonChip person={managers[0]} />
+                      <PersonChip person={managers[0]} onClick={setViewPerson} />
                     </div>
                   )}
                   {colleaguesPreview.length > 0 && (
@@ -332,7 +340,7 @@ export function ProfileModal({ onClose }) {
                       <div className="profile-org-label">You work with</div>
                       <div className="profile-org-grid">
                         {colleaguesPreview.map((p) => (
-                          <PersonChip key={p.id} person={p} />
+                          <PersonChip key={p.id} person={p} onClick={setViewPerson} />
                         ))}
                       </div>
                     </div>
@@ -447,7 +455,7 @@ export function ProfileModal({ onClose }) {
                   <div className="profile-org-label">Managers</div>
                   <div className="profile-org-grid">
                     {managers.map((p) => (
-                      <PersonChip key={p.id} person={p} />
+                      <PersonChip key={p.id} person={p} onClick={setViewPerson} />
                     ))}
                   </div>
                 </div>
@@ -458,7 +466,7 @@ export function ProfileModal({ onClose }) {
                   {colleagues.length === 0 ? (
                     <p className="muted" style={{ fontSize: '12px' }}>No other users found.</p>
                   ) : (
-                    colleagues.map((p) => <PersonChip key={p.id} person={p} />)
+                    colleagues.map((p) => <PersonChip key={p.id} person={p} onClick={setViewPerson} />)
                   )}
                 </div>
               </div>
@@ -515,5 +523,17 @@ export function ProfileModal({ onClose }) {
         </div>
       </div>
     </div>
+
+    {viewPerson ? (
+      <TeamProfileModal
+        person={viewPerson}
+        onClose={() => setViewPerson(null)}
+        onPersonUpdated={(updated) => {
+          setTeam((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)))
+          setViewPerson(updated)
+        }}
+      />
+    ) : null}
+    </>
   )
 }
