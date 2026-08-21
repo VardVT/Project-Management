@@ -3352,6 +3352,12 @@ label {
   flex-wrap: wrap;
   padding: 12px 14px;
 }
+.gantt-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: center;
+}
 .gantt-filter {
   display: flex;
   flex-direction: row !important;
@@ -3361,7 +3367,7 @@ label {
   font-weight: 650;
 }
 .gantt-filter select {
-  min-width: 180px;
+  min-width: 160px;
 }
 .gantt-legend {
   display: flex;
