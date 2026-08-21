@@ -20,7 +20,7 @@ const BUCKET_COLOR = {
   'Completed (100%)': 'var(--success)',
 }
 
-const PIE_COLORS = { notStarted: '#64748b', inProgress: '#d97706', completed: '#059669' }
+const PIE_COLORS = { notStarted: '#64748b', inProgress: '#0d9488', completed: '#059669' }
 
 function daysBetween(startIso, endIso) {
   if (!startIso || !endIso) return null
@@ -284,7 +284,7 @@ function RichProjectDashboard({ eyebrow, title }) {
 
           <div className="summary-donut-layout">
             <div className="summary-donut-wrap">
-              <DonutRing percent={allRow.avgPercent} size={150} stroke={16} color="#2563eb" />
+              <DonutRing percent={allRow.avgPercent} size={150} stroke={16} color="#0d9488" />
             </div>
 
             <div className="summary-donut-metrics">

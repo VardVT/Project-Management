@@ -4,28 +4,28 @@
    ========================================================================== */
 
 :root {
-  /* Color Palette Tokens */
-  --bg: #f4f6f9;
-  --bg-deep: #e9ecf2;
+  /* Color Palette Tokens — Luxurious Marine Teal / Emerald (Xanh Ngọc) */
+  --bg: #f2f7f7;
+  --bg-deep: #e2ecec;
   --surface: #ffffff;
-  --surface-hover: #f8fafc;
-  --surface-active: #f1f5f9;
-  --surface-subtle: #f8fafc;
+  --surface-hover: #f7fafb;
+  --surface-active: #edf5f5;
+  --surface-subtle: #f4f9f9;
   
-  --ink-primary: #0f172a;
-  --ink-secondary: #334155;
-  --ink-muted: #64748b;
-  --ink-faint: #94a3b8;
+  --ink-primary: #0f2425;
+  --ink-secondary: #1f3d3f;
+  --ink-muted: #537577;
+  --ink-faint: #8ca3a5;
   
-  --border: #e2e8f0;
-  --border-subtle: #edf2f7;
-  --border-strong: #cbd5e1;
+  --border: #d7e5e5;
+  --border-subtle: #e6f0f0;
+  --border-strong: #b8cfcf;
   
-  /* Semantic Colors */
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-subtle: #eff6ff;
-  --primary-border: #bfdbfe;
+  /* Semantic Colors — Modern Marine Emerald / Teal */
+  --primary: #0d9488;
+  --primary-hover: #0f766e;
+  --primary-subtle: #f0fdfa;
+  --primary-border: #99f6e4;
   
   --teal: #0d9488;
   --teal-subtle: #f0fdfa;
@@ -38,15 +38,15 @@
   --warning-subtle: #fffbeb;
   --warning-border: #fde68a;
   
-  --danger: #dc2626;
-  --danger-subtle: #fef2f2;
-  --danger-border: #fecaca;
+  --danger: #e11d48;
+  --danger-subtle: #fff1f2;
+  --danger-border: #fecdd3;
   
   /* Shell & Role Themes */
-  --shell-sidebar: #0b1523;
-  --shell-sidebar-hover: rgba(255, 255, 255, 0.07);
-  --shell-sidebar-active: rgba(37, 99, 235, 0.2);
-  --shell-accent: #2563eb;
+  --shell-sidebar: #0a1f22;
+  --shell-sidebar-hover: rgba(255, 255, 255, 0.08);
+  --shell-sidebar-active: rgba(13, 148, 136, 0.25);
+  --shell-accent: #0d9488;
   
   /* Typography Tokens */
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
@@ -69,18 +69,18 @@
 
 /* Role Specific Shell Accents */
 .shell-manager {
-  --shell-sidebar: #0b1523;
-  --shell-accent: #2563eb;
-}
-
-.shell-senior {
-  --shell-sidebar: #091d1a;
+  --shell-sidebar: #0a1f22;
   --shell-accent: #0d9488;
 }
 
+.shell-senior {
+  --shell-sidebar: #092628;
+  --shell-accent: #14b8a6;
+}
+
 .shell-engineer {
-  --shell-sidebar: #17181c;
-  --shell-accent: #ea580c;
+  --shell-sidebar: #132225;
+  --shell-accent: #06b6d4;
 }
 
 /* Base Reset */
@@ -2712,7 +2712,7 @@ label {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%), var(--surface);
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.09) 0%, rgba(20, 184, 166, 0.02) 100%), var(--surface);
   border: 1px solid var(--border);
 }
 
@@ -2726,7 +2726,7 @@ label {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--ink-secondary);
+  color: var(--primary);
 }
 
 .summary-vessel-meta {
@@ -2750,6 +2750,19 @@ label {
   gap: 6px;
   box-shadow: var(--shadow-xs);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.summary-kpi-tile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0d9488, #2dd4bf);
+  opacity: 0.9;
 }
 
 .summary-kpi-tile:hover {
@@ -2798,8 +2811,9 @@ label {
 }
 
 .summary-status-pill.progress {
-  background: var(--warning-subtle);
-  color: var(--warning);
+  background: #f0fdfa;
+  color: #0d9488;
+  border: 1px solid #99f6e4;
 }
 
 .summary-status-pill.idle {
@@ -2863,9 +2877,9 @@ label {
   flex-shrink: 0;
 }
 
-.stat-bullet.completed { background: var(--primary); }
+.stat-bullet.completed { background: #0d9488; }
 .stat-bullet.remaining { background: #cbd5e1; }
-.stat-bullet.schedule { background: var(--success); }
+.stat-bullet.schedule { background: #059669; }
 
 .stat-text {
   display: flex;
@@ -2901,7 +2915,7 @@ label {
 
 .summary-due-item:hover {
   background: var(--surface);
-  border-color: var(--primary);
+  border-color: #0d9488;
   transform: translateX(2px);
 }
 
@@ -2978,21 +2992,21 @@ label {
   flex: 1;
   height: 8px;
   border-radius: 999px;
-  background: #e2e8f0;
+  background: #e2ecec;
   overflow: hidden;
 }
 
 .summary-bar-fill {
   height: 100%;
-  background: var(--primary);
+  background: #0d9488;
   border-radius: 999px;
   transition: width 0.3s ease;
 }
 
 .summary-bar-fill.fill-3drouting,
-.summary-bar-fill.fill-3d { background: #2563eb; }
+.summary-bar-fill.fill-3d { background: #0d9488; }
 .summary-bar-fill.fill-isogen,
-.summary-bar-fill.fill-iso { background: #059669; }
+.summary-bar-fill.fill-iso { background: #0284c7; }
 .summary-bar-fill.fill-2dplan,
 .summary-bar-fill.fill-2d { background: #d97706; }
 .summary-bar-fill.fill-mto { background: #7c3aed; }
@@ -3015,37 +3029,49 @@ label {
 }
 
 .summary-weight-badge.total {
-  background: var(--primary);
+  background: #0d9488;
   color: #fff;
-  border-color: var(--primary);
+  border-color: #0d9488;
 }
 
 .summary-weight-status {
   font-size: 12px;
-  color: var(--primary);
+  color: #0d9488;
   font-weight: 600;
 }
 
 /* ==========================================================================
    DASHBOARD FLEET POLISH
    ========================================================================== */
+.dash-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.08) 0%, rgba(20, 184, 166, 0.02) 100%), var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 22px;
+  box-shadow: var(--shadow-xs);
+}
+
 .dash-hero-info h2 {
   margin: 6px 0 0;
   font-size: 24px;
   font-weight: 750;
   letter-spacing: -0.02em;
+  color: #0f2425;
 }
 
 .fleet-kpi-icon-wrap {
   width: 32px;
   height: 32px;
   border-radius: var(--radius-md);
-  background: var(--surface-subtle);
-  border: 1px solid var(--border);
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--primary);
+  color: #0d9488;
 }
 
 .fleet-kpi-card {
@@ -3068,8 +3094,8 @@ label {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--primary), #60a5fa);
-  opacity: 0.8;
+  background: linear-gradient(90deg, #0d9488, #2dd4bf);
+  opacity: 0.95;
 }
 
 .spin-icon {
