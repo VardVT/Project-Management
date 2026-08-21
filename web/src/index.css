@@ -138,9 +138,28 @@ button, input, select, textarea {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px 14px;
+  padding: 10px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.15);
+}
+
+.pm-sidebar-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 4px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.pm-sidebar-user-btn:hover {
+  background: var(--shell-sidebar-hover);
 }
 
 .pm-avatar {
@@ -1553,6 +1572,84 @@ label {
   gap: 8px;
   justify-content: flex-end;
   margin-top: 18px;
+}
+
+.profile-modal {
+  width: min(100%, 440px);
+}
+
+.profile-modal-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 16px 0 18px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+}
+
+.profile-modal-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 20px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.profile-color-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.profile-color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+}
+
+.profile-color-swatch.active {
+  border-color: #fff;
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.profile-color-custom {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px dashed var(--border-strong);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+}
+
+.profile-color-custom input[type='color'] {
+  width: 36px;
+  height: 36px;
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.profile-modal-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
 }
 
 .pm-project-pick {

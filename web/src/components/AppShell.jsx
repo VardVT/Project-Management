@@ -5,6 +5,7 @@ import { useProject } from '../hooks/useProject'
 import { displaySectionName } from '../lib/roles'
 import { NewProjectModal } from './NewProjectModal'
 import { ExcelToolbar } from './ExcelToolbar'
+import { ProfileModal } from './ProfileModal'
 import { useNotification } from './NotificationContext'
 import {
   IconDashboard,
@@ -31,6 +32,7 @@ export function AppShell() {
   const [expandedVessels, setExpandedVessels] = useState(new Set())
   const [taskOpen, setTaskOpen] = useState(false)
   const [showNew, setShowNew] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [switching, setSwitching] = useState(null)
 
@@ -93,13 +95,20 @@ export function AppShell() {
     <div className={`pm-app shell-${caps.shell}`}>
       <aside className="pm-sidebar">
         <div className="pm-sidebar-user">
-          <div className="pm-avatar" style={profile?.theme_color ? { background: profile.theme_color } : undefined}>
-            {name.slice(0, 1).toUpperCase()}
-          </div>
-          <div className="pm-user-info">
-            <div className="pm-user-name" title={name}>{name}</div>
-            <div className={`pm-role-badge role-${caps.shell}`}>{caps.label || 'Engineer'}</div>
-          </div>
+          <button
+            type="button"
+            className="pm-sidebar-user-btn"
+            onClick={() => setShowProfile(true)}
+            title="Open personal profile"
+          >
+            <div className="pm-avatar" style={profile?.theme_color ? { background: profile.theme_color } : undefined}>
+              {name.slice(0, 1).toUpperCase()}
+            </div>
+            <div className="pm-user-info">
+              <div className="pm-user-name" title={name}>{name}</div>
+              <div className={`pm-role-badge role-${caps.shell}`}>{caps.label || 'Engineer'}</div>
+            </div>
+          </button>
         </div>
 
         <nav className="pm-menu">
@@ -271,6 +280,7 @@ export function AppShell() {
       </div>
 
       {showNew && <NewProjectModal onClose={() => setShowNew(false)} />}
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
     </div>
   )
 }

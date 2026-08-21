@@ -202,6 +202,26 @@ export function AuthProvider({ children }) {
       return true
     },
 
+    async updateProfile(fields) {
+      const userId = session?.user?.id
+      if (!userId) throw new Error('Not signed in.')
+      const allowed = {}
+      if (fields.display_name != null) allowed.display_name = String(fields.display_name).trim()
+      if (fields.theme_color != null) allowed.theme_color = String(fields.theme_color).trim() || null
+      if (fields.employee_id != null) {
+        allowed.employee_id = String(fields.employee_id).trim() || null
+      }
+      const { error } = await supabase.from('profiles').update(allowed).eq('id', userId)
+      if (error) throw error
+      return fetchProfile(userId)
+    },
+
+    async refreshProfile() {
+      const userId = session?.user?.id
+      if (!userId) return null
+      return fetchProfile(userId)
+    },
+
     async signOut() {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
