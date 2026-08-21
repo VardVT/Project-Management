@@ -4,7 +4,7 @@
    ========================================================================== */
 
 :root {
-  /* Color Palette Tokens — Luxurious Marine Teal / Emerald (Xanh Ngọc) */
+  /* Color Palette Tokens ? Luxurious Marine Teal / Emerald (Xanh Ng?c) */
   --bg: #f2f7f7;
   --bg-deep: #e2ecec;
   --surface: #ffffff;
@@ -21,7 +21,7 @@
   --border-subtle: #e6f0f0;
   --border-strong: #b8cfcf;
   
-  /* Semantic Colors — Modern Marine Emerald / Teal */
+  /* Semantic Colors ? Modern Marine Emerald / Teal */
   --primary: #0d9488;
   --primary-hover: #0f766e;
   --primary-subtle: #f0fdfa;
@@ -890,10 +890,10 @@ label {
 }
 
 /* ==========================================================================
-   RIGHT SLIDE-OVER DRAWER — NO BACKDROP (content stays readable)
+   RIGHT SLIDE-OVER DRAWER ? NO BACKDROP (content stays readable)
    ========================================================================== */
 
-/* Page wrapper when drawer is open — shrinks main content slightly */
+/* Page wrapper when drawer is open ? shrinks main content slightly */
 .pm-main.drawer-open .pm-content {
   padding-right: calc(24px + 340px);
   transition: padding-right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -3308,4 +3308,326 @@ label {
 .profile-org-chip.clickable:hover {
   background: var(--surface-subtle);
   border-color: var(--border);
+}
+
+/* Rolling near-term Gantt (?15 days) */
+.gantt-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.gantt-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.gantt-hero-stats {
+  display: flex;
+  gap: 18px;
+}
+.gantt-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.gantt-stat-num {
+  font-size: 22px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-primary);
+  line-height: 1.1;
+}
+.gantt-stat-label {
+  font-size: 11px;
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+.gantt-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+}
+.gantt-filter {
+  display: flex;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+  margin: 0;
+  font-weight: 650;
+}
+.gantt-filter select {
+  min-width: 180px;
+}
+.gantt-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+.gantt-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.gantt-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.gantt-dot.idle { background: #94a3b8; }
+.gantt-dot.progress { background: #0d9488; }
+.gantt-dot.hold { background: #ea580c; }
+.gantt-late-mark {
+  width: 2px;
+  height: 12px;
+  background: #dc2626;
+  display: inline-block;
+}
+.gantt-today-mark {
+  width: 2px;
+  height: 12px;
+  background: #2563eb;
+  display: inline-block;
+}
+.gantt-board {
+  padding: 0;
+  overflow: hidden;
+}
+.gantt-scroll {
+  overflow: auto;
+  max-height: min(70vh, 720px);
+}
+.gantt-grid {
+  --gantt-label-w: 240px;
+  --gantt-row-h: 44px;
+  min-width: 980px;
+}
+.gantt-corner {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  width: var(--gantt-label-w);
+  flex: 0 0 var(--gantt-label-w);
+  padding: 10px 12px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+}
+.gantt-header-row {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: flex;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  min-height: 48px;
+}
+.gantt-head {
+  position: relative;
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--gantt-days), minmax(28px, 1fr));
+  min-height: 48px;
+}
+.gantt-day-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border-right: 1px solid var(--border-subtle);
+  font-variant-numeric: tabular-nums;
+  position: relative;
+}
+.gantt-day-head.weekend {
+  background: rgba(148, 163, 184, 0.08);
+}
+.gantt-day-head.today {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+  font-weight: 700;
+}
+.gantt-day-wd {
+  font-size: 9px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+}
+.gantt-day-num {
+  font-size: 12px;
+  font-weight: 700;
+}
+.gantt-day-mo {
+  font-size: 8px;
+  color: var(--ink-muted);
+  font-weight: 650;
+}
+.gantt-row-pair {
+  display: grid;
+  grid-template-columns: var(--gantt-label-w) 1fr;
+  min-height: var(--gantt-row-h);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.gantt-label {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.gantt-label:hover,
+.gantt-label.active {
+  background: var(--surface-subtle);
+}
+.gantt-label-title {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--ink-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gantt-label-meta {
+  font-size: 10.5px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gantt-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--gantt-days), minmax(28px, 1fr));
+  cursor: pointer;
+  min-height: var(--gantt-row-h);
+}
+.gantt-track.active {
+  background: rgba(13, 148, 136, 0.04);
+}
+.gantt-cell {
+  border-right: 1px solid var(--border-subtle);
+}
+.gantt-cell.weekend {
+  background: rgba(148, 163, 184, 0.06);
+}
+.gantt-cell.today {
+  background: rgba(37, 99, 235, 0.06);
+}
+.gantt-bar {
+  position: absolute;
+  top: 10px;
+  height: 24px;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  background: #cbd5e1;
+  z-index: 1;
+}
+.gantt-bar.tone-idle { background: #cbd5e1; }
+.gantt-bar.tone-progress { background: #99f6e4; }
+.gantt-bar.tone-hold { background: #fed7aa; }
+.gantt-bar.overdue {
+  box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.45);
+}
+.gantt-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: #0d9488;
+  opacity: 0.85;
+}
+.gantt-bar.tone-idle .gantt-bar-fill { background: #64748b; }
+.gantt-bar.tone-hold .gantt-bar-fill { background: #ea580c; }
+.gantt-bar-text {
+  position: relative;
+  z-index: 1;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 750;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.gantt-late {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: #dc2626;
+  transform: translateX(-1px);
+  z-index: 2;
+  border-radius: 1px;
+}
+.gantt-today-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc((var(--gantt-today-idx) + 0.5) / var(--gantt-days) * 100%);
+  width: 2px;
+  background: #2563eb;
+  transform: translateX(-1px);
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.85;
+}
+.gantt-head .gantt-today-line {
+  top: 0;
+  bottom: 0;
+}
+.gantt-empty {
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+.gantt-detail {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+}
+.gantt-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(6, auto);
+  gap: 12px 18px;
+}
+.gantt-detail-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+@media (max-width: 900px) {
+  .gantt-detail-grid {
+    grid-template-columns: repeat(3, auto);
+  }
+  .gantt-grid {
+    --gantt-label-w: 180px;
+  }
 }

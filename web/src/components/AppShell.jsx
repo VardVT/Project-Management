@@ -200,7 +200,7 @@ export function AppShell() {
           {caps.showCalendar && (
             <NavLink to="/calendar" className="pm-menu-item">
               <IconCalendar size={17} />
-              <span>Milestones & Calendar</span>
+              <span>Near-term Gantt</span>
             </NavLink>
           )}
 
