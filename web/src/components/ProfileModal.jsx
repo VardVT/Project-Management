@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth, DEFAULT_TEMP_PASSWORD } from '../hooks/useAuth'
 import { normalizeRole, ROLES } from '../lib/roles'
+import { UserAvatar } from './UserAvatar'
 import {
   IconCross,
   IconSave,
@@ -52,13 +53,16 @@ function ContactRow({ icon, label, value }) {
 
 function PersonChip({ person }) {
   const name = person.display_name || person.email || 'User'
-  const initial = name.trim().slice(0, 1).toUpperCase()
-  const color = person.theme_color || '#64748b'
   return (
     <div className="profile-org-chip" title={person.email || name}>
-      <div className="profile-org-avatar" style={{ background: color }}>
-        {initial}
-      </div>
+      <UserAvatar
+        name={name}
+        avatarUrl={person.avatar_url}
+        themeColor={person.theme_color || '#64748b'}
+        size={36}
+        rounded="full"
+        className="profile-org-avatar"
+      />
       <div className="profile-org-meta">
         <div className="profile-org-name">{name}</div>
         <div className="profile-org-role">{person.position || 'Engineer'}</div>
@@ -68,11 +72,13 @@ function PersonChip({ person }) {
 }
 
 export function ProfileModal({ onClose }) {
-  const { profile, user, caps, updateProfile, changePassword } = useAuth()
+  const { profile, user, caps, updateProfile, changePassword, uploadAvatar, removeAvatar } = useAuth()
+  const fileRef = useRef(null)
   const [displayName, setDisplayName] = useState(profile?.display_name || '')
   const [employeeId, setEmployeeId] = useState(profile?.employee_id || '')
   const [themeColor, setThemeColor] = useState(profile?.theme_color || '#2563eb')
   const [saving, setSaving] = useState(false)
+  const [avatarBusy, setAvatarBusy] = useState(false)
   const [error, setError] = useState('')
   const [okMsg, setOkMsg] = useState('')
   const [activeTab, setActiveTab] = useState('overview')
@@ -99,7 +105,7 @@ export function ProfileModal({ onClose }) {
     async function loadTeam() {
       const { data } = await supabase
         .from('profiles')
-        .select('id, display_name, email, position, theme_color, employee_id')
+        .select('id, display_name, email, position, theme_color, employee_id, avatar_url')
         .order('display_name', { ascending: true })
       if (!mounted) return
       setTeam((data || []).filter((p) => p.id !== profile?.id))
@@ -112,7 +118,7 @@ export function ProfileModal({ onClose }) {
 
   const email = user?.email || profile?.email || ''
   const jobTitle = caps.label || profile?.position || 'Engineer'
-  const initial = (displayName || email || 'U').trim().slice(0, 1).toUpperCase()
+  const avatarUrl = profile?.avatar_url || null
 
   const managers = useMemo(
     () =>
@@ -132,6 +138,39 @@ export function ProfileModal({ onClose }) {
     setActiveTab(tab)
     setError('')
     setOkMsg('')
+  }
+
+  async function onPickAvatar(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setError('')
+    setOkMsg('')
+    setAvatarBusy(true)
+    try {
+      await uploadAvatar(file)
+      setOkMsg('Photo updated.')
+      setTimeout(() => setOkMsg(''), 3000)
+    } catch (err) {
+      setError(err?.message || 'Could not upload photo.')
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
+
+  async function onRemoveAvatar() {
+    setError('')
+    setOkMsg('')
+    setAvatarBusy(true)
+    try {
+      await removeAvatar()
+      setOkMsg('Photo removed.')
+      setTimeout(() => setOkMsg(''), 3000)
+    } catch (err) {
+      setError(err?.message || 'Could not remove photo.')
+    } finally {
+      setAvatarBusy(false)
+    }
   }
 
   async function onSaveProfile(e) {
@@ -196,15 +235,27 @@ export function ProfileModal({ onClose }) {
           <IconCross size={16} />
         </button>
 
-        {/* Teams-style header */}
         <div className="profile-card-header">
-          <div
-            className="profile-card-avatar"
-            style={{ background: themeColor, boxShadow: `0 10px 24px -8px ${themeColor}88` }}
+          <button
+            type="button"
+            className="profile-card-avatar-btn"
+            onClick={() => {
+              switchTab('profile')
+              setTimeout(() => fileRef.current?.click(), 50)
+            }}
+            title="Change photo"
+            disabled={avatarBusy}
           >
-            {initial}
-            <span className="profile-card-status" title="Available" />
-          </div>
+            <UserAvatar
+              name={displayName || email || 'U'}
+              avatarUrl={avatarUrl}
+              themeColor={themeColor}
+              size={72}
+              rounded="full"
+              className="profile-card-avatar"
+              status="available"
+            />
+          </button>
           <div className="profile-card-identity">
             <h2>{displayName || 'Your name'}</h2>
             <p>
@@ -216,7 +267,6 @@ export function ProfileModal({ onClose }) {
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="profile-card-tabs">
           {[
             { id: 'overview', label: 'Overview' },
@@ -236,6 +286,14 @@ export function ProfileModal({ onClose }) {
         </div>
 
         <div className="profile-card-body">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            hidden
+            onChange={onPickAvatar}
+          />
+
           {activeTab === 'overview' && (
             <>
               <div className="profile-availability">
@@ -260,7 +318,7 @@ export function ProfileModal({ onClose }) {
                 <ContactRow icon={<IconUsers size={15} />} label="Department" value={DEPARTMENT} />
               </div>
 
-              {(managers.length > 0 || colleagues.length > 0) && (
+              {(managers.length > 0 || colleaguesPreview.length > 0) && (
                 <>
                   <h3 className="profile-section-title">Organization</h3>
                   {managers[0] && (
@@ -286,6 +344,42 @@ export function ProfileModal({ onClose }) {
 
           {activeTab === 'profile' && (
             <form onSubmit={onSaveProfile} className="profile-edit-form">
+              <div className="profile-photo-editor">
+                <UserAvatar
+                  name={displayName || email || 'U'}
+                  avatarUrl={avatarUrl}
+                  themeColor={themeColor}
+                  size={64}
+                  rounded="full"
+                />
+                <div className="profile-photo-actions">
+                  <div className="profile-photo-title">Profile photo</div>
+                  <p className="muted" style={{ margin: 0, fontSize: '12px', lineHeight: 1.4 }}>
+                    JPG, PNG, WebP or GIF · max 2 MB
+                  </p>
+                  <div className="profile-photo-btns">
+                    <button
+                      type="button"
+                      className="pm-btn tiny"
+                      disabled={avatarBusy}
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      {avatarBusy ? 'Uploading…' : avatarUrl ? 'Change photo' : 'Upload photo'}
+                    </button>
+                    {avatarUrl ? (
+                      <button
+                        type="button"
+                        className="pm-btn tiny ghost"
+                        disabled={avatarBusy}
+                        onClick={onRemoveAvatar}
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
               <label>
                 Display name
                 <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} required placeholder="Your name" />
@@ -296,9 +390,12 @@ export function ProfileModal({ onClose }) {
               </label>
               <div>
                 <div className="profile-edit-label-row">
-                  <span>Avatar color</span>
+                  <span>Fallback avatar color</span>
                   <code>{themeColor}</code>
                 </div>
+                <p className="muted" style={{ margin: '0 0 8px', fontSize: '11.5px' }}>
+                  Used when no photo is set
+                </p>
                 <div className="profile-color-grid">
                   {COLOR_PRESETS.map((c) => {
                     const isActive = themeColor.toLowerCase() === c.toLowerCase()

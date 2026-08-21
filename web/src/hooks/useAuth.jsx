@@ -211,7 +211,76 @@ export function AuthProvider({ children }) {
       if (fields.employee_id != null) {
         allowed.employee_id = String(fields.employee_id).trim() || null
       }
+      if (fields.avatar_url !== undefined) {
+        allowed.avatar_url = fields.avatar_url ? String(fields.avatar_url).trim() : null
+      }
       const { error } = await supabase.from('profiles').update(allowed).eq('id', userId)
+      if (error) throw error
+      return fetchProfile(userId)
+    },
+
+    /** Upload image to storage bucket `avatars` and save public URL on profile */
+    async uploadAvatar(file) {
+      const userId = session?.user?.id
+      if (!userId) throw new Error('Not signed in.')
+      if (!file) throw new Error('No image selected.')
+
+      const maxBytes = 2 * 1024 * 1024
+      if (file.size > maxBytes) throw new Error('Image must be 2 MB or smaller.')
+
+      const mime = String(file.type || '').toLowerCase()
+      const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+      if (!allowed.includes(mime)) {
+        throw new Error('Use a JPG, PNG, WebP, or GIF image.')
+      }
+
+      const ext =
+        mime === 'image/png'
+          ? 'png'
+          : mime === 'image/webp'
+            ? 'webp'
+            : mime === 'image/gif'
+              ? 'gif'
+              : 'jpg'
+      const path = `${userId}/avatar.${ext}`
+
+      const { data: existing } = await supabase.storage.from('avatars').list(userId)
+      if (existing?.length) {
+        await supabase.storage
+          .from('avatars')
+          .remove(existing.map((f) => `${userId}/${f.name}`))
+      }
+
+      const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, {
+        upsert: true,
+        contentType: mime,
+        cacheControl: '3600',
+      })
+      if (upErr) throw upErr
+
+      const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
+      const avatarUrl = `${pub.publicUrl}?t=${Date.now()}`
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', userId)
+      if (error) throw error
+      return fetchProfile(userId)
+    },
+
+    async removeAvatar() {
+      const userId = session?.user?.id
+      if (!userId) throw new Error('Not signed in.')
+      const { data: existing } = await supabase.storage.from('avatars').list(userId)
+      if (existing?.length) {
+        await supabase.storage
+          .from('avatars')
+          .remove(existing.map((f) => `${userId}/${f.name}`))
+      }
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('id', userId)
       if (error) throw error
       return fetchProfile(userId)
     },

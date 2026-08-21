@@ -6,6 +6,7 @@ import { displaySectionName } from '../lib/roles'
 import { NewProjectModal } from './NewProjectModal'
 import { ExcelToolbar } from './ExcelToolbar'
 import { ProfileModal } from './ProfileModal'
+import { UserAvatar } from './UserAvatar'
 import { useNotification } from './NotificationContext'
 import {
   IconDashboard,
@@ -101,9 +102,13 @@ export function AppShell() {
             onClick={() => setShowProfile(true)}
             title="Open personal profile"
           >
-            <div className="pm-avatar" style={profile?.theme_color ? { background: profile.theme_color } : undefined}>
-              {name.slice(0, 1).toUpperCase()}
-            </div>
+            <UserAvatar
+              name={name}
+              avatarUrl={profile?.avatar_url}
+              themeColor={profile?.theme_color}
+              size={34}
+              className="pm-avatar"
+            />
             <div className="pm-user-info">
               <div className="pm-user-name" title={name}>{name}</div>
               <div className={`pm-role-badge role-${caps.shell}`}>{caps.label || 'Engineer'}</div>
