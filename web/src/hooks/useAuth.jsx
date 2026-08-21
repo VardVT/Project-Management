@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { prepareAvatarFile } from '../lib/avatarImage'
 import { normalizeRole, getCapabilities } from '../lib/roles'
 
 const AuthContext = createContext(null)
@@ -225,24 +226,9 @@ export function AuthProvider({ children }) {
       if (!userId) throw new Error('Not signed in.')
       if (!file) throw new Error('No image selected.')
 
-      const maxBytes = 2 * 1024 * 1024
-      if (file.size > maxBytes) throw new Error('Image must be 2 MB or smaller.')
+      const prepared = await prepareAvatarFile(file)
 
-      const mime = String(file.type || '').toLowerCase()
-      const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-      if (!allowed.includes(mime)) {
-        throw new Error('Use a JPG, PNG, WebP, or GIF image.')
-      }
-
-      const ext =
-        mime === 'image/png'
-          ? 'png'
-          : mime === 'image/webp'
-            ? 'webp'
-            : mime === 'image/gif'
-              ? 'gif'
-              : 'jpg'
-      const path = `${userId}/avatar.${ext}`
+      const path = `${userId}/avatar.jpg`
 
       const { data: existing } = await supabase.storage.from('avatars').list(userId)
       if (existing?.length) {
@@ -251,9 +237,9 @@ export function AuthProvider({ children }) {
           .remove(existing.map((f) => `${userId}/${f.name}`))
       }
 
-      const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, {
+      const { error: upErr } = await supabase.storage.from('avatars').upload(path, prepared, {
         upsert: true,
-        contentType: mime,
+        contentType: 'image/jpeg',
         cacheControl: '3600',
       })
       if (upErr) throw upErr

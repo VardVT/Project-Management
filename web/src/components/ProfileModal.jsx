@@ -355,7 +355,7 @@ export function ProfileModal({ onClose }) {
                 <div className="profile-photo-actions">
                   <div className="profile-photo-title">Profile photo</div>
                   <p className="muted" style={{ margin: 0, fontSize: '12px', lineHeight: 1.4 }}>
-                    JPG, PNG, WebP or GIF · max 2 MB
+                    Any photo · auto-resized for avatar
                   </p>
                   <div className="profile-photo-btns">
                     <button

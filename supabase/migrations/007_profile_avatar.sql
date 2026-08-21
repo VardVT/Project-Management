@@ -11,7 +11,7 @@ values (
   'avatars',
   'avatars',
   true,
-  2097152, -- 2 MB
+  5242880, -- 5 MB (client compresses before upload)
   array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 )
 on conflict (id) do update set
