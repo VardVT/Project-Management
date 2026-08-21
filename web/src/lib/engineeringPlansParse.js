@@ -212,11 +212,12 @@ export function parseEngineeringPlansWorkbook(arrayBuffer, fileName) {
     }
 
     // WBS node: pop deeper/equal levels, then push
+    // KHÔNG xóa currentResource — resource vẫn áp dụng cho các task dưới header này
+    // cho đến khi gặp dòng "Resources: ..." mới.
     while (stack.length && stack[stack.length - 1].spaces >= spaces) {
       stack.pop()
     }
     stack.push({ spaces, name: label })
-    currentResource = null
     skippedSummaryRows += 1
   }
 

@@ -90,5 +90,6 @@ export function displaySectionName(headerName) {
   const raw = String(headerName || '').trim()
   if (raw === '3D Pipe Drawing') return 'Pipe 3D modeling'
   if (raw === 'ISO generation') return 'ISO generating'
+  if (raw === 'Pipe 2D drawing') return '2D drawing'
   return raw || 'Section'
 }

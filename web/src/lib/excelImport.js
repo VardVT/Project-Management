@@ -225,10 +225,25 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles, { i
   const { data: tasks, error } = await supabase
     .from('tasks')
     .select(
-      'id, activity, drawing_id, zone, assignee_id, percent_complete, status, review_3d, first_unit, unit_issue_date, vvt_review, owners_review'
+      'id, activity, drawing_id, zone, assignee_id, percent_complete, status, review_3d, first_unit, unit_issue_date, vvt_review, owners_review, section_id'
     )
     .eq('project_id', projectId)
   if (error) throw error
+
+  const neededSectionNames = [
+    ...new Set(
+      (excelTasks || [])
+        .map((row) => {
+          if (row.isMto || row.targetSection === 'MTO') return 'MTO'
+          if (row.targetSection) return row.targetSection
+          return mapExcelSectionToTarget(row.sheetName || row.zone || '')
+        })
+        .filter(Boolean),
+    ),
+  ]
+  const sectionByName = await ensureSections(projectId, [
+    ...new Set([...CANONICAL_SECTIONS, ...neededSectionNames]),
+  ])
 
   const dbTasks = tasks || []
   const indexes = buildTaskIndexes(dbTasks)
@@ -237,6 +252,7 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles, { i
   let matched = 0
   let updated = 0
   let inserted = 0
+  let remapped = 0
   let matchedBy = {
     drawing: 0,
     'activity+drawing': 0,
@@ -305,6 +321,19 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles, { i
       patch.owners_review = row.ownerReview
     }
 
+    // Chuyển task sang đúng section chuẩn theo sheet (vd. 2D drawing → Pipe 2D drawing)
+    const wantSection =
+      row.isMto || row.targetSection === 'MTO'
+        ? 'MTO'
+        : row.targetSection || mapExcelSectionToTarget(row.sheetName || '')
+    if (wantSection) {
+      const dest = sectionByName.get(wantSection)
+      if (dest && dest.id !== task.section_id) {
+        patch.section_id = dest.id
+        remapped += 1
+      }
+    }
+
     if (Object.keys(patch).length) {
       const { error: upErr } = await supabase.from('tasks').update(patch).eq('id', task.id)
       if (upErr) throw upErr
@@ -314,17 +343,6 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles, { i
   }
 
   if (insertMissing && toInsert.length) {
-    const sectionNames = [
-      ...new Set(
-        toInsert.map((row) => {
-          if (row.isMto || row.targetSection === 'MTO') return 'MTO'
-          if (row.targetSection) return row.targetSection
-          return mapExcelSectionToTarget(row.sheetName || row.zone || '')
-        }),
-      ),
-    ]
-    const sectionByName = await ensureSections(projectId, [...new Set([...CANONICAL_SECTIONS, ...sectionNames])])
-
     const payloads = []
     for (const row of toInsert) {
       const sectionName =
@@ -368,6 +386,7 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles, { i
           activity: p.activity,
           drawing_id: p.drawing_id,
           zone: p.zone,
+          section_id: p.section_id,
         }
         const a = normKey(fake.activity)
         const d = compactDrawing(fake.drawing_id)
@@ -384,6 +403,7 @@ export async function applyPicPercentImport(projectId, excelTasks, profiles, { i
     matched,
     updated,
     inserted,
+    remapped,
     totalExcel: excelTasks.length,
     dbTasks: dbTasks.length,
     matchedBy,

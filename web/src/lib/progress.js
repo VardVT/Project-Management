@@ -111,9 +111,13 @@ export const SECTION_MAPPING = {
     'Pipe 2D drawing',
     '2D drawing',
     '2D Drawing',
+    '2D drawings',
     'Pipe 2D',
     'Piping 2D',
     'Sys diagram & 2D drawing',
+    'System diagram & 2D drawing',
+    'System Diagram',
+    'Sys Diagram',
     '03. Sys diagram & 2D drawing',
   ],
   MTO: ['MTO'],
@@ -129,12 +133,19 @@ export function mapExcelSectionToTarget(headerName) {
   }
   // soft match like desktop canonicalize (fallback)
   if (key.includes('mto')) return 'MTO'
+  // Ưu tiên 2D trước ISO khi tên sheet/WBS có 03 / 2d / diagram
+  if (
+    key.includes('03.') ||
+    key.includes('2d') ||
+    key.includes('sys diagram') ||
+    key.includes('system diagram') ||
+    (key.includes('diagram') && !key.includes('iso'))
+  ) {
+    return 'Pipe 2D drawing'
+  }
   if (key.includes('iso')) return 'ISO generation'
   if (key.includes('pipe modeling') || key.includes('3d pipe')) return '3D Pipe Drawing'
   if (key.includes('3d equipment')) return '3D Equipment Modeling'
-  // "2D drawing", "sys diagram", sheet 03… → cùng về Pipe 2D drawing
-  // (tránh nhầm "2D & 3D Checking…" đã match exact ở General drawing phía trên)
-  if (key.includes('2d') || key.includes('sys diagram')) return 'Pipe 2D drawing'
   if (key.includes('arranagement') || key.includes('arrangement')) return 'General drawing'
   if (key.includes('production support') || key.includes('checking') || key.includes('coordination')) {
     return 'General drawing'

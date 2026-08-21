@@ -50,11 +50,16 @@ function classifyProgressSheet(name) {
   if (!n || isZoneListSheet(name)) return null
   if (isMtoSheet(name)) return 'MTO'
   if (n.includes('01.') || n.includes('3d model') || (n.includes('3d') && n.includes('pipe'))) return '3D'
-  // ISO Braila / ISO VTT / 02. ISO export… đều thuộc nhóm ISO
-  if (n.includes('02.') || n.includes('iso')) return 'ISO'
-  if (n.includes('03.') || n.includes('sys diagram') || (n.includes('2d') && n.includes('drawing')) || n.includes('2d')) {
+  // 2D trước ISO — tránh sheet "…2D…" bị nuốt vì có chữ iso lẫn trong workbook name
+  if (
+    n.includes('03.') ||
+    n.includes('sys diagram') ||
+    n.includes('system diagram') ||
+    n.includes('2d')
+  ) {
     return '2D'
   }
+  if (n.includes('02.') || n.includes('iso')) return 'ISO'
   return null
 }
 

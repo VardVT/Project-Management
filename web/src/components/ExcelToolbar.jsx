@@ -156,9 +156,10 @@ export function ExcelToolbar() {
       await mergeAliasSectionsToCanonical(projectId)
       await reloadSections()
       const added = result.inserted ? ` · ${result.inserted} new` : ''
+      const moved = result.remapped ? ` · ${result.remapped} remapped` : ''
       toast.success(
         'Sync Complete',
-        `Vessel ${shipHint || projectId}: matched ${result.matched}/${result.totalExcel}, updated ${result.updated}${added}.`,
+        `Vessel ${shipHint || projectId}: matched ${result.matched}/${result.totalExcel}, updated ${result.updated}${added}${moved}.`,
       )
     } catch (err) {
       toast.error('Sync Failed', err.message || 'Update Progress / PIC failed')

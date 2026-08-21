@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { mapExcelSectionToTarget, isMtoTask } from './progress'
 import { CANONICAL_SECTIONS } from './roles'
+import { mergeAliasSectionsToCanonical } from './engineeringPlansImport'
 
 async function ensureCanonicalSections(projectId) {
   const { data: existing, error } = await supabase
@@ -69,7 +70,18 @@ function isPipingVt(resource, filter) {
     .trim()
     .toLowerCase()
   if (!filter) return true
+  // Resource trống: giữ lại để remap (Import Plans hay mất resource khi gặp WBS node)
+  if (!res) return true
   return res === filter || res.includes(filter)
+}
+
+function isForeignResource(resource, filter) {
+  const res = String(resource || '')
+    .trim()
+    .toLowerCase()
+  if (!res) return false
+  if (!filter) return false
+  return !(res === filter || res.includes(filter))
 }
 
 /**
@@ -103,10 +115,11 @@ export async function applyPipingVtSectionMapping(projectId, { resourceFilter = 
     .toLowerCase()
   const all = tasks || []
   const candidates = all.filter((t) => isPipingVt(t.resource, filter))
-  const others = all.filter((t) => !isPipingVt(t.resource, filter))
+  // Chỉ xóa team khác (Naval/Hydro…) — KHÔNG xóa task resource trống
+  const others = all.filter((t) => isForeignResource(t.resource, filter))
 
   if (!candidates.length) {
-    return { moved: 0, total: 0, byTarget: {}, message: `Không có task resource="${resourceFilter}"` }
+    return { moved: 0, total: 0, byTarget: {}, message: `Không có task resource="${resourceFilter}" (hoặc trống)` }
   }
 
   const byTarget = {}
@@ -205,12 +218,15 @@ export async function applyPipingVtSectionMapping(projectId, { resourceFilter = 
     )
   }
 
+  const merged = await mergeAliasSectionsToCanonical(projectId)
+
   return {
     moved,
     total: candidates.length,
     byTarget,
     deletedOtherTasks,
     deletedSections: nonCanonicalUnused.length + emptyLeft.length,
+    merged,
     // FIX: trả về danh sách unmapped để bạn kiểm tra ngay thay vì phát hiện sau khi mất dữ liệu
     unmapped,
   }
