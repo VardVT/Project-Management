@@ -11,6 +11,16 @@ import { IconPlus, IconTrash, IconSearch, IconArrowRight, IconFilter, IconCross 
 
 const STATUSES = ['Not Started', 'In Progress', 'Completed', 'On Hold']
 
+function statusTone(status) {
+  const s = String(status || '')
+    .trim()
+    .toLowerCase()
+  if (s === 'completed') return 'completed'
+  if (s === 'in progress') return 'in-progress'
+  if (s === 'on hold') return 'on-hold'
+  return 'not-started'
+}
+
 const DEFAULT_NEW_TASK = {
   zone: '',
   activity: '',
@@ -512,6 +522,7 @@ export function SectionTasksPage() {
                     </td>
                     <td>
                       <select
+                        className={`status-select status-select-${statusTone(t.status)}`}
                         disabled={!canEdit}
                         value={t.status || 'Not Started'}
                         onChange={(e) => patchTask(t.id, { status: e.target.value })}
@@ -621,6 +632,7 @@ export function SectionTasksPage() {
                 <label>
                   Status
                   <select
+                    className={`status-select status-select-${statusTone(newTask.status)}`}
                     value={newTask.status}
                     onChange={(e) => patchNew({ status: e.target.value })}
                     style={{ marginTop: '4px', width: '100%' }}

@@ -777,26 +777,68 @@ label {
 }
 
 .status-chip.todo, .status-chip.not-started {
-  background: var(--bg-deep);
-  color: var(--ink-muted);
+  background: #e2e8f0;
+  color: #475569;
+  border: 1px solid #cbd5e1;
 }
 
 .status-chip.doing, .status-chip.in-progress {
-  background: var(--warning-subtle);
-  color: var(--warning);
-  border: 1px solid var(--warning-border);
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fdba74;
 }
 
 .status-chip.done, .status-chip.completed {
-  background: var(--success-subtle);
-  color: var(--success);
-  border: 1px solid var(--success-border);
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #6ee7b7;
 }
 
 .status-chip.on-hold {
-  background: var(--danger-subtle);
-  color: var(--danger);
-  border: 1px solid var(--danger-border);
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+/* Colored status <select> in task grid / forms */
+.status-select {
+  font-weight: 650;
+  font-size: 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 4px 8px;
+  min-width: 118px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.status-select:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.status-select-not-started {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+.status-select-in-progress {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fdba74;
+}
+
+.status-select-completed {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #6ee7b7;
+}
+
+.status-select-on-hold {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fca5a5;
 }
 
 /* ==========================================================================
