@@ -1,20 +1,71 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { supabase } from '../lib/supabase'
 import { useAuth, DEFAULT_TEMP_PASSWORD } from '../hooks/useAuth'
-import { IconCross, IconSave, IconUsers, IconCheck } from './Icons'
+import { normalizeRole, ROLES } from '../lib/roles'
+import {
+  IconCross,
+  IconSave,
+  IconCheck,
+  IconMail,
+  IconBriefcase,
+  IconBuilding,
+  IconMapPin,
+  IconBadge,
+  IconClock,
+  IconUsers,
+} from './Icons'
 
 const COLOR_PRESETS = [
-  '#2563eb', // Blue
-  '#0d9488', // Teal
-  '#7c3aed', // Purple
-  '#db2777', // Pink
-  '#ea580c', // Orange
-  '#ca8a04', // Amber
-  '#059669', // Emerald
-  '#dc2626', // Red
-  '#0284c7', // Sky
-  '#475569', // Slate
-  '#0f172a', // Dark Navy
+  '#2563eb',
+  '#0d9488',
+  '#7c3aed',
+  '#db2777',
+  '#ea580c',
+  '#ca8a04',
+  '#059669',
+  '#dc2626',
+  '#0284c7',
+  '#475569',
+  '#0f172a',
 ]
+
+const COMPANY = 'Vard Vung Tau Ltd'
+const WORK_LOCATION = 'Vung Tau'
+const DEPARTMENT = 'Engineering Department'
+
+function formatLocalTime(date = new Date()) {
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+}
+
+function ContactRow({ icon, label, value }) {
+  if (!value) return null
+  return (
+    <div className="profile-contact-row">
+      <div className="profile-contact-icon">{icon}</div>
+      <div className="profile-contact-body">
+        <div className="profile-contact-label">{label}</div>
+        <div className="profile-contact-value">{value}</div>
+      </div>
+    </div>
+  )
+}
+
+function PersonChip({ person }) {
+  const name = person.display_name || person.email || 'User'
+  const initial = name.trim().slice(0, 1).toUpperCase()
+  const color = person.theme_color || '#64748b'
+  return (
+    <div className="profile-org-chip" title={person.email || name}>
+      <div className="profile-org-avatar" style={{ background: color }}>
+        {initial}
+      </div>
+      <div className="profile-org-meta">
+        <div className="profile-org-name">{name}</div>
+        <div className="profile-org-role">{person.position || 'Engineer'}</div>
+      </div>
+    </div>
+  )
+}
 
 export function ProfileModal({ onClose }) {
   const { profile, user, caps, updateProfile, changePassword } = useAuth()
@@ -24,12 +75,13 @@ export function ProfileModal({ onClose }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [okMsg, setOkMsg] = useState('')
-
-  const [activeTab, setActiveTab] = useState('profile') // 'profile' | 'security'
+  const [activeTab, setActiveTab] = useState('overview')
   const [showPwText, setShowPwText] = useState(false)
   const [newPw, setNewPw] = useState('')
   const [confirmPw, setConfirmPw] = useState('')
   const [pwBusy, setPwBusy] = useState(false)
+  const [team, setTeam] = useState([])
+  const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
     setDisplayName(profile?.display_name || '')
@@ -37,7 +89,50 @@ export function ProfileModal({ onClose }) {
     setThemeColor(profile?.theme_color || '#2563eb')
   }, [profile])
 
-  const initial = (displayName || user?.email || 'U').trim().slice(0, 1).toUpperCase()
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30000)
+    return () => clearInterval(t)
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    async function loadTeam() {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, display_name, email, position, theme_color, employee_id')
+        .order('display_name', { ascending: true })
+      if (!mounted) return
+      setTeam((data || []).filter((p) => p.id !== profile?.id))
+    }
+    loadTeam()
+    return () => {
+      mounted = false
+    }
+  }, [profile?.id])
+
+  const email = user?.email || profile?.email || ''
+  const jobTitle = caps.label || profile?.position || 'Engineer'
+  const initial = (displayName || email || 'U').trim().slice(0, 1).toUpperCase()
+
+  const managers = useMemo(
+    () =>
+      team.filter((p) => {
+        const r = normalizeRole(p.position)
+        return r === ROLES.MANAGER || r === ROLES.ADMIN
+      }),
+    [team],
+  )
+  const colleagues = useMemo(
+    () => team.filter((p) => !managers.some((m) => m.id === p.id)),
+    [team, managers],
+  )
+  const colleaguesPreview = colleagues.slice(0, 8)
+
+  function switchTab(tab) {
+    setActiveTab(tab)
+    setError('')
+    setOkMsg('')
+  }
 
   async function onSaveProfile(e) {
     e.preventDefault()
@@ -54,8 +149,9 @@ export function ProfileModal({ onClose }) {
         employee_id: employeeId.trim(),
         theme_color: themeColor,
       })
-      setOkMsg('Profile updated successfully!')
+      setOkMsg('Profile updated successfully.')
       setTimeout(() => setOkMsg(''), 3000)
+      setActiveTab('overview')
     } catch (err) {
       setError(err?.message || 'Could not save profile.')
     } finally {
@@ -84,7 +180,7 @@ export function ProfileModal({ onClose }) {
       await changePassword(newPw)
       setNewPw('')
       setConfirmPw('')
-      setOkMsg('Password changed successfully!')
+      setOkMsg('Password changed successfully.')
       setTimeout(() => setOkMsg(''), 3000)
     } catch (err) {
       setError(err?.message || 'Could not update password.')
@@ -95,307 +191,232 @@ export function ProfileModal({ onClose }) {
 
   return (
     <div className="pm-modal-backdrop" onClick={onClose}>
-      <div className="pm-modal profile-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Personal Profile</h2>
-            <p className="muted" style={{ margin: '4px 0 0', fontSize: '12px' }}>
-              Manage your identity, theme color, and security preferences
-            </p>
-          </div>
-          <button type="button" className="pm-btn tiny ghost icon-only" onClick={onClose} title="Close">
-            <IconCross size={16} />
-          </button>
-        </div>
+      <div className="pm-modal profile-card-modal" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="profile-card-close" onClick={onClose} title="Close">
+          <IconCross size={16} />
+        </button>
 
-        {/* Hero User Banner */}
-        <div className="profile-modal-hero">
+        {/* Teams-style header */}
+        <div className="profile-card-header">
           <div
-            className="profile-modal-avatar"
-            style={{
-              background: themeColor,
-              boxShadow: `0 8px 20px -4px ${themeColor}66`,
-            }}
+            className="profile-card-avatar"
+            style={{ background: themeColor, boxShadow: `0 10px 24px -8px ${themeColor}88` }}
           >
             {initial}
+            <span className="profile-card-status" title="Available" />
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: '16px', color: 'var(--ink-primary)' }}>
-              {displayName || 'Your name'}
-            </div>
-            <div className="muted" style={{ fontSize: '12px', marginTop: '2px', wordBreak: 'break-all' }}>
-              {user?.email || profile?.email || '—'}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-              <span className={`pm-role-badge role-${caps.shell}`} style={{ display: 'inline-flex' }}>
-                {caps.label || profile?.position || 'Engineer'}
-              </span>
-              {employeeId && (
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontVariantNumeric: 'tabular-nums',
-                    color: 'var(--ink-muted)',
-                    background: 'var(--bg)',
-                    padding: '2px 6px',
-                    borderRadius: 'var(--radius-xs)',
-                    border: '1px solid var(--border)',
-                  }}
-                >
-                  ID: #{employeeId}
-                </span>
+          <div className="profile-card-identity">
+            <h2>{displayName || 'Your name'}</h2>
+            <p>
+              {jobTitle}
+              <span className="dot">·</span>
+              {DEPARTMENT}
+            </p>
+            {employeeId ? <p className="profile-card-id">Employee #{employeeId}</p> : null}
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="profile-card-tabs">
+          {[
+            { id: 'overview', label: 'Overview' },
+            { id: 'profile', label: 'Profile' },
+            { id: 'organization', label: 'Organization' },
+            { id: 'security', label: 'Security' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`profile-card-tab ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => switchTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="profile-card-body">
+          {activeTab === 'overview' && (
+            <>
+              <div className="profile-availability">
+                <div className="profile-availability-row">
+                  <span className="profile-availability-dot" />
+                  <strong>Available</strong>
+                  <span className="muted">· Signed in</span>
+                </div>
+                <div className="profile-availability-row muted">
+                  <IconClock size={14} />
+                  <span>{formatLocalTime(now)} — your local time</span>
+                </div>
+              </div>
+
+              <h3 className="profile-section-title">Contact information</h3>
+              <div className="profile-contact-grid">
+                <ContactRow icon={<IconMail size={15} />} label="Email" value={email} />
+                <ContactRow icon={<IconBadge size={15} />} label="Employee ID" value={employeeId ? `#${employeeId}` : '—'} />
+                <ContactRow icon={<IconMapPin size={15} />} label="Work location" value={WORK_LOCATION} />
+                <ContactRow icon={<IconBuilding size={15} />} label="Company" value={COMPANY} />
+                <ContactRow icon={<IconBriefcase size={15} />} label="Job title" value={jobTitle} />
+                <ContactRow icon={<IconUsers size={15} />} label="Department" value={DEPARTMENT} />
+              </div>
+
+              {(managers.length > 0 || colleagues.length > 0) && (
+                <>
+                  <h3 className="profile-section-title">Organization</h3>
+                  {managers[0] && (
+                    <div className="profile-org-block">
+                      <div className="profile-org-label">Manager</div>
+                      <PersonChip person={managers[0]} />
+                    </div>
+                  )}
+                  {colleaguesPreview.length > 0 && (
+                    <div className="profile-org-block">
+                      <div className="profile-org-label">You work with</div>
+                      <div className="profile-org-grid">
+                        {colleaguesPreview.map((p) => (
+                          <PersonChip key={p.id} person={p} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
-            </div>
-          </div>
-        </div>
+            </>
+          )}
 
-        {/* Tab Navigation */}
-        <div
-          style={{
-            display: 'flex',
-            borderBottom: '1px solid var(--border)',
-            marginBottom: '16px',
-            gap: '16px',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('profile')
-              setError('')
-              setOkMsg('')
-            }}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              padding: '8px 4px',
-              cursor: 'pointer',
-              fontWeight: activeTab === 'profile' ? 700 : 500,
-              fontSize: '13px',
-              color: activeTab === 'profile' ? 'var(--primary)' : 'var(--ink-muted)',
-              borderBottom: activeTab === 'profile' ? '2px solid var(--primary)' : '2px solid transparent',
-              marginBottom: '-1px',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            Profile Info
-          </button>
+          {activeTab === 'profile' && (
+            <form onSubmit={onSaveProfile} className="profile-edit-form">
+              <label>
+                Display name
+                <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} required placeholder="Your name" />
+              </label>
+              <label>
+                Employee ID
+                <input value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} placeholder="e.g. 2107" />
+              </label>
+              <div>
+                <div className="profile-edit-label-row">
+                  <span>Avatar color</span>
+                  <code>{themeColor}</code>
+                </div>
+                <div className="profile-color-grid">
+                  {COLOR_PRESETS.map((c) => {
+                    const isActive = themeColor.toLowerCase() === c.toLowerCase()
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        className={`profile-color-swatch ${isActive ? 'active' : ''}`}
+                        style={{ background: c }}
+                        onClick={() => setThemeColor(c)}
+                        title={c}
+                      >
+                        {isActive ? (
+                          <span style={{ color: '#fff', display: 'grid', placeItems: 'center', height: '100%' }}>
+                            <IconCheck size={13} />
+                          </span>
+                        ) : null}
+                      </button>
+                    )
+                  })}
+                  <label className="profile-color-custom" title="Custom color">
+                    <input
+                      type="color"
+                      value={/^#[0-9a-fA-F]{6}$/.test(themeColor) ? themeColor : '#2563eb'}
+                      onChange={(e) => setThemeColor(e.target.value)}
+                    />
+                  </label>
+                </div>
+              </div>
+              <div className="pm-modal-actions" style={{ marginTop: 8, paddingTop: 12 }}>
+                <button type="button" className="pm-btn ghost" onClick={() => switchTab('overview')}>
+                  Cancel
+                </button>
+                <button type="submit" className="pm-btn primary" disabled={saving}>
+                  <IconSave size={14} />
+                  <span>{saving ? 'Saving…' : 'Save changes'}</span>
+                </button>
+              </div>
+            </form>
+          )}
 
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('security')
-              setError('')
-              setOkMsg('')
-            }}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              padding: '8px 4px',
-              cursor: 'pointer',
-              fontWeight: activeTab === 'security' ? 700 : 500,
-              fontSize: '13px',
-              color: activeTab === 'security' ? 'var(--primary)' : 'var(--ink-muted)',
-              borderBottom: activeTab === 'security' ? '2px solid var(--primary)' : '2px solid transparent',
-              marginBottom: '-1px',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            Security & Password
-          </button>
-        </div>
-
-        {/* Tab 1: Profile Info */}
-        {activeTab === 'profile' && (
-          <form onSubmit={onSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12.5px', fontWeight: 600 }}>
-              <span>Display Name <strong style={{ color: 'var(--danger)' }}>*</strong></span>
-              <input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="e.g. John Doe"
-                required
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border)',
-                  outline: 'none',
-                }}
-              />
-            </label>
-
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12.5px', fontWeight: 600 }}>
-              <span>Employee ID / Badge No.</span>
-              <input
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
-                placeholder="e.g. 2107"
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border)',
-                  outline: 'none',
-                }}
-              />
-            </label>
-
+          {activeTab === 'organization' && (
             <div>
-              <div style={{ fontSize: '12.5px', fontWeight: 600, marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                <span>Avatar Theme Color</span>
-                <span style={{ fontSize: '11px', color: 'var(--ink-muted)', fontFamily: 'var(--font-mono)' }}>
-                  {themeColor}
-                </span>
+              <p className="muted" style={{ fontSize: '12.5px', margin: '0 0 14px', lineHeight: 1.45 }}>
+                People in the engineering directory. Manager roles are listed first.
+              </p>
+              {managers.length > 0 && (
+                <div className="profile-org-block">
+                  <div className="profile-org-label">Managers</div>
+                  <div className="profile-org-grid">
+                    {managers.map((p) => (
+                      <PersonChip key={p.id} person={p} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="profile-org-block">
+                <div className="profile-org-label">Team</div>
+                <div className="profile-org-grid">
+                  {colleagues.length === 0 ? (
+                    <p className="muted" style={{ fontSize: '12px' }}>No other users found.</p>
+                  ) : (
+                    colleagues.map((p) => <PersonChip key={p.id} person={p} />)
+                  )}
+                </div>
               </div>
-              <div className="profile-color-grid">
-                {COLOR_PRESETS.map((c) => {
-                  const isActive = themeColor.toLowerCase() === c.toLowerCase()
-                  return (
-                    <button
-                      key={c}
-                      type="button"
-                      className={`profile-color-swatch ${isActive ? 'active' : ''}`}
-                      style={{ background: c }}
-                      onClick={() => setThemeColor(c)}
-                      title={c}
-                    >
-                      {isActive && (
-                        <div style={{ color: '#fff', display: 'grid', placeItems: 'center', height: '100%' }}>
-                          <IconCheck size={14} />
-                        </div>
-                      )}
-                    </button>
-                  )
-                })}
-                <label className="profile-color-custom" title="Custom color">
+            </div>
+          )}
+
+          {activeTab === 'security' && (
+            <form onSubmit={onSavePassword} className="profile-edit-form">
+              <p className="muted" style={{ fontSize: '12.5px', margin: 0, lineHeight: 1.45 }}>
+                Choose a password different from the temporary <code>{DEFAULT_TEMP_PASSWORD}</code>.
+              </p>
+              <label>
+                New password
+                <div className="profile-pw-wrap">
                   <input
-                    type="color"
-                    value={/^#[0-9a-fA-F]{6}$/.test(themeColor) ? themeColor : '#2563eb'}
-                    onChange={(e) => setThemeColor(e.target.value)}
+                    type={showPwText ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    value={newPw}
+                    onChange={(e) => setNewPw(e.target.value)}
+                    placeholder="At least 6 characters"
+                    minLength={6}
+                    required
                   />
-                </label>
-              </div>
-            </div>
-
-            <div className="pm-modal-actions">
-              <button type="button" className="pm-btn ghost" onClick={onClose}>
-                Close
-              </button>
-              <button type="submit" className="pm-btn primary" disabled={saving}>
-                <IconSave size={14} />
-                <span>{saving ? 'Saving…' : 'Save Changes'}</span>
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* Tab 2: Security & Password */}
-        {activeTab === 'security' && (
-          <form onSubmit={onSavePassword} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12.5px', fontWeight: 600 }}>
-              <span>New Password</span>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <button type="button" className="profile-pw-toggle" onClick={() => setShowPwText((v) => !v)}>
+                    {showPwText ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </label>
+              <label>
+                Confirm password
                 <input
                   type={showPwText ? 'text' : 'password'}
                   autoComplete="new-password"
-                  value={newPw}
-                  onChange={(e) => setNewPw(e.target.value)}
-                  placeholder="At least 6 characters"
+                  value={confirmPw}
+                  onChange={(e) => setConfirmPw(e.target.value)}
+                  placeholder="Re-enter password"
                   minLength={6}
                   required
-                  style={{
-                    width: '100%',
-                    padding: '8px 36px 8px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border)',
-                    outline: 'none',
-                  }}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPwText(!showPwText)}
-                  style={{
-                    position: 'absolute',
-                    right: '8px',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '11px',
-                    color: 'var(--ink-muted)',
-                  }}
-                >
-                  {showPwText ? 'Hide' : 'Show'}
+              </label>
+              <div className="pm-modal-actions" style={{ marginTop: 8, paddingTop: 12 }}>
+                <button type="button" className="pm-btn ghost" onClick={() => switchTab('overview')} disabled={pwBusy}>
+                  Cancel
+                </button>
+                <button type="submit" className="pm-btn primary" disabled={pwBusy || !newPw}>
+                  {pwBusy ? 'Updating…' : 'Update password'}
                 </button>
               </div>
-            </label>
+            </form>
+          )}
 
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12.5px', fontWeight: 600 }}>
-              <span>Confirm Password</span>
-              <input
-                type={showPwText ? 'text' : 'password'}
-                autoComplete="new-password"
-                value={confirmPw}
-                onChange={(e) => setConfirmPw(e.target.value)}
-                placeholder="Re-enter your new password"
-                minLength={6}
-                required
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border)',
-                  outline: 'none',
-                }}
-              />
-            </label>
-
-            <div className="pm-modal-actions">
-              <button type="button" className="pm-btn ghost" onClick={onClose} disabled={pwBusy}>
-                Cancel
-              </button>
-              <button type="submit" className="pm-btn primary" disabled={pwBusy || !newPw}>
-                {pwBusy ? 'Updating…' : 'Update Password'}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* Feedback Alerts */}
-        {error ? (
-          <div
-            style={{
-              marginTop: '14px',
-              padding: '8px 12px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--danger-subtle)',
-              border: '1px solid var(--danger-border)',
-              color: 'var(--danger)',
-              fontSize: '12px',
-              fontWeight: 500,
-            }}
-          >
-            {error}
-          </div>
-        ) : null}
-
-        {okMsg ? (
-          <div
-            style={{
-              marginTop: '14px',
-              padding: '8px 12px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--success-subtle)',
-              border: '1px solid var(--success-border)',
-              color: 'var(--success)',
-              fontSize: '12px',
-              fontWeight: 600,
-            }}
-          >
-            ✓ {okMsg}
-          </div>
-        ) : null}
+          {error ? <div className="profile-alert danger">{error}</div> : null}
+          {okMsg ? <div className="profile-alert success">✓ {okMsg}</div> : null}
+        </div>
       </div>
     </div>
   )
 }
-
