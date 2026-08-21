@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
-import { computeWeightedProgress } from '../lib/progress'
+import { computeWeightedProgress, statusFromPercent } from '../lib/progress'
 import {
   DonutRing,
   MultiVesselComparisonBar,
@@ -110,7 +110,9 @@ export function DashboardPage() {
         let overdueCount = 0
 
         pTasks.forEach((t) => {
-          const st = t.status || 'Not Started'
+          // Đồng bộ với rule % ↔ status (On Hold giữ nguyên)
+          const st =
+            t.status === 'On Hold' ? 'On Hold' : statusFromPercent(t.percent_complete)
           statusCounts[st] = (statusCounts[st] || 0) + 1
           if (t.pending_review) pendingReviewCount += 1
 
