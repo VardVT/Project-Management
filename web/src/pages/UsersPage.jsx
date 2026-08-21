@@ -361,7 +361,16 @@ export function UsersPage() {
         </div>
       )}
 
-      {viewPerson ? <TeamProfileModal person={viewPerson} onClose={() => setViewPerson(null)} /> : null}
+      {viewPerson ? (
+        <TeamProfileModal
+          person={viewPerson}
+          onClose={() => setViewPerson(null)}
+          onPersonUpdated={(updated) => {
+            setUsers((prev) => prev.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)))
+            setViewPerson(updated)
+          }}
+        />
+      ) : null}
     </div>
   )
 }

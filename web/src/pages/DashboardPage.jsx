@@ -345,6 +345,9 @@ export function DashboardPage() {
             Executive Fleet Overview
           </div>
           <h2>Fleet Engineering Dashboard</h2>
+          <p className="muted" style={{ margin: '4px 0 0', fontSize: '13px' }}>
+            Multi-vessel progress tracking, discipline benchmarks, and cross-project analysis
+          </p>
         </div>
 
         <div className="dash-hero-actions">
@@ -355,8 +358,8 @@ export function DashboardPage() {
             disabled={refreshing}
             title="Reload live metrics from database"
           >
-            <IconRefresh size={14} />
-            <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
+            <IconRefresh size={14} className={refreshing ? 'spin-icon' : ''} />
+            <span>{refreshing ? 'Refreshing…' : 'Refresh Data'}</span>
           </button>
         </div>
       </div>
@@ -367,56 +370,64 @@ export function DashboardPage() {
       <div className="fleet-kpi-grid">
         <div className="fleet-kpi-card">
           <div className="fleet-kpi-header">
-            <span className="fleet-kpi-title">Active Vessels</span>
-            <IconVessel size={18} className="muted" />
+            <span className="fleet-kpi-title">Active Fleet</span>
+            <div className="fleet-kpi-icon-wrap">
+              <IconVessel size={18} />
+            </div>
           </div>
-          <div className="fleet-kpi-val">{fleetRollup.totalVessels}</div>
+          <div className="fleet-kpi-val">{fleetRollup.totalVessels} <span className="unit">vessels</span></div>
           <div className="fleet-kpi-sub">
-            <span className="pill ok">{fleetRollup.activeVessels} In Progress</span>
-            <span className="pill muted-pill">{fleetRollup.completedVessels} Completed</span>
+            <span className="pill ok">{fleetRollup.activeVessels} Active</span>
+            <span className="pill muted-pill">{fleetRollup.completedVessels} Done</span>
           </div>
         </div>
 
         <div className="fleet-kpi-card">
           <div className="fleet-kpi-header">
-            <span className="fleet-kpi-title">Average Progress</span>
-            <IconDashboard size={18} className="muted" />
+            <span className="fleet-kpi-title">Fleet Average Progress</span>
+            <div className="fleet-kpi-icon-wrap">
+              <IconDashboard size={18} />
+            </div>
           </div>
           <div className="fleet-kpi-val-row">
             <span className="fleet-kpi-val">{fleetRollup.avgProgress}%</span>
-            <DonutRing percent={fleetRollup.avgProgress} size={42} stroke={5} color="#059669" />
+            <DonutRing percent={fleetRollup.avgProgress} size={44} stroke={6} color="#2563eb" />
           </div>
           <div className="fleet-kpi-sub">
-            <span>3D: <strong>{fleetRollup.fleet3D}%</strong> · ISO: <strong>{fleetRollup.fleetISO}%</strong></span>
+            <span>3D: <strong>{fleetRollup.fleet3D}%</strong> · ISO: <strong>{fleetRollup.fleetISO}%</strong> · 2D: <strong>{fleetRollup.fleet2D}%</strong></span>
           </div>
         </div>
 
         <div className="fleet-kpi-card">
           <div className="fleet-kpi-header">
-            <span className="fleet-kpi-title">Engineering Workload</span>
-            <IconSummary size={18} className="muted" />
+            <span className="fleet-kpi-title">Total Workload</span>
+            <div className="fleet-kpi-icon-wrap">
+              <IconSummary size={18} />
+            </div>
           </div>
           <div className="fleet-kpi-val">
             {fleetRollup.totalTasks} <span className="unit">tasks</span>
           </div>
           <div className="fleet-kpi-sub">
-            <span>Done: <strong>{fleetRollup.completedTasks}</strong> ({fleetRollup.totalTasks ? Math.round((fleetRollup.completedTasks / fleetRollup.totalTasks) * 100) : 0}%)</span>
+            <span>Done: <strong className="text-success">{fleetRollup.completedTasks}</strong> ({fleetRollup.totalTasks ? Math.round((fleetRollup.completedTasks / fleetRollup.totalTasks) * 100) : 0}%)</span>
           </div>
         </div>
 
         <div className="fleet-kpi-card">
           <div className="fleet-kpi-header">
-            <span className="fleet-kpi-title">Review & Overdue Queue</span>
-            <IconTarget size={18} className="muted" />
+            <span className="fleet-kpi-title">Review & Overdue</span>
+            <div className="fleet-kpi-icon-wrap">
+              <IconTarget size={18} />
+            </div>
           </div>
           <div className="fleet-kpi-val">
             {fleetRollup.totalPendingReview} <span className="unit">pending</span>
           </div>
           <div className="fleet-kpi-sub">
             {fleetRollup.totalOverdue > 0 ? (
-              <span style={{ color: 'var(--danger)', fontWeight: 600 }}>⚠️ {fleetRollup.totalOverdue} overdue</span>
+              <span style={{ color: 'var(--danger)', fontWeight: 600 }}>⚠️ {fleetRollup.totalOverdue} overdue milestones</span>
             ) : (
-              <span style={{ color: 'var(--success)', fontWeight: 600 }}>✓ All on schedule</span>
+              <span style={{ color: 'var(--success)', fontWeight: 600 }}>✓ All vessels on schedule</span>
             )}
           </div>
         </div>

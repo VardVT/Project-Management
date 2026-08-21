@@ -204,105 +204,233 @@ function RichProjectDashboard({ eyebrow, title }) {
     .sort((a, b) => (a.finish_date < b.finish_date ? -1 : 1))
     .slice(0, 8)
 
+  const completedCount = tasks.filter((t) => Number(t.percent_complete) === 100).length
+  const inProgressCount = tasks.filter((t) => {
+    const p = Number(t.percent_complete) || 0
+    return p > 0 && p < 100
+  }).length
+  const notStartedCount = tasks.filter((t) => (Number(t.percent_complete) || 0) === 0).length
+
   return (
-    <div className="stack">
-      <div className="pm-hero shell-manager">
-        <p className="eyebrow">{eyebrow}</p>
-        <h2>{title}</h2>
-        <p className="muted">
-          Vessel <strong>{currentProject.ship_id}</strong> · {allRow.total} engineering tasks
-          {allRow.start ? ` · Start: ${allRow.start}` : ''}
-          {allRow.end ? ` · Finish: ${allRow.end}` : ''}
-        </p>
+    <div className="stack summary-container">
+      {/* Top Hero Banner */}
+      <div className="pm-hero shell-manager summary-hero-card">
+        <div className="summary-hero-left">
+          <p className="eyebrow">{eyebrow}</p>
+          <h2>{title}</h2>
+          <p className="muted summary-vessel-meta">
+            Vessel <strong>{currentProject.ship_id}</strong> {currentProject.name ? `(${currentProject.name})` : ''} · <strong>{allRow.total}</strong> engineering tasks
+            {allRow.start ? ` · Start: ${allRow.start}` : ''}
+            {allRow.end ? ` · Finish: ${allRow.end}` : ''}
+            {allRow.days ? ` · Duration: ${allRow.days} days` : ''}
+          </p>
+        </div>
+        <div className="summary-hero-badge">
+          <span className="live-dot" />
+          <span>Live Vessel Progress</span>
+        </div>
       </div>
 
       {error ? <p className="error">{error}</p> : null}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px' }}>
-        <div className="pm-panel">
-          <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 700 }}>Overall Progress</h3>
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0' }}>
-            <DonutRing percent={allRow.avgPercent} size={130} stroke={14} />
+      {/* Quick KPI Stat Highlights */}
+      <div className="summary-kpi-row">
+        <div className="summary-kpi-tile">
+          <span className="summary-kpi-label">Overall Progress</span>
+          <div className="summary-kpi-value-group">
+            <span className="summary-kpi-num">{allRow.avgPercent}%</span>
+            <span className={`summary-status-pill ${allRow.avgPercent === 100 ? 'done' : allRow.avgPercent > 0 ? 'progress' : 'idle'}`}>
+              {allRow.avgPercent === 100 ? 'Completed' : allRow.avgPercent > 0 ? 'In Progress' : 'Pending'}
+            </span>
           </div>
         </div>
 
-        <div className="pm-panel">
-          <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 700 }}>Due This Week</h3>
+        <div className="summary-kpi-tile">
+          <span className="summary-kpi-label">Total Engineering Tasks</span>
+          <div className="summary-kpi-value-group">
+            <span className="summary-kpi-num">{allRow.total}</span>
+            <span className="summary-kpi-sub">disciplines: {rows.filter(r => r.total > 0).length}</span>
+          </div>
+        </div>
+
+        <div className="summary-kpi-tile">
+          <span className="summary-kpi-label">Completed Tasks</span>
+          <div className="summary-kpi-value-group">
+            <span className="summary-kpi-num text-success">{completedCount}</span>
+            <span className="summary-kpi-sub">({allRow.total ? Math.round((completedCount / allRow.total) * 100) : 0}%)</span>
+          </div>
+        </div>
+
+        <div className="summary-kpi-tile">
+          <span className="summary-kpi-label">In Progress / Active</span>
+          <div className="summary-kpi-value-group">
+            <span className="summary-kpi-num text-warning">{inProgressCount}</span>
+            <span className="summary-kpi-sub">Not started: {notStartedCount}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Visual Row: Donut Ring & Due Tasks */}
+      <div className="summary-grid-2">
+        <div className="pm-panel summary-panel-card">
+          <div className="summary-card-head">
+            <div>
+              <h3>Overall Engineering Progress</h3>
+              <p className="muted" style={{ margin: '2px 0 0', fontSize: '12px' }}>
+                Weighted across all technical discipline densities
+              </p>
+            </div>
+          </div>
+
+          <div className="summary-donut-layout">
+            <div className="summary-donut-wrap">
+              <DonutRing percent={allRow.avgPercent} size={150} stroke={16} color="#2563eb" />
+            </div>
+
+            <div className="summary-donut-metrics">
+              <div className="summary-donut-stat-item">
+                <span className="stat-bullet completed" />
+                <div className="stat-text">
+                  <span className="stat-name">Completed Progress</span>
+                  <strong>{allRow.avgPercent}%</strong>
+                </div>
+              </div>
+
+              <div className="summary-donut-stat-item">
+                <span className="stat-bullet remaining" />
+                <div className="stat-text">
+                  <span className="stat-name">Remaining Workload</span>
+                  <strong>{allRow.remaining}%</strong>
+                </div>
+              </div>
+
+              <div className="summary-donut-stat-item">
+                <span className="stat-bullet schedule" />
+                <div className="stat-text">
+                  <span className="stat-name">Active Schedule Duration</span>
+                  <strong>{allRow.days != null ? `${allRow.days} calendar days` : 'Not set'}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="pm-panel summary-panel-card">
+          <div className="summary-card-head">
+            <div>
+              <h3>Due This Week</h3>
+              <p className="muted" style={{ margin: '2px 0 0', fontSize: '12px' }}>
+                Milestones & deadlines within next 7 days
+              </p>
+            </div>
+            <span className="pill muted-pill">{dueThisWeek.length} tasks</span>
+          </div>
+
           {dueThisWeek.length ? (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className="summary-due-list">
               {dueThisWeek.map((t) => (
-                <li
-                  key={t.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '8px 10px',
-                    background: 'var(--surface-subtle)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '12.5px',
-                  }}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <strong>{t.activity || '—'}</strong>
-                    <span className="muted">{t.zone || 'No zone'}</span>
+                <div key={t.id} className="summary-due-item">
+                  <div className="summary-due-main">
+                    <strong className="summary-due-title">{t.activity || 'Untitled task'}</strong>
+                    <div className="summary-due-meta">
+                      <span className="summary-due-zone">{t.zone || 'General Zone'}</span>
+                      {t.drawing_id ? <span className="summary-due-dwg">· {t.drawing_id}</span> : null}
+                    </div>
                   </div>
-                  <span style={{ fontWeight: 600, color: 'var(--warning)', fontVariantNumeric: 'tabular-nums' }}>
-                    {t.finish_date}
-                  </span>
-                </li>
+                  <div className="summary-due-tag">
+                    <span className="summary-due-date">{t.finish_date}</span>
+                    <span className="summary-due-pct">{(Number(t.percent_complete) || 0)}%</span>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           ) : (
-            <p className="muted">No engineering tasks due in the next 7 days.</p>
+            <div className="summary-empty-due">
+              <span style={{ fontSize: '24px' }}>✓</span>
+              <p style={{ margin: '6px 0 0', fontSize: '13px', fontWeight: 600 }}>No upcoming deadlines this week</p>
+              <span className="muted" style={{ fontSize: '11.5px' }}>All engineering activities are on track.</span>
+            </div>
           )}
         </div>
 
-        <div className="pm-panel" style={{ gridColumn: '1 / -1' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 12 }}>
-            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Technical Group Breakdown</h3>
+        {/* Technical Group Breakdown Table */}
+        <div className="pm-panel summary-panel-card" style={{ gridColumn: '1 / -1' }}>
+          <div className="summary-card-head">
+            <div>
+              <h3>Technical Discipline Breakdown</h3>
+              <p className="muted" style={{ margin: '2px 0 0', fontSize: '12px' }}>
+                Discipline weight allocation, progress completion, and active date spans
+              </p>
+            </div>
             {canEditWeights ? (
-              <span className="muted" style={{ fontSize: '11.5px' }}>
-                {weightSaving ? 'Saving weights…' : weightMsg || `Weights sum ${weightSumAll}% · Overall updates live`}
+              <span className="summary-weight-status">
+                {weightSaving ? 'Saving weights…' : weightMsg || `Total Weight: ${weightSumAll}% · Live updates`}
               </span>
             ) : null}
           </div>
+
           <div className="pm-table-wrap">
-            <table className="pm-table">
+            <table className="pm-table summary-breakdown-table">
               <thead>
                 <tr>
-                  <th>Technical Group</th>
-                  <th>Tasks</th>
-                  <th>Start</th>
-                  <th>End</th>
-                  <th>Days</th>
-                  <th>% Progress</th>
-                  <th>Remaining</th>
-                  <th>Weight</th>
+                  <th style={{ minWidth: '180px' }}>Technical Group</th>
+                  <th style={{ width: '80px', textAlign: 'center' }}>Tasks</th>
+                  <th style={{ width: '110px' }}>Start Date</th>
+                  <th style={{ width: '110px' }}>End Date</th>
+                  <th style={{ width: '80px', textAlign: 'center' }}>Days</th>
+                  <th style={{ minWidth: '220px' }}>% Progress</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>Remaining</th>
+                  <th style={{ width: '120px', textAlign: 'center' }}>Discipline Weight</th>
                 </tr>
               </thead>
               <tbody>
-                <tr style={{ background: 'var(--primary-subtle)', fontWeight: 700 }}>
-                  <td>{allRow.name}</td>
-                  <td>{allRow.total}</td>
+                <tr className="summary-total-row">
+                  <td>
+                    <strong>{allRow.name}</strong>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <span className="summary-pill-count">{allRow.total}</span>
+                  </td>
                   <td>{allRow.start || '—'}</td>
                   <td>{allRow.end || '—'}</td>
-                  <td>{allRow.days ?? '—'}</td>
-                  <td>{allRow.avgPercent}%</td>
-                  <td>{allRow.remaining}%</td>
-                  <td>{allRow.density}</td>
+                  <td style={{ textAlign: 'center' }}>{allRow.days ?? '—'}</td>
+                  <td>
+                    <div className="summary-progress-cell">
+                      <div className="summary-bar-track">
+                        <div className="summary-bar-fill" style={{ width: `${allRow.avgPercent}%` }} />
+                      </div>
+                      <strong className="summary-pct-text">{allRow.avgPercent}%</strong>
+                    </div>
+                  </td>
+                  <td style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>{allRow.remaining}%</td>
+                  <td style={{ textAlign: 'center' }}>
+                    <span className="summary-weight-badge total">{allRow.density}</span>
+                  </td>
                 </tr>
                 {rows.map((r) => (
                   <tr key={r.name}>
-                    <td>{r.name}</td>
-                    <td>{r.total}</td>
-                    <td>{r.start || '—'}</td>
-                    <td>{r.end || '—'}</td>
-                    <td>{r.days ?? '—'}</td>
-                    <td>{r.avgPercent}%</td>
-                    <td>{r.remaining}%</td>
                     <td>
+                      <span className="summary-group-name">{r.name}</span>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span className="summary-pill-count">{r.total}</span>
+                    </td>
+                    <td className="muted">{r.start || '—'}</td>
+                    <td className="muted">{r.end || '—'}</td>
+                    <td style={{ textAlign: 'center' }} className="muted">{r.days ?? '—'}</td>
+                    <td>
+                      <div className="summary-progress-cell">
+                        <div className="summary-bar-track">
+                          <div
+                            className={`summary-bar-fill fill-${r.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`}
+                            style={{ width: `${r.avgPercent}%` }}
+                          />
+                        </div>
+                        <strong className="summary-pct-text">{r.avgPercent}%</strong>
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>{r.remaining}%</td>
+                    <td style={{ textAlign: 'center' }}>
                       {canEditWeights ? (
                         <label className="weight-edit">
                           <input
@@ -316,7 +444,7 @@ function RichProjectDashboard({ eyebrow, title }) {
                           <span>%</span>
                         </label>
                       ) : (
-                        `${r.density}%`
+                        <span className="summary-weight-badge">{r.density}%</span>
                       )}
                     </td>
                   </tr>
@@ -326,17 +454,24 @@ function RichProjectDashboard({ eyebrow, title }) {
           </div>
         </div>
 
+        {/* Discipline Donut Segment Breakdown */}
         {rows
           .filter((r) => r.total > 0)
           .map((r) => (
-            <div className="pm-panel" key={r.name}>
-              <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 700 }}>{r.name} Discipline</h3>
-              <div style={{ display: 'flex', gap: '18px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <MultiSegmentDonut segments={r.pie} solid centerLabel={`${r.total}`} size={110} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px' }}>
+            <div className="pm-panel summary-panel-card" key={r.name}>
+              <div className="summary-card-head">
+                <div>
+                  <h3 style={{ fontSize: '13.5px' }}>{r.name} Discipline Breakdown</h3>
+                  <span className="muted" style={{ fontSize: '11.5px' }}>{r.total} tasks allocated</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', marginTop: '6px' }}>
+                <MultiSegmentDonut segments={r.pie} solid centerLabel={`${r.total}`} size={118} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', flex: 1, minWidth: '150px' }}>
                   {r.pie.map((s) => (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} key={s.name}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.color }} />
+                      <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: s.color, flexShrink: 0 }} />
                       <span>{s.name}</span>
                       <strong style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>
                         {s.value} ({Math.round((s.value / r.total) * 100)}%)
@@ -348,9 +483,19 @@ function RichProjectDashboard({ eyebrow, title }) {
             </div>
           ))}
 
-        <div className="pm-panel" style={{ gridColumn: '1 / -1' }}>
-          <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 700 }}>Progress Distribution Histogram</h3>
-          <VerticalBarChart items={buckets} height={160} />
+        {/* Histogram */}
+        <div className="pm-panel summary-panel-card" style={{ gridColumn: '1 / -1' }}>
+          <div className="summary-card-head">
+            <div>
+              <h3>Progress Distribution Histogram</h3>
+              <p className="muted" style={{ margin: '2px 0 0', fontSize: '12px' }}>
+                Task distribution across completion ranges
+              </p>
+            </div>
+          </div>
+          <div style={{ marginTop: '12px' }}>
+            <VerticalBarChart items={buckets} height={170} />
+          </div>
         </div>
       </div>
     </div>

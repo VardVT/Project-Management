@@ -559,124 +559,158 @@ export function SectionTasksPage() {
       {/* ── ADD TASK MODAL ─────────────────────────────────── */}
       {showAddModal && (
         <div className="pm-modal-backdrop" onClick={() => setShowAddModal(false)}>
-          <div className="pm-modal" style={{ maxWidth: '520px', width: '100%' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>New Task</h2>
-                <p className="muted" style={{ margin: '2px 0 0', fontSize: '11.5px' }}>
-                  {displaySectionName(section.header_name)} · Vessel {currentProject?.ship_id}
-                </p>
+          <div className="pm-modal new-task-modal" style={{ maxWidth: '580px', width: '100%' }} onClick={(e) => e.stopPropagation()}>
+            <div className="new-task-modal-header">
+              <div className="new-task-modal-title-group">
+                <div className="new-task-badge">
+                  <IconTask size={14} />
+                  <span>Vessel {currentProject?.ship_id} · {displaySectionName(section.header_name)}</span>
+                </div>
+                <h2>Create New Engineering Task</h2>
               </div>
               <button
                 type="button"
-                className="pm-btn ghost icon-only tiny"
+                className="pm-btn ghost icon-only tiny new-task-close-btn"
                 onClick={() => setShowAddModal(false)}
                 title="Close"
               >
-                <IconCross size={15} />
+                <IconCross size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleAddTask}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <label style={{ gridColumn: '1 / -1' }}>
-                  Activity Description <span style={{ color: 'var(--danger)', fontWeight: 700 }}>*</span>
+            <form onSubmit={handleAddTask} className="new-task-form">
+              {/* Group 1: Task Core Information */}
+              <div className="new-task-section">
+                <label className="new-task-field-full">
+                  <span className="field-label">Activity Description <strong className="required-star">*</strong></span>
                   <input
                     autoFocus
                     required
                     value={newTask.activity}
                     onChange={(e) => patchNew({ activity: e.target.value })}
-                    placeholder="e.g. Pipe drawing for zone A3…"
-                    style={{ marginTop: '4px', width: '100%' }}
+                    placeholder="e.g. 3D Route verification for engine room line A-201…"
+                    className="new-task-input-primary"
                   />
                 </label>
 
-                <label>
-                  Section
-                  <input
-                    value={newTask.zone}
-                    onChange={(e) => patchNew({ zone: e.target.value })}
-                    placeholder="e.g. FR 20-40"
-                    style={{ marginTop: '4px', width: '100%' }}
-                  />
-                </label>
-
-                <label>
-                  Drawing ID
-                  <input
-                    value={newTask.drawing_id}
-                    onChange={(e) => patchNew({ drawing_id: e.target.value })}
-                    placeholder="e.g. PD-001-A"
-                    style={{ marginTop: '4px', width: '100%' }}
-                  />
-                </label>
-
-                {caps.canEditAllTasks && (
+                <div className="new-task-grid-2">
                   <label>
-                    Assign Engineer
+                    <span className="field-label">Section / Frame Area</span>
+                    <input
+                      value={newTask.zone}
+                      onChange={(e) => patchNew({ zone: e.target.value })}
+                      placeholder="e.g. FR 20-40, Deck 3"
+                    />
+                  </label>
+
+                  <label>
+                    <span className="field-label">Drawing / Iso Reference ID</span>
+                    <input
+                      value={newTask.drawing_id}
+                      onChange={(e) => patchNew({ drawing_id: e.target.value })}
+                      placeholder="e.g. DWG-PIPE-004-REV2"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Group 2: Assignment & Status */}
+              <div className="new-task-section">
+                <div className="new-task-grid-2">
+                  {caps.canEditAllTasks ? (
+                    <label>
+                      <span className="field-label">Assigned Engineer</span>
+                      <select
+                        value={newTask.assignee_id}
+                        onChange={(e) => patchNew({ assignee_id: e.target.value })}
+                      >
+                        <option value="">— Unassigned —</option>
+                        {profiles.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.display_name || p.email} ({p.position || 'Engineer'})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : (
+                    <label>
+                      <span className="field-label">Assigned Engineer</span>
+                      <input
+                        disabled
+                        value={profile?.display_name || profile?.email || 'You'}
+                        style={{ opacity: 0.8 }}
+                      />
+                    </label>
+                  )}
+
+                  <label>
+                    <span className="field-label">Initial Status</span>
                     <select
-                      value={newTask.assignee_id}
-                      onChange={(e) => patchNew({ assignee_id: e.target.value })}
-                      style={{ marginTop: '4px', width: '100%' }}
+                      className={`status-select status-select-${statusTone(newTask.status)}`}
+                      value={newTask.status}
+                      onChange={(e) => patchNew({ status: e.target.value })}
                     >
-                      <option value="">— Unassigned —</option>
-                      {profiles.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.display_name || p.email}
-                        </option>
+                      {STATUSES.map((s) => (
+                        <option key={s}>{s}</option>
                       ))}
                     </select>
                   </label>
-                )}
-
-                <label>
-                  Status
-                  <select
-                    className={`status-select status-select-${statusTone(newTask.status)}`}
-                    value={newTask.status}
-                    onChange={(e) => patchNew({ status: e.target.value })}
-                    style={{ marginTop: '4px', width: '100%' }}
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s}>{s}</option>
-                    ))}
-                  </select>
-                </label>
-
-                <label>
-                  Start Date
-                  <input
-                    type="date"
-                    value={newTask.start_date}
-                    onChange={(e) => patchNew({ start_date: e.target.value })}
-                    style={{ marginTop: '4px', width: '100%' }}
-                  />
-                </label>
-
-                <label>
-                  Finish Date
-                  <input
-                    type="date"
-                    value={newTask.finish_date}
-                    onChange={(e) => patchNew({ finish_date: e.target.value })}
-                    style={{ marginTop: '4px', width: '100%' }}
-                  />
-                </label>
-
-                <label>
-                  Initial Progress (%)
-                  <input
-                    type="number"
-                    min={0}
-                    max={caps.percentCap}
-                    value={newTask.percent_complete}
-                    onChange={(e) => patchNew({ percent_complete: e.target.value })}
-                    style={{ marginTop: '4px', width: '100%' }}
-                  />
-                </label>
+                </div>
               </div>
 
-              <div className="pm-modal-actions" style={{ marginTop: '20px' }}>
+              {/* Group 3: Schedule & Initial Progress */}
+              <div className="new-task-section">
+                <div className="new-task-grid-2">
+                  <label>
+                    <span className="field-label">Planned Start Date</span>
+                    <input
+                      type="date"
+                      value={newTask.start_date}
+                      onChange={(e) => patchNew({ start_date: e.target.value })}
+                    />
+                  </label>
+
+                  <label>
+                    <span className="field-label">Target Finish Date</span>
+                    <input
+                      type="date"
+                      value={newTask.finish_date}
+                      onChange={(e) => patchNew({ finish_date: e.target.value })}
+                    />
+                  </label>
+                </div>
+
+                <div className="new-task-progress-slider-wrap">
+                  <div className="new-task-progress-header">
+                    <span className="field-label">Initial Progress</span>
+                    <div className="new-task-percent-badge">
+                      <strong>{newTask.percent_complete || 0}%</strong>
+                    </div>
+                  </div>
+
+                  <div className="new-task-progress-row">
+                    <input
+                      type="range"
+                      min={0}
+                      max={caps.percentCap}
+                      step={5}
+                      value={newTask.percent_complete || 0}
+                      onChange={(e) => patchNew({ percent_complete: Number(e.target.value) })}
+                      className="new-task-range"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      max={caps.percentCap}
+                      value={newTask.percent_complete}
+                      onChange={(e) => patchNew({ percent_complete: e.target.value })}
+                      className="new-task-number-input"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pm-modal-actions new-task-actions">
                 <button
                   type="button"
                   className="pm-btn ghost"
@@ -685,8 +719,12 @@ export function SectionTasksPage() {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="pm-btn primary" disabled={addBusy || !newTask.activity.trim()}>
-                  <IconPlus size={14} />
+                <button
+                  type="submit"
+                  className="pm-btn primary"
+                  disabled={addBusy || !newTask.activity.trim()}
+                >
+                  <IconPlus size={15} />
                   <span>{addBusy ? 'Creating…' : 'Create Task'}</span>
                 </button>
               </div>

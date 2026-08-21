@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../hooks/useAuth'
+import { prepareAvatarFile } from '../lib/avatarImage'
 import { getRoleLabel, normalizeRole, ROLES } from '../lib/roles'
 import { UserAvatar } from './UserAvatar'
+import { useNotification } from './NotificationContext'
 import {
   IconCross,
   IconMail,
@@ -11,6 +14,8 @@ import {
   IconBadge,
   IconClock,
   IconUsers,
+  IconCamera,
+  IconTrash,
 } from './Icons'
 
 const COMPANY = 'Vard Vung Tau Ltd'
@@ -54,10 +59,19 @@ function PersonChip({ person }) {
   )
 }
 
-/** Read-only Teams-style overview for another team member */
-export function TeamProfileModal({ person, onClose }) {
+/** Teams-style overview for a team member with direct Avatar upload support */
+export function TeamProfileModal({ person, onClose, onPersonUpdated }) {
+  const { caps, profile: currentAuthProfile } = useAuth()
+  const { toast } = useNotification()
+  const [currentPerson, setCurrentPerson] = useState(person)
   const [team, setTeam] = useState([])
   const [now, setNow] = useState(() => new Date())
+  const [avatarBusy, setAvatarBusy] = useState(false)
+  const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    setCurrentPerson(person)
+  }, [person])
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000)
@@ -72,19 +86,88 @@ export function TeamProfileModal({ person, onClose }) {
         .select('id, display_name, email, position, theme_color, avatar_url, app_access')
         .order('display_name', { ascending: true })
       if (!mounted) return
-      setTeam((data || []).filter((p) => p.id !== person?.id))
+      setTeam((data || []).filter((p) => p.id !== currentPerson?.id))
     }
     loadTeam()
     return () => {
       mounted = false
     }
-  }, [person?.id])
+  }, [currentPerson?.id])
 
-  const name = person?.display_name || person?.email || 'User'
-  const jobTitle = getRoleLabel(normalizeRole(person?.position)) || person?.position || 'Engineer'
-  const email = person?.email || '—'
-  const employeeId = person?.employee_id || ''
-  const accessOn = person?.app_access !== false
+  const canEditAvatar = caps.canManageUsers || currentAuthProfile?.id === currentPerson?.id
+
+  async function handleAvatarFile(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !currentPerson?.id) return
+
+    setAvatarBusy(true)
+    try {
+      const prepared = await prepareAvatarFile(file)
+      const targetUserId = currentPerson.id
+      const path = `${targetUserId}/avatar.jpg`
+
+      // 1. Upload to Supabase avatars bucket
+      const { error: upErr } = await supabase.storage.from('avatars').upload(path, prepared, {
+        upsert: true,
+        contentType: 'image/jpeg',
+      })
+      if (upErr) throw upErr
+
+      // 2. Get public URL
+      const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
+      const newAvatarUrl = `${pub.publicUrl}?t=${Date.now()}`
+
+      // 3. Update profiles table
+      const { error: dbErr } = await supabase
+        .from('profiles')
+        .update({ avatar_url: newAvatarUrl })
+        .eq('id', targetUserId)
+      if (dbErr) throw dbErr
+
+      setCurrentPerson((prev) => ({ ...prev, avatar_url: newAvatarUrl }))
+      if (onPersonUpdated) onPersonUpdated({ ...currentPerson, avatar_url: newAvatarUrl })
+      toast.success('Avatar updated', `Profile photo updated for ${currentPerson.display_name || currentPerson.email}.`)
+    } catch (err) {
+      toast.error('Upload failed', err?.message || 'Could not update profile photo.')
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
+
+  async function handleRemoveAvatar() {
+    if (!currentPerson?.id) return
+    setAvatarBusy(true)
+    try {
+      const targetUserId = currentPerson.id
+      const { data: existing } = await supabase.storage.from('avatars').list(targetUserId)
+      if (existing && existing.length > 0) {
+        await supabase.storage
+          .from('avatars')
+          .remove(existing.map((f) => `${targetUserId}/${f.name}`))
+      }
+      const { error: dbErr } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('id', targetUserId)
+      if (dbErr) throw dbErr
+
+      setCurrentPerson((prev) => ({ ...prev, avatar_url: null }))
+      if (onPersonUpdated) onPersonUpdated({ ...currentPerson, avatar_url: null })
+      toast.success('Avatar removed', 'Profile photo has been reset to default initial.')
+    } catch (err) {
+      toast.error('Failed', err?.message || 'Could not remove profile photo.')
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
+
+  const name = currentPerson?.display_name || currentPerson?.email || 'User'
+  const jobTitle = getRoleLabel(normalizeRole(currentPerson?.position)) || currentPerson?.position || 'Engineer'
+  const email = currentPerson?.email || '—'
+  const employeeId = currentPerson?.employee_id || ''
+  const accessOn = currentPerson?.app_access !== false
+  const avatarUrl = currentPerson?.avatar_url || null
 
   const managers = useMemo(
     () =>
@@ -99,7 +182,7 @@ export function TeamProfileModal({ person, onClose }) {
     [team, managers],
   )
 
-  if (!person) return null
+  if (!currentPerson) return null
 
   return (
     <div className="pm-modal-backdrop" onClick={onClose}>
@@ -108,18 +191,69 @@ export function TeamProfileModal({ person, onClose }) {
           <IconCross size={16} />
         </button>
 
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          hidden
+          onChange={handleAvatarFile}
+        />
+
         <div className="profile-card-header">
-          <UserAvatar
-            name={name}
-            avatarUrl={person.avatar_url}
-            themeColor={person.theme_color || '#2563eb'}
-            size={72}
-            rounded="full"
-            className="profile-card-avatar"
-            status={accessOn ? 'available' : undefined}
-          />
+          <div className="profile-avatar-interactive-wrap">
+            <UserAvatar
+              name={name}
+              avatarUrl={avatarUrl}
+              themeColor={currentPerson.theme_color || '#2563eb'}
+              size={76}
+              rounded="full"
+              className="profile-card-avatar"
+              status={accessOn ? 'available' : undefined}
+            />
+
+            {canEditAvatar && (
+              <div
+                className={`profile-avatar-overlay ${avatarBusy ? 'busy' : ''}`}
+                onClick={() => !avatarBusy && fileInputRef.current?.click()}
+                title="Click to upload profile photo"
+              >
+                <IconCamera size={20} />
+                <span className="profile-avatar-overlay-text">
+                  {avatarBusy ? 'Saving…' : 'Change'}
+                </span>
+              </div>
+            )}
+          </div>
+
           <div className="profile-card-identity">
-            <h2>{name}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <h2>{name}</h2>
+              {canEditAvatar && (
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    className="pm-btn tiny secondary"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={avatarBusy}
+                    title="Upload new photo"
+                  >
+                    <IconCamera size={13} />
+                    <span>{avatarBusy ? 'Saving…' : avatarUrl ? 'Change photo' : 'Upload photo'}</span>
+                  </button>
+                  {avatarUrl && (
+                    <button
+                      type="button"
+                      className="pm-btn tiny ghost icon-only danger"
+                      onClick={handleRemoveAvatar}
+                      disabled={avatarBusy}
+                      title="Remove custom photo"
+                    >
+                      <IconTrash size={13} />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
             <p>
               {jobTitle}
               <span className="dot">·</span>
@@ -134,6 +268,7 @@ export function TeamProfileModal({ person, onClose }) {
             Overview
           </button>
         </div>
+
 
         <div className="profile-card-body">
           <div className="profile-availability">
