@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
 import { supabase } from '../lib/supabase'
-import { fileToArrayBuffer, parsePicPercentWorkbook } from '../lib/excelParse'
+import { fileToArrayBuffer, parsePicPercentWorkbook, shipHintFromProgressFileName } from '../lib/excelParse'
 import { parseEngineeringPlansWorkbook } from '../lib/engineeringPlansParse'
 import { applyEngineeringPlansImport } from '../lib/engineeringPlansImport'
 import { applyPicPercentImport } from '../lib/excelImport'
@@ -13,7 +13,7 @@ import { useNotification } from './NotificationContext'
 
 export function ExcelToolbar() {
   const { caps, user } = useAuth()
-  const { currentProject, reloadSections, loadProjects, selectProject } = useProject()
+  const { currentProject, projects, reloadSections, loadProjects, selectProject } = useProject()
   const { toast } = useNotification()
   const plansRef = useRef(null)
   const percentRef = useRef(null)
@@ -57,28 +57,69 @@ export function ExcelToolbar() {
     }
   }
 
+  async function resolveSyncTargetProject(shipHint) {
+    let list = projects?.length ? projects : await loadProjects()
+    if (shipHint) {
+      const matched = list.find(
+        (p) => String(p.ship_id) === String(shipHint) || String(p.name) === String(shipHint),
+      )
+      if (matched) return matched
+    }
+    return currentProject || null
+  }
+
+  async function applyVesselNameFromFile(project, shipHint) {
+    if (!project?.id || !shipHint) return project
+    if (String(project.ship_id) === String(shipHint) && String(project.name) === String(shipHint)) {
+      return project
+    }
+    const { data, error } = await supabase
+      .from('projects')
+      .update({ ship_id: shipHint, name: shipHint })
+      .eq('id', project.id)
+      .select('*')
+      .single()
+    if (error) throw error
+    await loadProjects()
+    return data
+  }
+
   async function onPercentFile(e) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    if (!currentProject?.id) {
-      toast.warning('No Vessel Selected', 'Please select a vessel project first.')
-      return
-    }
+
+    const shipHint = shipHintFromProgressFileName(file.name)
     setBusy('percent')
     try {
+      let target = await resolveSyncTargetProject(shipHint)
+      if (!target?.id) {
+        toast.warning(
+          'No Vessel Selected',
+          shipHint
+            ? `No vessel "${shipHint}" found. Import plans or select a vessel first.`
+            : 'Please select a vessel project first.',
+        )
+        return
+      }
+
+      if (shipHint) {
+        target = await applyVesselNameFromFile(target, shipHint)
+        await selectProject(target)
+      }
+
       const buf = await fileToArrayBuffer(file)
-      const parsed = parsePicPercentWorkbook(buf)
+      const parsed = parsePicPercentWorkbook(buf, file.name)
       if (!parsed.tasks.length) {
         toast.warning('Empty File', 'No tasks read from file. Verify sheets 01/02/03/04.')
         return
       }
       const { data: profiles } = await supabase.from('profiles').select('id, display_name, email')
-      const result = await applyPicPercentImport(currentProject.id, parsed.tasks, profiles || [])
+      const result = await applyPicPercentImport(target.id, parsed.tasks, profiles || [])
       await reloadSections()
       toast.success(
         'Sync Complete',
-        `Matched ${result.matched}/${result.totalExcel} tasks — ${result.updated} updated.`
+        `Vessel ${shipHint || target.ship_id}: matched ${result.matched}/${result.totalExcel} — ${result.updated} updated.`,
       )
     } catch (err) {
       toast.error('Sync Failed', err.message || 'Update Progress / PIC failed')

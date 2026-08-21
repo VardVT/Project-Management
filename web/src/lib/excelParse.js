@@ -268,12 +268,13 @@ function parseMtoSheet(wb, sheetName) {
  * - Sheet 04 (MTO) → parser riêng (parseMtoSheet)
  * - PIC full name = mapping[zoneToPIC[zone]]
  */
-export function parsePicPercentWorkbook(arrayBuffer) {
+export function parsePicPercentWorkbook(arrayBuffer, fileName) {
   const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true })
   const { zoneInfo, sheetNameUsed: zoneSheet } = parseZoneListSheet(wb)
   const progressSheets = pickProgressSheets(wb)
   const tasks = []
   const sheetStats = []
+  const shipHint = shipHintFromProgressFileName(fileName)
 
   for (const sheetName of progressSheets) {
     const matrix = sheetToMatrix(wb.Sheets[sheetName])
@@ -350,6 +351,7 @@ export function parsePicPercentWorkbook(arrayBuffer) {
 
   return {
     tasks,
+    shipHint,
     sheetStats,
     zoneSheet,
     zoneMappingCount: Object.keys(zoneInfo).length,
@@ -406,4 +408,32 @@ export function parsePipingVtWorkbook(arrayBuffer) {
 
 export function fileToArrayBuffer(file) {
   return file.arrayBuffer()
+}
+
+/**
+ * Lấy mã tàu từ tên file Sync % / PIC.
+ * VD: "994 progress management ongoing.xlsx" → "994"
+ *     "1005 progress management ônging.xlsx" → "1005"
+ *     "NB1005__....xlsx" → "1005"
+ *
+ * Ưu tiên số đứng trước chữ "progress" (đúng convention file sync),
+ * không lấy mã hull/quốc tế trong nội dung sheet.
+ */
+export function shipHintFromProgressFileName(fileName) {
+  if (!fileName) return null
+  const base = String(fileName)
+    .replace(/^.*[\\/]/, '')
+    .replace(/\.(xlsx|xls|xlsm)$/i, '')
+    .trim()
+
+  const beforeProgress = base.match(/^(\d{3,5})\s*[-_]?\s*progress\b/i)
+  if (beforeProgress) return beforeProgress[1]
+
+  const nb = base.match(/NB\s*[-_]?\s*(\d{3,5})\b/i)
+  if (nb) return nb[1]
+
+  const leading = base.match(/^(\d{3,5})\b/)
+  if (leading) return leading[1]
+
+  return null
 }
