@@ -212,7 +212,7 @@ export function AppShell() {
           )}
 
           {caps.showReports && (
-            <NavLink to="/reports" className="pm-menu-item muted-link">
+            <NavLink to="/reports" className="pm-menu-item">
               <IconReport size={17} />
               <span>Reports</span>
             </NavLink>

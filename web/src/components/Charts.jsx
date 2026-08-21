@@ -316,3 +316,139 @@ export function GroupBenchmarkChart({ vessels = [] }) {
     </div>
   )
 }
+
+/** Dual cumulative S-curve (Plan vs Actual hours). */
+export function SCurveChart({
+  days = [],
+  plan = [],
+  actual = [],
+  height = 260,
+  planColor = '#64748b',
+  actualColor = '#0d9488',
+}) {
+  const n = days.length
+  if (!n) {
+    return <p className="muted" style={{ margin: 0, padding: 24, textAlign: 'center' }}>No schedule data to plot.</p>
+  }
+
+  const pad = { t: 16, r: 16, b: 28, l: 44 }
+  const W = 720
+  const H = height
+  const innerW = W - pad.l - pad.r
+  const innerH = H - pad.t - pad.b
+  const maxY = Math.max(...plan, ...actual, 1)
+
+  const xAt = (i) => pad.l + (n === 1 ? innerW / 2 : (i / (n - 1)) * innerW)
+  const yAt = (v) => pad.t + innerH - (v / maxY) * innerH
+
+  const toPath = (arr) =>
+    arr
+      .map((v, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)}`)
+      .join(' ')
+
+  const tickIdx = []
+  const step = Math.max(1, Math.ceil(n / 6))
+  for (let i = 0; i < n; i += step) tickIdx.push(i)
+  if (tickIdx[tickIdx.length - 1] !== n - 1) tickIdx.push(n - 1)
+
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(maxY * f))
+
+  return (
+    <div style={{ width: '100%', overflowX: 'auto' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={height} role="img" aria-label="Plan vs Actual S-curve">
+        {yTicks.map((v) => (
+          <g key={`y-${v}`}>
+            <line
+              x1={pad.l}
+              x2={W - pad.r}
+              y1={yAt(v)}
+              y2={yAt(v)}
+              stroke="var(--border-subtle)"
+              strokeWidth="1"
+            />
+            <text x={pad.l - 6} y={yAt(v) + 3} textAnchor="end" fontSize="10" fill="var(--ink-muted)">
+              {v}
+            </text>
+          </g>
+        ))}
+        {tickIdx.map((i) => (
+          <text
+            key={`x-${days[i]}`}
+            x={xAt(i)}
+            y={H - 8}
+            textAnchor="middle"
+            fontSize="9"
+            fill="var(--ink-muted)"
+          >
+            {String(days[i]).slice(5)}
+          </text>
+        ))}
+        <path d={toPath(plan)} fill="none" stroke={planColor} strokeWidth="2.5" strokeLinejoin="round" />
+        <path d={toPath(actual)} fill="none" stroke={actualColor} strokeWidth="2.5" strokeLinejoin="round" />
+        <circle cx={xAt(n - 1)} cy={yAt(plan[n - 1] || 0)} r="3.5" fill={planColor} />
+        <circle cx={xAt(n - 1)} cy={yAt(actual[n - 1] || 0)} r="3.5" fill={actualColor} />
+      </svg>
+    </div>
+  )
+}
+
+/** Side-by-side daily Plan vs Actual hours (sampled if many days). */
+export function DualDailyBars({ days = [], plan = [], actual = [], height = 160, maxBars = 24 }) {
+  const n = days.length
+  if (!n) return null
+  const step = Math.max(1, Math.ceil(n / maxBars))
+  const items = []
+  for (let i = 0; i < n; i += step) {
+    items.push({
+      name: String(days[i]).slice(5),
+      plan: plan[i] || 0,
+      actual: actual[i] || 0,
+    })
+  }
+  const max = Math.max(...items.flatMap((it) => [it.plan, it.actual]), 1)
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height, paddingTop: 8, overflowX: 'auto' }}>
+      {items.map((it) => (
+        <div
+          key={it.name}
+          style={{
+            flex: '1 0 22px',
+            maxWidth: 36,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            height: '100%',
+          }}
+        >
+          <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 2 }}>
+            <div
+              title={`Plan ${it.plan}h`}
+              style={{
+                width: 8,
+                height: `${(it.plan / max) * 100}%`,
+                background: '#94a3b8',
+                borderRadius: '3px 3px 0 0',
+                minHeight: it.plan ? 2 : 0,
+              }}
+            />
+            <div
+              title={`Actual ${it.actual}h`}
+              style={{
+                width: 8,
+                height: `${(it.actual / max) * 100}%`,
+                background: '#0d9488',
+                borderRadius: '3px 3px 0 0',
+                minHeight: it.actual ? 2 : 0,
+              }}
+            />
+          </div>
+          <div style={{ marginTop: 4, fontSize: 9, color: 'var(--ink-muted)', fontVariantNumeric: 'tabular-nums' }}>
+            {it.name}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+

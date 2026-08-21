@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
 import { displaySectionName } from '../lib/roles'
 import { syncPercentAndStatus, statusFromPercent, percentFromStatus } from '../lib/progress'
+import { withCompletionTimestamps } from '../lib/workload'
 import { useNotification } from '../components/NotificationContext'
 import { RightDrawer } from '../components/RightDrawer'
 import { AssigneeCell } from '../components/AssigneeCell'
@@ -167,6 +168,7 @@ export function SectionTasksPage() {
     }
 
     patch = syncPercentAndStatus(patch, task)
+    patch = withCompletionTimestamps(patch, task)
 
     const { error: err } = await supabase.from('tasks').update(patch).eq('id', id)
     if (err) setError(err.message)
