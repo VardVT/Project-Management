@@ -7,6 +7,8 @@ import { displaySectionName } from '../lib/roles'
 import { syncPercentAndStatus, statusFromPercent, percentFromStatus } from '../lib/progress'
 import { useNotification } from '../components/NotificationContext'
 import { RightDrawer } from '../components/RightDrawer'
+import { AssigneeCell } from '../components/AssigneeCell'
+import { TeamProfileModal } from '../components/TeamProfileModal'
 import { IconPlus, IconTrash, IconSearch, IconArrowRight, IconFilter, IconCross, IconTask } from '../components/Icons'
 
 const STATUSES = ['Not Started', 'In Progress', 'Completed', 'On Hold']
@@ -35,13 +37,14 @@ const DEFAULT_NEW_TASK = {
 export function SectionTasksPage() {
   const { sectionId } = useParams()
   const navigate = useNavigate()
-  const { user, caps } = useAuth()
+  const { user, profile, caps } = useAuth()
   const { sections, currentProject } = useProject()
   const { confirm, toast } = useNotification()
   const section = sections.find((s) => s.id === sectionId)
 
   const [tasks, setTasks] = useState([])
   const [profiles, setProfiles] = useState([])
+  const [viewPerson, setViewPerson] = useState(null)
   const [filterAssigned, setFilterAssigned] = useState('')
   const [filterText, setFilterText] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -71,7 +74,7 @@ export function SectionTasksPage() {
 
     const [{ data: taskData, error: taskErr }, { data: profileData }] = await Promise.all([
       query,
-      supabase.from('profiles').select('id, display_name, email, position'),
+      supabase.from('profiles').select('id, display_name, email, position, theme_color, avatar_url, app_access, employee_id'),
     ])
 
     if (taskErr) setError(taskErr.message)
@@ -246,11 +249,6 @@ export function SectionTasksPage() {
     }
   }
 
-  function nameOf(id) {
-    const p = profiles.find((x) => x.id === id)
-    return p?.display_name || p?.email?.split('@')[0] || '—'
-  }
-
   function clearFilters() {
     setFilterText('')
     setFilterAssigned('')
@@ -407,7 +405,7 @@ export function SectionTasksPage() {
               <col style={{ width: '130px' }} />
               <col style={{ width: '280px' }} />
               <col style={{ width: '200px' }} />
-              <col style={{ width: '140px' }} />
+              <col style={{ width: '150px' }} />
               <col style={{ width: '115px' }} />
               <col style={{ width: '115px' }} />
               <col style={{ width: '70px' }} />
@@ -428,7 +426,7 @@ export function SectionTasksPage() {
                 <th>Section</th>
                 <th>Activity Description</th>
                 <th>Drawing ID</th>
-                <th>Assigned PIC</th>
+                <th>PIC</th>
                 <th>Start Date</th>
                 <th>Finish Date</th>
                 <th>% Done</th>
@@ -478,21 +476,13 @@ export function SectionTasksPage() {
                       />
                     </td>
                     <td>
-                      {caps.canEditAllTasks ? (
-                        <select
-                          value={t.assignee_id || ''}
-                          onChange={(e) => patchTask(t.id, { assignee_id: e.target.value || null })}
-                        >
-                          <option value="">—</option>
-                          {profiles.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.display_name || p.email}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        nameOf(t.assignee_id)
-                      )}
+                      <AssigneeCell
+                        assigneeId={t.assignee_id}
+                        profiles={profiles}
+                        canAssign={caps.canEditAllTasks}
+                        onAssign={(id) => patchTask(t.id, { assignee_id: id })}
+                        onView={(p) => setViewPerson(p)}
+                      />
                     </td>
                     <td>
                       <input
@@ -620,26 +610,27 @@ export function SectionTasksPage() {
                   {caps.canEditAllTasks ? (
                     <label>
                       <span className="field-label">Assigned Engineer</span>
-                      <select
-                        value={newTask.assignee_id}
-                        onChange={(e) => patchNew({ assignee_id: e.target.value })}
-                      >
-                        <option value="">— Unassigned —</option>
-                        {profiles.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.display_name || p.email} ({p.position || 'Engineer'})
-                          </option>
-                        ))}
-                      </select>
+                      <div className="new-task-assignee">
+                        <AssigneeCell
+                          assigneeId={newTask.assignee_id || null}
+                          profiles={profiles}
+                          canAssign
+                          onAssign={(id) => patchNew({ assignee_id: id || '' })}
+                          onView={(p) => setViewPerson(p)}
+                        />
+                      </div>
                     </label>
                   ) : (
                     <label>
                       <span className="field-label">Assigned Engineer</span>
-                      <input
-                        disabled
-                        value={profile?.display_name || profile?.email || 'You'}
-                        style={{ opacity: 0.8 }}
-                      />
+                      <div className="new-task-assignee">
+                        <AssigneeCell
+                          assigneeId={profile?.id}
+                          profiles={profile ? [profile, ...profiles.filter((p) => p.id !== profile.id)] : profiles}
+                          canAssign={false}
+                          onView={(p) => setViewPerson(p)}
+                        />
+                      </div>
                     </label>
                   )}
 
@@ -827,6 +818,17 @@ export function SectionTasksPage() {
           <div className="muted" style={{ fontSize: '11.5px' }}>of {tasks.length} tasks match</div>
         </div>
       </RightDrawer>
+
+      {viewPerson ? (
+        <TeamProfileModal
+          person={viewPerson}
+          onClose={() => setViewPerson(null)}
+          onPersonUpdated={(updated) => {
+            setProfiles((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)))
+            setViewPerson(updated)
+          }}
+        />
+      ) : null}
     </div>
   )
 }
