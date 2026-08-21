@@ -702,7 +702,7 @@ export function SectionTasksPage() {
             <IconSearch size={14} style={{ position: 'absolute', left: '9px', color: 'var(--ink-faint)', pointerEvents: 'none' }} />
             <input
               type="search"
-              placeholder="Zone, activity, drawing ID…"
+              placeholder="Section, activity, drawing ID…"
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
               style={{ width: '100%', paddingLeft: '30px' }}

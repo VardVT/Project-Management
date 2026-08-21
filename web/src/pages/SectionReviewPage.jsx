@@ -89,7 +89,7 @@ export function SectionReviewPage() {
         <IconSearch size={14} style={{ position: 'absolute', left: '8px', color: 'var(--ink-faint)' }} />
         <input
           style={{ width: '100%', paddingLeft: '28px' }}
-          placeholder="Filter zone, activity, drawing ID…"
+          placeholder="Filter section, activity, drawing ID…"
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
         />
