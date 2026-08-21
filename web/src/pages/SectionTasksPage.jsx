@@ -400,7 +400,7 @@ export function SectionTasksPage() {
                     title="Select All"
                   />
                 </th>
-                <th>Zone / Unit</th>
+                <th>Section</th>
                 <th>Activity Description</th>
                 <th>Drawing ID</th>
                 <th>Assigned PIC</th>
@@ -566,7 +566,7 @@ export function SectionTasksPage() {
                 </label>
 
                 <label>
-                  Zone / Unit
+                  Section
                   <input
                     value={newTask.zone}
                     onChange={(e) => patchNew({ zone: e.target.value })}

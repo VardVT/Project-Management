@@ -126,7 +126,7 @@ export function ReviewsPage() {
               <div>
                 <strong style={{ fontSize: '14px' }}>{t.activity || 'Untitled Task'}</strong>
                 <p className="muted" style={{ marginTop: '2px' }}>
-                  Zone: {t.zone || '—'} · Requested Progress: <strong>{t.percent_complete ?? 0}%</strong> ·{' '}
+                  Section: {t.zone || '—'} · Requested Progress: <strong>{t.percent_complete ?? 0}%</strong> ·{' '}
                   {t.review_requested_at ? new Date(t.review_requested_at).toLocaleString() : ''}
                 </p>
               </div>

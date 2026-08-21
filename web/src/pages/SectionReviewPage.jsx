@@ -114,7 +114,7 @@ export function SectionReviewPage() {
             </colgroup>
             <thead>
               <tr>
-                <th>Zone</th>
+                <th>Section</th>
                 <th>Activity Description</th>
                 <th>Drawing ID</th>
                 <th>3D Review</th>
