@@ -432,17 +432,18 @@ function RichProjectDashboard({ eyebrow, title }) {
                     <td style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>{r.remaining}%</td>
                     <td style={{ textAlign: 'center' }}>
                       {canEditWeights ? (
-                        <label className="weight-edit">
+                        <div className="weight-edit">
                           <input
                             type="number"
                             min={0}
                             max={1000}
                             step={1}
+                            aria-label={`${r.name} weight`}
                             value={weights[r.name] ?? r.density}
                             onChange={(e) => onWeightChange(r.name, e.target.value)}
                           />
-                          <span>%</span>
-                        </label>
+                          <span className="weight-edit-suffix">%</span>
+                        </div>
                       ) : (
                         <span className="summary-weight-badge">{r.density}%</span>
                       )}

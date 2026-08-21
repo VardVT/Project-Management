@@ -2484,42 +2484,66 @@ label {
 }
 
 .weight-edit {
-  display: inline-flex;
-  align-items: center;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
   justify-content: center;
-  flex-wrap: nowrap;
-  gap: 3px;
+  flex-wrap: nowrap !important;
+  gap: 0;
   white-space: nowrap;
-  max-width: 100%;
+  vertical-align: middle;
+  height: 28px;
+  padding: 0 8px 0 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: #fff;
+  box-sizing: border-box;
 }
 .weight-edit input,
-.pm-table .weight-edit input {
-  width: 48px !important;
-  min-width: 48px;
-  max-width: 48px;
-  height: 28px;
-  padding: 2px 4px !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius-xs);
-  background: #fff !important;
+.pm-table .weight-edit input,
+.summary-breakdown-table .weight-edit input {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  height: 26px !important;
+  margin: 0 !important;
+  padding: 0 2px !important;
+  border: none !important;
+  border-radius: var(--radius-xs) 0 0 var(--radius-xs);
+  background: transparent !important;
+  box-shadow: none !important;
   font-variant-numeric: tabular-nums;
-  font-weight: 650;
+  font-weight: 700;
   font-size: 12.5px;
   text-align: center !important;
-  flex: 0 0 48px;
+  flex: 0 0 40px !important;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.weight-edit input::-webkit-outer-spin-button,
+.weight-edit input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 .weight-edit input:focus,
-.pm-table .weight-edit input:focus {
+.pm-table .weight-edit input:focus,
+.summary-breakdown-table .weight-edit input:focus {
   outline: none;
-  border-color: var(--primary) !important;
+  box-shadow: none !important;
+}
+.weight-edit:focus-within {
+  border-color: #0d9488;
   box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
 }
+.weight-edit-suffix,
 .weight-edit span {
-  flex: 0 0 auto;
+  flex: 0 0 auto !important;
+  display: inline-block;
   font-size: 12px;
   color: var(--ink-muted);
   font-weight: 700;
   line-height: 1;
+  padding-left: 1px;
 }
 
 /* ==========================================================================
