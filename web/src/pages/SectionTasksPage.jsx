@@ -7,7 +7,7 @@ import { displaySectionName } from '../lib/roles'
 import { syncPercentAndStatus, statusFromPercent, percentFromStatus } from '../lib/progress'
 import { useNotification } from '../components/NotificationContext'
 import { RightDrawer } from '../components/RightDrawer'
-import { IconPlus, IconTrash, IconSearch, IconArrowRight, IconFilter, IconCross } from '../components/Icons'
+import { IconPlus, IconTrash, IconSearch, IconArrowRight, IconFilter, IconCross, IconTask } from '../components/Icons'
 
 const STATUSES = ['Not Started', 'In Progress', 'Completed', 'On Hold']
 
