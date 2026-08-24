@@ -99,13 +99,16 @@ export async function deleteDrawing(drawing) {
 }
 
 /**
- * Create engineering task + pin annotation at normalized coords.
+ * Create engineering task + rectangle callout annotation.
+ * x/y = top-left %; width/height stored in vector_data.
  */
 export async function createPinWithTask({
   drawing,
   pageNumber,
   xPercent,
   yPercent,
+  widthPercent,
+  heightPercent,
   activity,
   sectionId,
   assigneeId,
@@ -142,13 +145,16 @@ export async function createPinWithTask({
       drawing_id: drawing.id,
       page_number: pageNumber || 1,
       task_id: task.id,
-      type: 'pin',
+      type: 'rect',
       x_percent: xPercent,
       y_percent: yPercent,
       color,
       label: pinLabel,
       created_by: userId || null,
-      vector_data: {},
+      vector_data: {
+        width_percent: widthPercent,
+        height_percent: heightPercent,
+      },
     })
     .select(
       `

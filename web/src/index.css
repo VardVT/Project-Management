@@ -3868,48 +3868,92 @@ label {
   inset: 0;
   pointer-events: none;
 }
-.dwg-overlay.pin-mode {
+.dwg-overlay.mark-mode {
   pointer-events: auto;
   cursor: crosshair;
+  touch-action: none;
 }
-.dwg-pin {
+.dwg-mark {
   position: absolute;
-  transform: translate(-50%, -90%);
-  border: 0;
-  background: transparent;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.dwg-mark-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.dwg-mark-rect {
+  position: absolute;
+  pointer-events: auto;
+  cursor: pointer;
+  border: 2px solid var(--mark-color, #ef4444);
+  background: color-mix(in srgb, var(--mark-color, #ef4444) 18%, transparent);
+  border-radius: 2px;
   padding: 0;
+  box-sizing: border-box;
+}
+.dwg-mark.selected .dwg-mark-rect {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--mark-color, #ef4444) 28%, transparent);
+}
+.dwg-mark-callout {
+  position: absolute;
   pointer-events: auto;
   cursor: pointer;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 2;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  border: 1.5px solid var(--mark-color, #ef4444);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+  text-align: left;
+  z-index: 3;
+  max-width: 22%;
+  min-width: 72px;
 }
-.dwg-pin-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  background: var(--pin-color, #ef4444);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  border: 2px solid #fff;
+.dwg-mark.selected .dwg-mark-callout {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
 }
-.dwg-pin-label {
-  margin-top: 2px;
+.dwg-mark-idx {
+  flex: 0 0 auto;
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
   border-radius: 8px;
-  background: #0f172a;
+  background: var(--mark-color, #ef4444);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
   line-height: 16px;
   text-align: center;
 }
-.dwg-pin.selected .dwg-pin-dot {
-  outline: 2px solid #2563eb;
-  outline-offset: 1px;
+.dwg-mark-text {
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.25;
+  color: #0f172a;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dwg-mark-draft {
+  position: absolute;
+  border: 2px dashed #2563eb;
+  background: rgba(37, 99, 235, 0.12);
+  pointer-events: none;
+  box-sizing: border-box;
+  z-index: 4;
 }
 .dwg-pin-list {
   background: var(--surface);

@@ -68,6 +68,8 @@ export function DrawingDetailPage() {
         pageNumber: payload.pageNumber,
         xPercent: payload.xPercent,
         yPercent: payload.yPercent,
+        widthPercent: payload.widthPercent,
+        heightPercent: payload.heightPercent,
         activity: payload.activity,
         sectionId: payload.sectionId,
         assigneeId: payload.assigneeId,
@@ -75,9 +77,9 @@ export function DrawingDetailPage() {
         userId: user.id,
       })
       setAnnotations((prev) => [...prev, annotation])
-      toast.success('Pin created', payload.activity)
+      toast.success('Mark created', payload.activity)
     } catch (err) {
-      toast.error('Could not create pin', err.message)
+      toast.error('Could not create mark', err.message)
       throw err
     }
   }

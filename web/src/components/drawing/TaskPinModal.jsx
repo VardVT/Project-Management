@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 
 export function TaskPinModal({
   open,
-  coords,
+  rect,
   pageNumber,
   sections = [],
   drawingTitle,
@@ -39,13 +39,13 @@ export function TaskPinModal({
     }
   }, [open, sections])
 
-  if (!open) return null
+  if (!open || !rect) return null
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     if (!activity.trim()) {
-      setError('Enter a task title.')
+      setError('Enter a comment / task title.')
       return
     }
     if (!sectionId) {
@@ -58,12 +58,14 @@ export function TaskPinModal({
         sectionId,
         assigneeId: assigneeId || null,
         zone: zone.trim() || null,
-        xPercent: coords.x,
-        yPercent: coords.y,
+        xPercent: rect.x,
+        yPercent: rect.y,
+        widthPercent: rect.width,
+        heightPercent: rect.height,
         pageNumber,
       })
     } catch (err) {
-      setError(err.message || 'Failed to create pin')
+      setError(err.message || 'Failed to create mark')
     }
   }
 
@@ -76,14 +78,14 @@ export function TaskPinModal({
         aria-modal="true"
         aria-labelledby="dwg-pin-title"
       >
-        <h2 id="dwg-pin-title">Pin issue on drawing</h2>
+        <h2 id="dwg-pin-title">Mark region on drawing</h2>
         <p className="muted" style={{ marginTop: -8, marginBottom: 14, fontSize: 13 }}>
-          {drawingTitle} · Page {pageNumber} · ({coords.x.toFixed(1)}%, {coords.y.toFixed(1)}%)
+          {drawingTitle} · Page {pageNumber} · region {rect.width.toFixed(1)}% × {rect.height.toFixed(1)}%
         </p>
 
         <form onSubmit={handleSubmit} className="dwg-pin-form">
           <label>
-            Task / Issue
+            Comment / Issue
             <input
               autoFocus
               value={activity}
@@ -135,14 +137,16 @@ export function TaskPinModal({
             </select>
           </label>
 
-          {error && <div className="pm-alert error">{error}</div>}
+          {error && (
+            <div style={{ color: '#b91c1c', fontSize: 13 }}>{error}</div>
+          )}
 
           <div className="pm-modal-actions">
             <button type="button" className="pm-btn ghost" onClick={onClose} disabled={busy}>
               Cancel
             </button>
             <button type="submit" className="pm-btn primary" disabled={busy}>
-              {busy ? 'Creating…' : 'Create pin + task'}
+              {busy ? 'Creating…' : 'Create mark + task'}
             </button>
           </div>
         </form>

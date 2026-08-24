@@ -6,7 +6,7 @@ import { DrawingToolbar } from './DrawingToolbar'
 import { TaskPinModal } from './TaskPinModal'
 
 /**
- * Main drawing workspace: crisp PDF + pan/zoom + pin overlay.
+ * Main drawing workspace: crisp PDF + pan/zoom + rectangle callout overlay.
  */
 export function DrawingViewer({
   fileUrl,
@@ -22,14 +22,15 @@ export function DrawingViewer({
   const [tool, setTool] = useState('pan')
   const [renderZoom, setRenderZoom] = useState(1)
   const [selectedId, setSelectedId] = useState(null)
-  const [pendingPin, setPendingPin] = useState(null)
+  const [pendingRect, setPendingRect] = useState(null)
   const [busy, setBusy] = useState(false)
   const archived = drawing?.status === 'approved_archived' || !drawing?.file_path
 
-  const pagePins = useMemo(
+  const pageMarks = useMemo(
     () =>
       (annotations || []).filter(
-        (a) => a.type === 'pin' && Number(a.page_number) === Number(pageNumber)
+        (a) =>
+          (a.type === 'rect' || a.type === 'pin') && Number(a.page_number) === Number(pageNumber)
       ),
     [annotations, pageNumber]
   )
@@ -43,11 +44,11 @@ export function DrawingViewer({
     [onPageCount]
   )
 
-  async function handleSubmitPin(payload) {
+  async function handleSubmitMark(payload) {
     setBusy(true)
     try {
       await onCreatePin(payload)
-      setPendingPin(null)
+      setPendingRect(null)
       setTool('pan')
     } finally {
       setBusy(false)
@@ -78,7 +79,7 @@ export function DrawingViewer({
               minScale={0.4}
               maxScale={8}
               wheel={{ step: 0.12 }}
-              panning={{ disabled: tool === 'pin' }}
+              panning={{ disabled: tool === 'mark' }}
               doubleClick={{ disabled: true }}
               limitToBounds={false}
             >
@@ -96,10 +97,10 @@ export function DrawingViewer({
                   <AnnotationOverlay
                     annotations={annotations}
                     pageNumber={pageNumber}
-                    pinMode={tool === 'pin' && canPin && !archived}
+                    markMode={tool === 'mark' && canPin && !archived}
                     selectedId={selectedId}
-                    onPinClick={(ann) => setSelectedId(ann.id)}
-                    onBlankClick={(coords) => setPendingPin(coords)}
+                    onMarkClick={(ann) => setSelectedId(ann.id)}
+                    onRectDrawn={(rect) => setPendingRect(rect)}
                   />
                 </div>
               </TransformComponent>
@@ -109,18 +110,18 @@ export function DrawingViewer({
 
         <aside className="dwg-pin-list">
           <div className="dwg-pin-list-head">
-            <strong>Pins on page</strong>
-            <span className="muted">{pagePins.length}</span>
+            <strong>Comments on page</strong>
+            <span className="muted">{pageMarks.length}</span>
           </div>
-          {pagePins.length === 0 ? (
+          {pageMarks.length === 0 ? (
             <p className="muted dwg-pin-list-empty">
               {canPin
-                ? 'Select Pin, then click the drawing to create a task.'
-                : 'No pins on this page yet.'}
+                ? 'Select Mark, then drag a rectangle on the drawing to add a comment.'
+                : 'No comments on this page yet.'}
             </p>
           ) : (
             <ul>
-              {pagePins.map((ann, i) => (
+              {pageMarks.map((ann, i) => (
                 <li key={ann.id}>
                   <button
                     type="button"
@@ -143,14 +144,14 @@ export function DrawingViewer({
       </div>
 
       <TaskPinModal
-        open={!!pendingPin}
-        coords={pendingPin || { x: 0, y: 0 }}
+        open={!!pendingRect}
+        rect={pendingRect}
         pageNumber={pageNumber}
         sections={sections}
         drawingTitle={drawing?.title || ''}
         busy={busy}
-        onClose={() => setPendingPin(null)}
-        onSubmit={handleSubmitPin}
+        onClose={() => setPendingRect(null)}
+        onSubmit={handleSubmitMark}
       />
     </div>
   )

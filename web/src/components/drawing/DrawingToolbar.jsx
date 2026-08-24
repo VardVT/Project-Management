@@ -24,12 +24,16 @@ export function DrawingToolbar({
         </button>
         <button
           type="button"
-          className={`pm-btn tiny${tool === 'pin' ? ' primary' : ' ghost'}`}
-          onClick={() => onToolChange('pin')}
+          className={`pm-btn tiny${tool === 'mark' ? ' primary' : ' ghost'}`}
+          onClick={() => onToolChange('mark')}
           disabled={!canPin || archived}
-          title={canPin ? 'Place pin & create task' : 'Only Senior/Manager can create pins'}
+          title={
+            canPin
+              ? 'Drag a rectangle on the drawing, then add a comment'
+              : 'Only Senior/Manager can mark drawings'
+          }
         >
-          Pin
+          Mark
         </button>
       </div>
 
