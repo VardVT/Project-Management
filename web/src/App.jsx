@@ -13,7 +13,8 @@ import { ReviewsPage } from './pages/ReviewsPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { UsersPage } from './pages/UsersPage'
 import { ReportsPage } from './pages/ReportsPage'
-import { ComingSoonPage } from './pages/ComingSoonPage'
+import { DrawingsListPage } from './pages/DrawingsListPage'
+import { DrawingDetailPage } from './pages/DrawingDetailPage'
 
 function HomeRedirect() {
   const { caps } = useAuth()
@@ -35,7 +36,8 @@ function AuthedTree() {
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="reports" element={<ReportsPage />} />
-          <Route path="plan-drawing" element={<ComingSoonPage title="Plan Drawing" />} />
+          <Route path="plan-drawing" element={<DrawingsListPage />} />
+          <Route path="plan-drawing/:drawingId" element={<DrawingDetailPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

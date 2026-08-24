@@ -3723,3 +3723,274 @@ label {
     grid-template-columns: 1fr;
   }
 }
+
+/* Plan Drawing viewer (phase 1-2) */
+.dwg-list-page,
+.dwg-detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+.dwg-upload-panel {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 0.6fr auto;
+  gap: 12px;
+  align-items: end;
+}
+.dwg-upload-panel label,
+.dwg-pin-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink-muted);
+}
+.dwg-upload-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 2px;
+}
+.dwg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.dwg-table th,
+.dwg-table td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.dwg-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-muted);
+}
+.dwg-table-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.dwg-detail-head h2 {
+  margin: 4px 0 2px;
+}
+.dwg-back {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+.dwg-back:hover {
+  color: var(--ink-primary);
+}
+.dwg-viewer {
+  display: flex;
+  flex-direction: column;
+  min-height: 62vh;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #e8edf3;
+}
+.dwg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.dwg-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dwg-toolbar-meta {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink-muted);
+  min-width: 72px;
+  text-align: center;
+}
+.dwg-viewer-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  min-height: 0;
+  flex: 1;
+}
+.dwg-stage {
+  overflow: hidden;
+  min-height: 480px;
+  position: relative;
+}
+.dwg-transform-wrap {
+  width: 100% !important;
+  height: 100% !important;
+  cursor: grab;
+}
+.dwg-transform-content {
+  width: max-content !important;
+}
+.dwg-page-stack {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+.dwg-pdf-wrap {
+  position: relative;
+  display: inline-block;
+}
+.dwg-pdf-canvas {
+  display: block;
+}
+.dwg-pdf-status {
+  position: absolute;
+  inset: 0;
+  padding: 24px;
+  font-size: 13px;
+  color: var(--ink-muted);
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.7);
+}
+.dwg-pdf-status.error {
+  color: #b91c1c;
+}
+.dwg-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.dwg-overlay.pin-mode {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+.dwg-pin {
+  position: absolute;
+  transform: translate(-50%, -90%);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  pointer-events: auto;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+}
+.dwg-pin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--pin-color, #ef4444);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  border: 2px solid #fff;
+}
+.dwg-pin-label {
+  margin-top: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+.dwg-pin.selected .dwg-pin-dot {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+.dwg-pin-list {
+  background: var(--surface);
+  border-left: 1px solid var(--border-subtle);
+  padding: 12px;
+  overflow: auto;
+}
+.dwg-pin-list-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.dwg-pin-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dwg-pin-list-item {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  text-align: left;
+  border: 1px solid var(--border-subtle);
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+}
+.dwg-pin-list-item.selected {
+  border-color: #2563eb;
+}
+.dwg-pin-list-idx {
+  flex: 0 0 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.dwg-pin-list-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.dwg-pin-list-text strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+.dwg-pin-list-text small {
+  color: var(--ink-muted);
+}
+.dwg-pin-list-empty {
+  font-size: 12px;
+  line-height: 1.4;
+}
+.dwg-pin-modal {
+  width: min(100%, 440px);
+}
+.dwg-pin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  .dwg-upload-panel {
+    grid-template-columns: 1fr;
+  }
+  .dwg-viewer-body {
+    grid-template-columns: 1fr;
+  }
+  .dwg-pin-list {
+    border-left: 0;
+    border-top: 1px solid var(--border-subtle);
+    max-height: 220px;
+  }
+}

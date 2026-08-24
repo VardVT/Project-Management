@@ -17,6 +17,7 @@ import {
   IconCalendar,
   IconUsers,
   IconReport,
+  IconDrawing,
   IconPlus,
   IconTrash,
   IconLogOut,
@@ -215,6 +216,13 @@ export function AppShell() {
             <NavLink to="/reports" className="pm-menu-item">
               <IconReport size={17} />
               <span>Reports</span>
+            </NavLink>
+          )}
+
+          {caps.showPlanDrawing && (
+            <NavLink to="/plan-drawing" className="pm-menu-item">
+              <IconDrawing size={17} />
+              <span>Plan Drawing</span>
             </NavLink>
           )}
         </nav>

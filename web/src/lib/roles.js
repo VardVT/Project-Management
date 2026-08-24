@@ -74,7 +74,7 @@ export function getCapabilities(role) {
     showTeamDirectory: true,
     showCalendar: true,
     showReports: isMgr || isSenior,
-    showPlanDrawing: isMgr || isSenior,
+    showPlanDrawing: true,
     showLoadInOut: role === ROLES.ADMIN || role === ROLES.MANAGER,
   }
 }
