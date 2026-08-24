@@ -157,8 +157,11 @@ export function ProjectProvider({ children }) {
         .update({ group_weights: cleaned })
         .eq('id', id)
         .select('id, name, ship_id, department, status, start_date, end_date, owner_id, ship_leader_id, created_at, group_weights')
-        .single()
+        .maybeSingle()
       if (error) throw error
+      if (!data) {
+        throw new Error('Could not save group weights — permission denied or vessel not found.')
+      }
       setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)))
       setCurrentProject((prev) => (prev?.id === id ? { ...prev, ...data } : prev))
       return data

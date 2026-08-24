@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
@@ -64,10 +64,57 @@ function RichProjectDashboard({ eyebrow, title }) {
   const [weightSaving, setWeightSaving] = useState(false)
   const [weightMsg, setWeightMsg] = useState('')
   const saveTimer = useRef(null)
+  const pendingWeightsRef = useRef(null)
 
   useEffect(() => {
     setWeights(resolveGroupDensities(currentProject?.group_weights))
   }, [currentProject?.id, currentProject?.group_weights])
+
+  const persistWeights = useCallback(
+    async (next) => {
+      if (!canEditWeights || !currentProject?.id) return
+      setWeightSaving(true)
+      setWeightMsg('')
+      try {
+        await updateGroupWeights(next)
+        pendingWeightsRef.current = null
+        setWeightMsg('Weights saved')
+        setTimeout(() => setWeightMsg(''), 2000)
+      } catch (err) {
+        setError(err?.message || 'Could not save weights.')
+        setWeights(resolveGroupDensities(currentProject?.group_weights))
+        pendingWeightsRef.current = null
+      } finally {
+        setWeightSaving(false)
+      }
+    },
+    [canEditWeights, currentProject?.id, currentProject?.group_weights, updateGroupWeights],
+  )
+
+  function scheduleWeightSave(next) {
+    pendingWeightsRef.current = next
+    setWeightMsg('')
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      const payload = pendingWeightsRef.current
+      if (payload) persistWeights(payload)
+    }, 400)
+  }
+
+  function flushWeightSave() {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current)
+      saveTimer.current = null
+    }
+    const payload = pendingWeightsRef.current
+    if (payload) persistWeights(payload)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (!currentProject?.id) {
@@ -102,20 +149,7 @@ function RichProjectDashboard({ eyebrow, title }) {
       [groupName]: Number.isFinite(n) ? n : 0,
     }
     setWeights(next)
-    setWeightMsg('')
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(async () => {
-      setWeightSaving(true)
-      try {
-        await updateGroupWeights(next)
-        setWeightMsg('Weights saved')
-        setTimeout(() => setWeightMsg(''), 2000)
-      } catch (err) {
-        setError(err?.message || 'Could not save weights.')
-      } finally {
-        setWeightSaving(false)
-      }
-    }, 450)
+    scheduleWeightSave(next)
   }
 
   if (!currentProject?.id) {
@@ -374,6 +408,7 @@ function RichProjectDashboard({ eyebrow, title }) {
                             aria-label={`${r.name} weight`}
                             value={weights[r.name] ?? r.density}
                             onChange={(e) => onWeightChange(r.name, e.target.value)}
+                            onBlur={flushWeightSave}
                           />
                           <span className="weight-edit-suffix">%</span>
                         </div>
