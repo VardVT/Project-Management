@@ -3,8 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
 import {
-  GROUP_DENSITIES,
-  getDashboardGroupFromSectionName,
+  buildSummaryGroupTable,
   resolveGroupDensities,
 } from '../lib/progress'
 import { ROLES } from '../lib/roles'
@@ -18,81 +17,6 @@ const BUCKET_COLOR = {
   '51-75%': 'var(--warning)',
   '76-99%': 'var(--warning)',
   'Completed (100%)': 'var(--success)',
-}
-
-const PIE_COLORS = { notStarted: '#64748b', inProgress: '#0d9488', completed: '#059669' }
-
-function daysBetween(startIso, endIso) {
-  if (!startIso || !endIso) return null
-  const d = Math.round((new Date(endIso) - new Date(startIso)) / 86400000)
-  return Number.isFinite(d) ? Math.max(0, d) : null
-}
-
-function buildGroupTable(tasks, sections, densities) {
-  const dens = resolveGroupDensities(densities)
-  const sectionNameById = new Map(sections.map((s) => [s.id, s.header_name]))
-  const groupNames = Object.keys(GROUP_DENSITIES)
-  const byGroup = new Map(groupNames.map((g) => [g, []]))
-
-  tasks.forEach((t) => {
-    const secName = sectionNameById.get(t.section_id)
-    const group = getDashboardGroupFromSectionName(secName)
-    if (group && byGroup.has(group)) byGroup.get(group).push(t)
-  })
-
-  const rows = groupNames.map((name) => {
-    const list = byGroup.get(name)
-    const total = list.length
-    const sumPercent = list.reduce((s, t) => s + (Number(t.percent_complete) || 0), 0)
-    const avgPercent = total ? Math.round(sumPercent / total) : 0
-    const starts = list.map((t) => t.start_date).filter(Boolean).sort()
-    const finishes = list.map((t) => t.finish_date).filter(Boolean).sort()
-    const start = starts[0] || null
-    const end = finishes[finishes.length - 1] || null
-
-    const notStarted = list.filter((t) => (Number(t.percent_complete) || 0) === 0).length
-    const completed = list.filter((t) => (Number(t.percent_complete) || 0) === 100).length
-    const inProgress = total - notStarted - completed
-
-    return {
-      name,
-      total,
-      avgPercent,
-      remaining: 100 - avgPercent,
-      density: dens[name],
-      start,
-      end,
-      days: daysBetween(start, end),
-      pie: [
-        { name: 'Not Started', value: notStarted, color: PIE_COLORS.notStarted },
-        { name: 'In Progress', value: inProgress, color: PIE_COLORS.inProgress },
-        { name: 'Completed', value: completed, color: PIE_COLORS.completed },
-      ].filter((s) => s.value > 0),
-    }
-  })
-
-  const activeRows = rows.filter((r) => r.total > 0)
-  const totalAll = rows.reduce((s, r) => s + r.total, 0)
-  const weightedSum = activeRows.reduce((s, r) => s + r.avgPercent * r.density, 0)
-  const densitySum = activeRows.reduce((s, r) => s + r.density, 0)
-  const overall = densitySum ? Math.round(weightedSum / densitySum) : 0
-  const allStarts = rows.flatMap((r) => (r.start ? [r.start] : [])).sort()
-  const allEnds = rows.flatMap((r) => (r.end ? [r.end] : [])).sort()
-  const allStart = allStarts[0] || null
-  const allEnd = allEnds[allEnds.length - 1] || null
-
-  const allRow = {
-    name: 'Total Project',
-    total: totalAll,
-    avgPercent: overall,
-    remaining: 100 - overall,
-    density: '100%',
-    start: allStart,
-    end: allEnd,
-    days: daysBetween(allStart, allEnd),
-  }
-
-  return { allRow, rows }
 }
 
 function buildPercentBuckets(tasks) {
@@ -130,9 +54,10 @@ function inNext7Days(iso) {
 
 function RichProjectDashboard({ eyebrow, title }) {
   const { caps } = useAuth()
-  const { currentProject, sections, updateGroupWeights } = useProject()
+  const { currentProject, updateGroupWeights } = useProject()
   const canEditWeights = caps.role === ROLES.ADMIN || caps.role === ROLES.MANAGER
   const [tasks, setTasks] = useState([])
+  const [allSections, setAllSections] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [weights, setWeights] = useState(() => resolveGroupDensities(null))
@@ -147,19 +72,27 @@ function RichProjectDashboard({ eyebrow, title }) {
   useEffect(() => {
     if (!currentProject?.id) {
       setTasks([])
+      setAllSections([])
       return
     }
     setLoading(true)
     setError('')
-    supabase
-      .from('tasks')
-      .select('id, section_id, percent_complete, start_date, finish_date, activity, zone')
-      .eq('project_id', currentProject.id)
-      .then(({ data, error: err }) => {
-        if (err) setError(err.message)
-        setTasks(data || [])
-        setLoading(false)
-      })
+    Promise.all([
+      supabase
+        .from('tasks')
+        .select('id, section_id, percent_complete, start_date, finish_date, activity, zone')
+        .eq('project_id', currentProject.id),
+      supabase
+        .from('sections')
+        .select('id, header_name')
+        .eq('project_id', currentProject.id),
+    ]).then(([taskRes, secRes]) => {
+      if (taskRes.error) setError(taskRes.error.message)
+      else if (secRes.error) setError(secRes.error.message)
+      setTasks(taskRes.data || [])
+      setAllSections(secRes.data || [])
+      setLoading(false)
+    })
   }, [currentProject?.id])
 
   function onWeightChange(groupName, raw) {
@@ -196,7 +129,7 @@ function RichProjectDashboard({ eyebrow, title }) {
   }
   if (loading) return <p className="muted">Loading vessel metrics…</p>
 
-  const { allRow, rows } = buildGroupTable(tasks, sections, weights)
+  const { allRow, rows } = buildSummaryGroupTable(tasks, allSections, weights)
   const weightSumAll = Object.values(weights).reduce((s, n) => s + (Number(n) || 0), 0)
   const buckets = buildPercentBuckets(rows.length ? tasks.filter((t) => t.percent_complete != null) : [])
   const dueThisWeek = tasks

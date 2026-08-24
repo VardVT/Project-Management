@@ -270,10 +270,10 @@ export function GroupBenchmarkChart({ vessels = [] }) {
   if (!vessels.length) return null
 
   const groups = [
-    { key: 'group3D', name: '3D Pipe Drawing', weight: '65%', color: '#2563eb' },
-    { key: 'groupISO', name: 'ISO Generating', weight: '15%', color: '#8b5cf6' },
-    { key: 'group2D', name: '2D Plan Drawing', weight: '10%', color: '#ec4899' },
-    { key: 'groupMTO', name: 'MTO Material Take-Off', weight: '10%', color: '#10b981' },
+    { key: 'group3D', name: '3D Pipe Drawing', color: '#2563eb' },
+    { key: 'groupISO', name: 'ISO Generating', color: '#8b5cf6' },
+    { key: 'group2D', name: '2D Plan Drawing', color: '#ec4899' },
+    { key: 'groupMTO', name: 'MTO Material Take-Off', color: '#10b981' },
   ]
 
   return (
@@ -283,7 +283,7 @@ export function GroupBenchmarkChart({ vessels = [] }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <strong style={{ fontSize: '13px' }}>{g.name}</strong>
-              <div className="muted" style={{ fontSize: '11px' }}>Weight {g.weight}</div>
+              <div className="muted" style={{ fontSize: '11px' }}>Avg % complete per vessel</div>
             </div>
             <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: g.color }} />
           </div>

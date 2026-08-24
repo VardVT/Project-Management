@@ -104,6 +104,89 @@ export function computeWeightedProgress(sectionsWithTasks, densitiesOverride = n
   return { overallProgress, groups, sectionStats, totalTasks }
 }
 
+const PIE_COLORS_SUMMARY = { notStarted: '#64748b', inProgress: '#0d9488', completed: '#059669' }
+
+function daysBetweenDates(startIso, endIso) {
+  if (!startIso || !endIso) return null
+  const d = Math.round((new Date(endIso) - new Date(startIso)) / 86400000)
+  return Number.isFinite(d) ? Math.max(0, d) : null
+}
+
+/**
+ * Summary table rows + overall — uses same weighted formula as Fleet Dashboard.
+ * @param {Array} tasks — project tasks
+ * @param {Array<{id, header_name}>} sections — all sections for the vessel (not sidebar-only)
+ * @param {Record<string, number>|null} densitiesOverride — project group_weights
+ */
+export function buildSummaryGroupTable(tasks, sections, densitiesOverride = null) {
+  const densities = resolveGroupDensities(densitiesOverride)
+  const groupNames = Object.keys(GROUP_DENSITIES)
+
+  const sectionsWithTasks = (sections || []).map((s) => ({
+    header_name: s.header_name,
+    tasks: (tasks || []).filter((t) => t.section_id === s.id),
+  }))
+  const stats = computeWeightedProgress(sectionsWithTasks, densitiesOverride)
+
+  const sectionNameById = new Map((sections || []).map((s) => [s.id, s.header_name]))
+  const byGroup = new Map(groupNames.map((g) => [g, []]))
+  ;(tasks || []).forEach((t) => {
+    const group = getDashboardGroupFromSectionName(sectionNameById.get(t.section_id))
+    if (group && byGroup.has(group)) byGroup.get(group).push(t)
+  })
+
+  const statByGroup = new Map((stats.groups || []).map((g) => [g.name, g]))
+
+  const rows = groupNames.map((name) => {
+    const list = byGroup.get(name) || []
+    const stat = statByGroup.get(name)
+    const total = list.length
+    const avgPercent = stat?.avgPercent ?? 0
+    const starts = list.map((t) => t.start_date).filter(Boolean).sort()
+    const finishes = list.map((t) => t.finish_date).filter(Boolean).sort()
+    const start = starts[0] || null
+    const end = finishes[finishes.length - 1] || null
+    const notStarted = list.filter((t) => (Number(t.percent_complete) || 0) === 0).length
+    const completed = list.filter((t) => (Number(t.percent_complete) || 0) === 100).length
+    const inProgress = total - notStarted - completed
+
+    return {
+      name,
+      total,
+      avgPercent,
+      remaining: 100 - avgPercent,
+      density: densities[name],
+      start,
+      end,
+      days: daysBetweenDates(start, end),
+      pie: [
+        { name: 'Not Started', value: notStarted, color: PIE_COLORS_SUMMARY.notStarted },
+        { name: 'In Progress', value: inProgress, color: PIE_COLORS_SUMMARY.inProgress },
+        { name: 'Completed', value: completed, color: PIE_COLORS_SUMMARY.completed },
+      ].filter((s) => s.value > 0),
+    }
+  })
+
+  const allStarts = rows.flatMap((r) => (r.start ? [r.start] : [])).sort()
+  const allEnds = rows.flatMap((r) => (r.end ? [r.end] : [])).sort()
+  const allStart = allStarts[0] || null
+  const allEnd = allEnds[allEnds.length - 1] || null
+  const overall = stats.overallProgress ?? 0
+
+  const allRow = {
+    name: 'Total Project',
+    total: stats.totalTasks ?? (tasks || []).length,
+    avgPercent: overall,
+    remaining: 100 - overall,
+    density: '100%',
+    start: allStart,
+    end: allEnd,
+    days: daysBetweenDates(allStart, allEnd),
+  }
+
+  return { allRow, rows, stats }
+}
+
 export const SECTION_MAPPING = {
   'General drawing': [
     '2D & 3D Checking and Coordination',

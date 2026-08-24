@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
-import { computeWeightedProgress, statusFromPercent } from '../lib/progress'
+import { computeWeightedProgress, resolveGroupDensities, GROUP_DENSITIES, statusFromPercent } from '../lib/progress'
 import {
   DonutRing,
   MultiVesselComparisonBar,
@@ -33,6 +33,31 @@ function daysBetween(startIso, endIso) {
   return Number.isFinite(d) ? Math.max(0, d) : null
 }
 
+/** Fleet card rows — always show 4 groups with live weights from project.group_weights */
+function vesselGroupRows(vessel) {
+  const weights = resolveGroupDensities(vessel.rawProject?.group_weights)
+  const byName = new Map((vessel.groups || []).map((g) => [g.name, g]))
+  const short = {
+    '3D drawing': '3D Pipe',
+    'Iso generating': 'ISO Gen',
+    '2D drawing': '2D Plan',
+    MTO: 'MTO',
+  }
+  const barClass = {
+    '3D drawing': 'c-3d',
+    'Iso generating': 'c-iso',
+    '2D drawing': 'c-2d',
+    MTO: 'c-mto',
+  }
+  return Object.keys(GROUP_DENSITIES).map((name) => ({
+    key: name,
+    label: short[name] || name,
+    barClass: barClass[name] || '',
+    avgPercent: byName.get(name)?.avgPercent ?? 0,
+    density: weights[name],
+  }))
+}
+
 export function DashboardPage() {
   const { caps } = useAuth()
   const { projects: contextProjects, selectProject } = useProject()
@@ -52,6 +77,11 @@ export function DashboardPage() {
 
   // Side-by-side comparison selection (IDs of vessels to compare)
   const [selectedForCompare, setSelectedForCompare] = useState([])
+
+  const weightsKey = useMemo(
+    () => contextProjects.map((p) => `${p.id}:${JSON.stringify(p.group_weights ?? {})}`).join('|'),
+    [contextProjects],
+  )
 
   const loadAllVesselsData = useCallback(async () => {
     try {
@@ -176,7 +206,7 @@ export function DashboardPage() {
     if (caps.showDashboard) {
       loadAllVesselsData()
     }
-  }, [caps.showDashboard, contextProjects.length, loadAllVesselsData])
+  }, [caps.showDashboard, weightsKey, loadAllVesselsData])
 
   async function handleRefresh() {
     setRefreshing(true)
@@ -597,37 +627,20 @@ export function DashboardPage() {
                           </div>
 
                           <div className="v-groups-mini-list">
-                            <div className="v-mini-row">
-                              <span>3D Pipe (65%)</span>
-                              <div className="v-mini-bar-track">
-                                <div className="v-mini-bar-fill c-3d" style={{ width: `${v.group3D}%` }} />
+                            {vesselGroupRows(v).map((g) => (
+                              <div key={g.key} className="v-mini-row">
+                                <span>
+                                  {g.label} ({g.density}%)
+                                </span>
+                                <div className="v-mini-bar-track">
+                                  <div
+                                    className={`v-mini-bar-fill ${g.barClass}`}
+                                    style={{ width: `${g.avgPercent}%` }}
+                                  />
+                                </div>
+                                <strong>{g.avgPercent}%</strong>
                               </div>
-                              <strong>{v.group3D}%</strong>
-                            </div>
-
-                            <div className="v-mini-row">
-                              <span>ISO Gen (15%)</span>
-                              <div className="v-mini-bar-track">
-                                <div className="v-mini-bar-fill c-iso" style={{ width: `${v.groupISO}%` }} />
-                              </div>
-                              <strong>{v.groupISO}%</strong>
-                            </div>
-
-                            <div className="v-mini-row">
-                              <span>2D Plan (10%)</span>
-                              <div className="v-mini-bar-track">
-                                <div className="v-mini-bar-fill c-2d" style={{ width: `${v.group2D}%` }} />
-                              </div>
-                              <strong>{v.group2D}%</strong>
-                            </div>
-
-                            <div className="v-mini-row">
-                              <span>MTO (10%)</span>
-                              <div className="v-mini-bar-track">
-                                <div className="v-mini-bar-fill c-mto" style={{ width: `${v.groupMTO}%` }} />
-                              </div>
-                              <strong>{v.groupMTO}%</strong>
-                            </div>
+                            ))}
                           </div>
                         </div>
 
@@ -673,10 +686,10 @@ export function DashboardPage() {
                       <th>Vessel / ID</th>
                       <th>Dept</th>
                       <th>Overall Progress</th>
-                      <th>3D (65%)</th>
-                      <th>ISO (15%)</th>
-                      <th>2D (10%)</th>
-                      <th>MTO (10%)</th>
+                      <th>3D</th>
+                      <th>ISO</th>
+                      <th>2D</th>
+                      <th>MTO</th>
                       <th>Tasks</th>
                       <th>Done</th>
                       <th>Pending</th>
