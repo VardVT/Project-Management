@@ -6,9 +6,11 @@ import { useNotification } from '../components/NotificationContext'
 import { DrawingViewer } from '../components/drawing/DrawingViewer'
 import {
   createPinWithTask,
+  deleteAnnotationMark,
   drawingPublicUrl,
   getDrawing,
   listAnnotations,
+  updateAnnotationCalloutPosition,
   updateDrawingPageCount,
 } from '../lib/drawingsApi'
 
@@ -16,7 +18,7 @@ export function DrawingDetailPage() {
   const { drawingId } = useParams()
   const { user, caps } = useAuth()
   const { currentProject, projects, sections, selectProject } = useProject()
-  const { toast } = useNotification()
+  const { toast, confirm } = useNotification()
 
   const [drawing, setDrawing] = useState(null)
   const [annotations, setAnnotations] = useState([])
@@ -84,6 +86,34 @@ export function DrawingDetailPage() {
     }
   }
 
+  async function handleMoveCallout(annotation, pos) {
+    try {
+      const updated = await updateAnnotationCalloutPosition(annotation, pos)
+      setAnnotations((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)))
+    } catch (err) {
+      toast.error('Could not move comment', err.message)
+      throw err
+    }
+  }
+
+  async function handleDeleteMark(annotation) {
+    const label = annotation.task?.activity || annotation.task?.title || annotation.label || 'this comment'
+    const ok = await confirm({
+      title: 'Delete comment?',
+      message: `"${label}" will be removed from the drawing and its linked task will be deleted.`,
+      confirmText: 'Delete',
+      isDanger: true,
+    })
+    if (!ok) return
+    try {
+      await deleteAnnotationMark(annotation)
+      setAnnotations((prev) => prev.filter((a) => a.id !== annotation.id))
+      toast.success('Comment deleted', label)
+    } catch (err) {
+      toast.error('Could not delete comment', err.message)
+    }
+  }
+
   async function handlePageCount(numPages) {
     if (!drawing?.id) return
     if (Number(drawing.page_count) === Number(numPages)) return
@@ -127,8 +157,15 @@ export function DrawingDetailPage() {
         drawing={drawing}
         annotations={annotations}
         canPin={caps.canCreateTask && drawing.status !== 'approved_archived'}
+        canEditMarks={
+          drawing.status !== 'approved_archived' &&
+          (caps.canCreateTask || caps.canEditAllTasks)
+        }
+        userId={user.id}
         sections={sections}
         onCreatePin={handleCreatePin}
+        onMoveCallout={handleMoveCallout}
+        onDeleteMark={handleDeleteMark}
         onPageCount={handlePageCount}
       />
     </div>

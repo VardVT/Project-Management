@@ -3933,6 +3933,13 @@ label {
   z-index: 3;
   max-width: 22%;
   min-width: 72px;
+  touch-action: none;
+}
+.dwg-mark-callout.movable {
+  cursor: grab;
+}
+.dwg-mark-callout.movable:active {
+  cursor: grabbing;
 }
 .dwg-mark.selected .dwg-mark-callout {
   border-color: #2563eb;
@@ -3990,8 +3997,14 @@ label {
   flex-direction: column;
   gap: 6px;
 }
+.dwg-pin-list-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
 .dwg-pin-list-item {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   display: flex;
   gap: 8px;
   align-items: flex-start;
@@ -4004,6 +4017,15 @@ label {
 }
 .dwg-pin-list-item.selected {
   border-color: #2563eb;
+}
+.dwg-pin-list-delete {
+  flex: 0 0 auto;
+  align-self: center;
+}
+.dwg-pin-list-hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
 }
 .dwg-pin-list-idx {
   flex: 0 0 20px;

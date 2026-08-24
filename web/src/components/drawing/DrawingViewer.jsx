@@ -13,8 +13,12 @@ export function DrawingViewer({
   drawing,
   annotations,
   canPin,
+  canEditMarks,
+  userId,
   sections,
   onCreatePin,
+  onMoveCallout,
+  onDeleteMark,
   onPageCount,
 }) {
   const [pageNumber, setPageNumber] = useState(1)
@@ -24,7 +28,14 @@ export function DrawingViewer({
   const [selectedId, setSelectedId] = useState(null)
   const [pendingRect, setPendingRect] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [draggingCallout, setDraggingCallout] = useState(false)
   const archived = drawing?.status === 'approved_archived' || !drawing?.file_path
+
+  function canEditAnnotation(ann) {
+    if (archived) return false
+    if (canEditMarks) return true
+    return Boolean(userId && ann?.created_by === userId)
+  }
 
   const pageMarks = useMemo(
     () =>
@@ -55,6 +66,12 @@ export function DrawingViewer({
     }
   }
 
+  async function handleDelete(ann) {
+    if (!canEditAnnotation(ann) || !onDeleteMark) return
+    await onDeleteMark(ann)
+    if (selectedId === ann.id) setSelectedId(null)
+  }
+
   return (
     <div className="dwg-viewer">
       <DrawingToolbar
@@ -79,7 +96,7 @@ export function DrawingViewer({
               minScale={0.4}
               maxScale={8}
               wheel={{ step: 0.12 }}
-              panning={{ disabled: tool === 'mark' }}
+              panning={{ disabled: tool === 'mark' || draggingCallout }}
               doubleClick={{ disabled: true }}
               limitToBounds={false}
             >
@@ -99,8 +116,11 @@ export function DrawingViewer({
                     pageNumber={pageNumber}
                     markMode={tool === 'mark' && canPin && !archived}
                     selectedId={selectedId}
+                    canEditAnnotation={canEditAnnotation}
                     onMarkClick={(ann) => setSelectedId(ann.id)}
                     onRectDrawn={(rect) => setPendingRect(rect)}
+                    onCalloutMove={onMoveCallout}
+                    onDragStateChange={setDraggingCallout}
                   />
                 </div>
               </TransformComponent>
@@ -122,7 +142,7 @@ export function DrawingViewer({
           ) : (
             <ul>
               {pageMarks.map((ann, i) => (
-                <li key={ann.id}>
+                <li key={ann.id} className="dwg-pin-list-row">
                   <button
                     type="button"
                     className={`dwg-pin-list-item${selectedId === ann.id ? ' selected' : ''}`}
@@ -136,9 +156,22 @@ export function DrawingViewer({
                       <small>{ann.task?.status || 'Not Started'}</small>
                     </span>
                   </button>
+                  {canEditAnnotation(ann) && (
+                    <button
+                      type="button"
+                      className="pm-btn tiny ghost dwg-pin-list-delete"
+                      title="Delete comment"
+                      onClick={() => handleDelete(ann)}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
+          )}
+          {pageMarks.some((a) => canEditAnnotation(a)) && (
+            <p className="muted dwg-pin-list-hint">Drag a comment box on the drawing to reposition it.</p>
           )}
         </aside>
       </div>

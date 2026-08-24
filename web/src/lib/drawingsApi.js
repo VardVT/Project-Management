@@ -171,3 +171,41 @@ export async function createPinWithTask({
 
   return { task, annotation: { ...annotation, task } }
 }
+
+export async function updateAnnotationCalloutPosition(annotation, { x, y }) {
+  if (!annotation?.id) throw new Error('Annotation id is required.')
+  const nextVector = {
+    ...(annotation.vector_data || {}),
+    callout_x_percent: x,
+    callout_y_percent: y,
+  }
+  const { data, error } = await supabase
+    .from('drawing_annotations')
+    .update({
+      vector_data: nextVector,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', annotation.id)
+    .select(
+      `
+      id, drawing_id, page_number, task_id, type, x_percent, y_percent,
+      vector_data, color, label, created_by, created_at
+    `
+    )
+    .single()
+  if (error) throw error
+  return { ...data, task: annotation.task }
+}
+
+/**
+ * Remove mark from drawing. Also deletes linked task when present.
+ */
+export async function deleteAnnotationMark(annotation) {
+  if (!annotation?.id) return
+  const taskId = annotation.task_id || annotation.task?.id
+  const { error } = await supabase.from('drawing_annotations').delete().eq('id', annotation.id)
+  if (error) throw error
+  if (taskId) {
+    await supabase.from('tasks').delete().eq('id', taskId)
+  }
+}

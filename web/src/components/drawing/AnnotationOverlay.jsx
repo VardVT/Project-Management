@@ -9,8 +9,11 @@ export function AnnotationOverlay({
   pageNumber,
   markMode,
   selectedId,
+  canEditAnnotation,
   onMarkClick,
   onRectDrawn,
+  onCalloutMove,
+  onDragStateChange,
 }) {
   const layerRef = useRef(null)
   const dragRef = useRef(null)
@@ -23,6 +26,8 @@ export function AnnotationOverlay({
 
   function onPointerDown(e) {
     if (!markMode || e.button !== 0) return
+    // Ignore starts on existing callout/rect buttons
+    if (e.target?.closest?.('.dwg-mark-callout, .dwg-mark-rect')) return
     e.preventDefault()
     e.stopPropagation()
     const layer = layerRef.current
@@ -95,7 +100,11 @@ export function AnnotationOverlay({
           annotation={ann}
           index={i}
           selected={selectedId === ann.id}
+          canEdit={typeof canEditAnnotation === 'function' ? canEditAnnotation(ann) : Boolean(canEditAnnotation)}
+          getOverlayEl={() => layerRef.current}
           onClick={onMarkClick}
+          onCalloutMove={onCalloutMove}
+          onDragStateChange={onDragStateChange}
         />
       ))}
 

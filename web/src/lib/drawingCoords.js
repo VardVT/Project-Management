@@ -56,7 +56,6 @@ export function getAnnotationRect(annotation) {
       height: h,
     }
   }
-  // Legacy pin → small box around the point
   const cx = Number(annotation?.x_percent) || 0
   const cy = Number(annotation?.y_percent) || 0
   const size = 2.5
@@ -68,41 +67,76 @@ export function getAnnotationRect(annotation) {
   }
 }
 
+export const DEFAULT_CALLOUT_W = 18
+export const DEFAULT_CALLOUT_H = 7
+
+/** Nearest point on rect border to a free point (for leader arrow). */
+export function nearestPointOnRectBorder(rect, px, py) {
+  const left = rect.x
+  const right = rect.x + rect.width
+  const top = rect.y
+  const bottom = rect.y + rect.height
+  const clampedX = Math.min(Math.max(px, left), right)
+  const clampedY = Math.min(Math.max(py, top), bottom)
+
+  const inside =
+    px > left && px < right && py > top && py < bottom
+
+  if (!inside) {
+    return { x: clampedX, y: clampedY }
+  }
+
+  const dl = px - left
+  const dr = right - px
+  const dt = py - top
+  const db = bottom - py
+  const m = Math.min(dl, dr, dt, db)
+  if (m === dl) return { x: left, y: py }
+  if (m === dr) return { x: right, y: py }
+  if (m === dt) return { x: px, y: top }
+  return { x: px, y: bottom }
+}
+
 /**
- * Place callout box outside the highlight rect so text stays readable.
- * Returns % positions for callout top-left and leader line endpoints.
+ * Callout layout: uses saved callout_x/y in vector_data when present,
+ * otherwise auto-places beside the highlight rect.
  */
-export function getCalloutLayout(rect) {
-  const midY = rect.y + rect.height / 2
-  const calloutW = 18
-  const calloutH = 7
+export function getCalloutLayout(rect, annotation) {
+  const vd = annotation?.vector_data || {}
+  const calloutW = Number(vd.callout_w_percent) || DEFAULT_CALLOUT_W
+  const calloutH = Number(vd.callout_h_percent) || DEFAULT_CALLOUT_H
   const gap = 1.5
 
-  // Prefer right side; flip left if near right edge
-  const preferRight = rect.x + rect.width + gap + calloutW < 98
-  if (preferRight) {
-    const cx = clampPercent(rect.x + rect.width + gap)
-    const cy = clampPercent(Math.max(0.5, midY - calloutH / 2))
-    return {
-      callout: { x: cx, y: cy, width: calloutW, height: calloutH },
-      line: {
-        x1: rect.x + rect.width,
-        y1: midY,
-        x2: cx,
-        y2: cy + Math.min(calloutH / 2, 3.5),
-      },
+  let cx
+  let cy
+  const savedX = Number(vd.callout_x_percent)
+  const savedY = Number(vd.callout_y_percent)
+  if (Number.isFinite(savedX) && Number.isFinite(savedY)) {
+    cx = clampPercent(savedX)
+    cy = clampPercent(savedY)
+  } else {
+    const midY = rect.y + rect.height / 2
+    const preferRight = rect.x + rect.width + gap + calloutW < 98
+    if (preferRight) {
+      cx = clampPercent(rect.x + rect.width + gap)
+      cy = clampPercent(Math.max(0.5, midY - calloutH / 2))
+    } else {
+      cx = clampPercent(Math.max(0.5, rect.x - gap - calloutW))
+      cy = clampPercent(Math.max(0.5, midY - calloutH / 2))
     }
   }
 
-  const cx = clampPercent(Math.max(0.5, rect.x - gap - calloutW))
-  const cy = clampPercent(Math.max(0.5, midY - calloutH / 2))
+  const calloutCx = cx + calloutW / 2
+  const calloutCy = cy + Math.min(calloutH / 2, 3.5)
+  const attach = nearestPointOnRectBorder(rect, calloutCx, calloutCy)
+
   return {
     callout: { x: cx, y: cy, width: calloutW, height: calloutH },
     line: {
-      x1: rect.x,
-      y1: midY,
-      x2: cx + calloutW,
-      y2: cy + Math.min(calloutH / 2, 3.5),
+      x1: attach.x,
+      y1: attach.y,
+      x2: calloutCx,
+      y2: calloutCy,
     },
   }
 }
