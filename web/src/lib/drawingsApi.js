@@ -206,10 +206,26 @@ export async function deleteAnnotationMark(annotation) {
   const taskId = annotation.task_id || annotation.task?.id || null
 
   if (taskId) {
-    const { error: taskErr } = await supabase.from('tasks').delete().eq('id', taskId)
+    const { data: deletedTasks, error: taskErr } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', taskId)
+      .select('id')
     if (taskErr) throw new Error(taskErr.message || 'Failed to delete linked task')
+    if (!deletedTasks?.length) {
+      throw new Error(
+        'Linked task was not deleted (permission denied by database policy). Run migration 014_fix_task_delete_rls.sql.'
+      )
+    }
   }
 
-  const { error } = await supabase.from('drawing_annotations').delete().eq('id', annotation.id)
+  const { data: deletedMarks, error } = await supabase
+    .from('drawing_annotations')
+    .delete()
+    .eq('id', annotation.id)
+    .select('id')
   if (error) throw new Error(error.message || 'Failed to delete comment')
+  if (!deletedMarks?.length) {
+    throw new Error('Comment was not deleted (permission denied).')
+  }
 }

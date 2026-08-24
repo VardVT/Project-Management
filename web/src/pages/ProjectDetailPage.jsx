@@ -118,15 +118,28 @@ export function ProjectDetailPage() {
     if (!ok) return
 
     setError('')
-    const { error: err } = await supabase.from('tasks').delete().in('id', selectedTaskIds)
+    const { data, error: err } = await supabase
+      .from('tasks')
+      .delete()
+      .in('id', selectedTaskIds)
+      .select('id')
 
     if (err) {
       setError(err.message)
       toast.error('Delete failed', err.message)
+    } else if (!data?.length) {
+      const msg =
+        'No tasks were deleted (permission denied by database policy, or tasks already gone).'
+      setError(msg)
+      toast.error('Delete failed', msg)
     } else {
-      setTasks((prev) => prev.filter((t) => !selectedTaskIds.includes(t.id)))
+      const deletedIds = new Set(data.map((r) => r.id))
+      setTasks((prev) => prev.filter((t) => !deletedIds.has(t.id)))
       setSelectedTaskIds([])
-      toast.success('Tasks deleted', `${selectedTaskIds.length} task${selectedTaskIds.length > 1 ? 's' : ''} removed.`)
+      toast.success(
+        'Tasks deleted',
+        `${data.length} task${data.length > 1 ? 's' : ''} removed.`
+      )
     }
   }
 

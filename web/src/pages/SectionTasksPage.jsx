@@ -204,9 +204,21 @@ export function SectionTasksPage() {
     if (!ok) return
     setBulkBusy(true)
     try {
-      const { error: err } = await supabase.from('tasks').delete().in('id', [...selectedIds])
+      const ids = [...selectedIds]
+      const { data, error: err } = await supabase.from('tasks').delete().in('id', ids).select('id')
       if (err) throw err
-      toast.success('Tasks Deleted', `${selectedIds.size} task${selectedIds.size > 1 ? 's' : ''} removed.`)
+      const deleted = data?.length || 0
+      if (deleted === 0) {
+        throw new Error(
+          'No tasks were deleted (permission denied by database policy, or tasks already gone).'
+        )
+      }
+      toast.success(
+        'Tasks Deleted',
+        deleted < ids.length
+          ? `Removed ${deleted} of ${ids.length} selected (some were blocked).`
+          : `${deleted} task${deleted > 1 ? 's' : ''} removed.`
+      )
       setSelectedIds(new Set())
       await load()
     } catch (err) {
