@@ -17,7 +17,7 @@ import {
 export function DrawingDetailPage() {
   const { drawingId } = useParams()
   const { user, caps } = useAuth()
-  const { currentProject, projects, sections, selectProject } = useProject()
+  const { currentProject, projects, selectProject, reloadSections } = useProject()
   const { toast, confirm } = useNotification()
 
   const [drawing, setDrawing] = useState(null)
@@ -73,13 +73,16 @@ export function DrawingDetailPage() {
         widthPercent: payload.widthPercent,
         heightPercent: payload.heightPercent,
         activity: payload.activity,
-        sectionId: payload.sectionId,
         assigneeId: payload.assigneeId,
         zone: payload.zone,
         userId: user.id,
       })
       setAnnotations((prev) => [...prev, annotation])
-      toast.success('Mark created', payload.activity)
+      // Refresh sidebar so Live Comment appears for existing vessels
+      if (typeof reloadSections === 'function') {
+        await reloadSections()
+      }
+      toast.success('Mark created', `${payload.activity} → Live Comment`)
     } catch (err) {
       toast.error('Could not create mark', err.message)
       throw err
@@ -162,7 +165,6 @@ export function DrawingDetailPage() {
           (caps.canCreateTask || caps.canEditAllTasks)
         }
         userId={user.id}
-        sections={sections}
         onCreatePin={handleCreatePin}
         onMoveCallout={handleMoveCallout}
         onDeleteMark={handleDeleteMark}

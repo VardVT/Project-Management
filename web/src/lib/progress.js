@@ -32,6 +32,9 @@ export function getDashboardGroupFromSectionName(headerName) {
   if (!raw) return null
   const n = normalizeVietnamese(raw).toLowerCase()
 
+  // Drawing markup inbox — track issues only, never weight into Summary %
+  if (n === 'live comment' || n.includes('live comment')) return null
+
   if (n.includes('checking') || n.includes('coordination') || n.includes('general')) {
     return null
   }

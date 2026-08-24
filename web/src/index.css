@@ -4057,6 +4057,16 @@ label {
 .dwg-pin-modal {
   width: min(100%, 440px);
 }
+.dwg-live-hint {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  font-size: 12px;
+  color: #1e3a8a;
+  line-height: 1.4;
+}
 .dwg-pin-form {
   display: flex;
   flex-direction: column;

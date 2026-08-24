@@ -15,7 +15,6 @@ export function DrawingViewer({
   canPin,
   canEditMarks,
   userId,
-  sections,
   onCreatePin,
   onMoveCallout,
   onDeleteMark,
@@ -180,7 +179,6 @@ export function DrawingViewer({
         open={!!pendingRect}
         rect={pendingRect}
         pageNumber={pageNumber}
-        sections={sections}
         drawingTitle={drawing?.title || ''}
         busy={busy}
         onClose={() => setPendingRect(null)}

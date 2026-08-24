@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { mapExcelSectionToTarget, isMtoTask } from './progress'
-import { CANONICAL_SECTIONS } from './roles'
+import { CANONICAL_SECTIONS, LIVE_COMMENT_SECTION } from './roles'
 import { mergeAliasSectionsToCanonical } from './engineeringPlansImport'
 
 async function ensureCanonicalSections(projectId) {
@@ -191,7 +191,7 @@ export async function applyPipingVtSectionMapping(projectId, { resourceFilter = 
     .from('sections')
     .select('id, header_name')
     .eq('project_id', projectId)
-  const canonical = new Set(CANONICAL_SECTIONS)
+  const canonical = new Set([...CANONICAL_SECTIONS, LIVE_COMMENT_SECTION])
 
   // Chỉ xóa section non-canonical KHÔNG còn task nào trỏ vào
   const nonCanonicalUnused = (allSecs || []).filter(
@@ -210,7 +210,9 @@ export async function applyPipingVtSectionMapping(projectId, { resourceFilter = 
     .from('sections')
     .select('id, header_name')
     .eq('project_id', projectId)
-  const emptyLeft = (leftSecs || []).filter((s) => !usedSectionIds.has(s.id))
+  const emptyLeft = (leftSecs || []).filter(
+    (s) => !usedSectionIds.has(s.id) && s.header_name !== LIVE_COMMENT_SECTION
+  )
   if (emptyLeft.length) {
     await supabase.from('sections').delete().in(
       'id',

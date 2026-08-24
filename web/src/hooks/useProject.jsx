@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { CANONICAL_SECTIONS } from '../lib/roles'
+import { CANONICAL_SECTIONS, LIVE_COMMENT_SECTION, SIDEBAR_SECTIONS } from '../lib/roles'
 import { useAuth } from './useAuth'
 
 const ProjectContext = createContext(null)
@@ -44,11 +44,11 @@ export function ProjectProvider({ children }) {
       setSections([])
       return []
     }
-    // Sidebar chỉ hiện section chuẩn (thứ tự bin), bỏ WBS thừa nếu còn sót
-    const canonIndex = new Map(CANONICAL_SECTIONS.map((n, i) => [n, i]))
+    // Sidebar: engineering canonical sections + Live Comment (drawing markup inbox)
+    const sidebarIndex = new Map(SIDEBAR_SECTIONS.map((n, i) => [n, i]))
     const filtered = (data || [])
-      .filter((s) => canonIndex.has(s.header_name))
-      .sort((a, b) => (canonIndex.get(a.header_name) ?? 99) - (canonIndex.get(b.header_name) ?? 99))
+      .filter((s) => sidebarIndex.has(s.header_name))
+      .sort((a, b) => (sidebarIndex.get(a.header_name) ?? 99) - (sidebarIndex.get(b.header_name) ?? 99))
     setSections(filtered)
     return filtered
   }, [])
@@ -98,11 +98,18 @@ export function ProjectProvider({ children }) {
       })
       if (memberErr) throw memberErr
 
-      const sectionRows = CANONICAL_SECTIONS.map((header_name, sort_order) => ({
-        project_id: project.id,
-        header_name,
-        sort_order,
-      }))
+      const sectionRows = [
+        ...CANONICAL_SECTIONS.map((header_name, sort_order) => ({
+          project_id: project.id,
+          header_name,
+          sort_order,
+        })),
+        {
+          project_id: project.id,
+          header_name: LIVE_COMMENT_SECTION,
+          sort_order: CANONICAL_SECTIONS.length,
+        },
+      ]
       const { error: secErr } = await supabase.from('sections').insert(sectionRows)
       if (secErr) throw secErr
 

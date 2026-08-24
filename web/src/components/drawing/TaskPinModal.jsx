@@ -1,19 +1,17 @@
 import { useEffect, useState } from 'react'
-import { displaySectionName } from '../../lib/roles'
+import { LIVE_COMMENT_SECTION } from '../../lib/roles'
 import { supabase } from '../../lib/supabase'
 
 export function TaskPinModal({
   open,
   rect,
   pageNumber,
-  sections = [],
   drawingTitle,
   busy,
   onClose,
   onSubmit,
 }) {
   const [activity, setActivity] = useState('')
-  const [sectionId, setSectionId] = useState('')
   const [assigneeId, setAssigneeId] = useState('')
   const [zone, setZone] = useState('')
   const [profiles, setProfiles] = useState([])
@@ -25,7 +23,6 @@ export function TaskPinModal({
     setZone('')
     setAssigneeId('')
     setError('')
-    setSectionId(sections[0]?.id || '')
     let cancelled = false
     supabase
       .from('profiles')
@@ -37,7 +34,7 @@ export function TaskPinModal({
     return () => {
       cancelled = true
     }
-  }, [open, sections])
+  }, [open])
 
   if (!open || !rect) return null
 
@@ -48,14 +45,9 @@ export function TaskPinModal({
       setError('Enter a comment / task title.')
       return
     }
-    if (!sectionId) {
-      setError('Select a section.')
-      return
-    }
     try {
       await onSubmit({
         activity: activity.trim(),
-        sectionId,
         assigneeId: assigneeId || null,
         zone: zone.trim() || null,
         xPercent: rect.x,
@@ -80,7 +72,11 @@ export function TaskPinModal({
       >
         <h2 id="dwg-pin-title">Mark region on drawing</h2>
         <p className="muted" style={{ marginTop: -8, marginBottom: 14, fontSize: 13 }}>
-          {drawingTitle} · Page {pageNumber} · region {rect.width.toFixed(1)}% × {rect.height.toFixed(1)}%
+          {drawingTitle} · Page {pageNumber} · region {rect.width.toFixed(1)}% ×{' '}
+          {rect.height.toFixed(1)}%
+        </p>
+        <p className="dwg-live-hint">
+          Task will be added to <strong>{LIVE_COMMENT_SECTION}</strong> (not counted in Summary %).
         </p>
 
         <form onSubmit={handleSubmit} className="dwg-pin-form">
@@ -93,22 +89,6 @@ export function TaskPinModal({
               placeholder="e.g. Missing support at node 12"
               disabled={busy}
             />
-          </label>
-
-          <label>
-            Section
-            <select
-              value={sectionId}
-              onChange={(e) => setSectionId(e.target.value)}
-              disabled={busy || sections.length === 0}
-            >
-              {sections.length === 0 && <option value="">No sections on vessel</option>}
-              {sections.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {displaySectionName(s.header_name)}
-                </option>
-              ))}
-            </select>
           </label>
 
           <label>
@@ -137,9 +117,7 @@ export function TaskPinModal({
             </select>
           </label>
 
-          {error && (
-            <div style={{ color: '#b91c1c', fontSize: 13 }}>{error}</div>
-          )}
+          {error && <div style={{ color: '#b91c1c', fontSize: 13 }}>{error}</div>}
 
           <div className="pm-modal-actions">
             <button type="button" className="pm-btn ghost" onClick={onClose} disabled={busy}>

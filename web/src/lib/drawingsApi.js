@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { LIVE_COMMENT_SECTION } from './roles'
 
 const BUCKET = 'project-drawings'
 
@@ -99,7 +100,35 @@ export async function deleteDrawing(drawing) {
 }
 
 /**
- * Create engineering task + rectangle callout annotation.
+ * Ensure vessel has a Live Comment section (drawing markup inbox).
+ * Creates it if missing. Not counted in Summary % weights.
+ */
+export async function ensureLiveCommentSection(projectId) {
+  if (!projectId) throw new Error('Project is required.')
+  const { data: existing, error: findErr } = await supabase
+    .from('sections')
+    .select('id, header_name, sort_order, project_id')
+    .eq('project_id', projectId)
+    .eq('header_name', LIVE_COMMENT_SECTION)
+    .maybeSingle()
+  if (findErr) throw findErr
+  if (existing) return existing
+
+  const { data: created, error: createErr } = await supabase
+    .from('sections')
+    .insert({
+      project_id: projectId,
+      header_name: LIVE_COMMENT_SECTION,
+      sort_order: 100,
+    })
+    .select('id, header_name, sort_order, project_id')
+    .single()
+  if (createErr) throw createErr
+  return created
+}
+
+/**
+ * Create engineering task in Live Comment + rectangle callout annotation.
  * x/y = top-left %; width/height stored in vector_data.
  */
 export async function createPinWithTask({
@@ -110,7 +139,6 @@ export async function createPinWithTask({
   widthPercent,
   heightPercent,
   activity,
-  sectionId,
   assigneeId,
   zone,
   userId,
@@ -119,13 +147,14 @@ export async function createPinWithTask({
   const title = String(activity || '').trim()
   if (!title) throw new Error('Task title is required.')
   if (!drawing?.project_id) throw new Error('Drawing project is missing.')
-  if (!sectionId) throw new Error('Section is required.')
+
+  const liveSection = await ensureLiveCommentSection(drawing.project_id)
 
   const { data: task, error: taskErr } = await supabase
     .from('tasks')
     .insert({
       project_id: drawing.project_id,
-      section_id: sectionId,
+      section_id: liveSection.id,
       title,
       activity: title,
       zone: zone || null,
@@ -169,7 +198,7 @@ export async function createPinWithTask({
     throw annErr
   }
 
-  return { task, annotation: { ...annotation, task } }
+  return { task, annotation: { ...annotation, task }, section: liveSection }
 }
 
 export async function updateAnnotationCalloutPosition(annotation, { x, y }) {

@@ -87,10 +87,22 @@ export const CANONICAL_SECTIONS = [
   '3D Equipment Modeling',
   'General Arrangement',
 ]
+
+/** Per-vessel section for drawing markup comments (excluded from Summary %). */
+export const LIVE_COMMENT_SECTION = 'Live Comment'
+
+/** Sections shown in the vessel Tasks sidebar (engineering + Live Comment). */
+export const SIDEBAR_SECTIONS = [...CANONICAL_SECTIONS, LIVE_COMMENT_SECTION]
+
+export function isLiveCommentSection(headerName) {
+  return String(headerName || '').trim() === LIVE_COMMENT_SECTION
+}
+
 export function displaySectionName(headerName) {
   const raw = String(headerName || '').trim()
   if (raw === '3D Pipe Drawing') return 'Pipe 3D modeling'
   if (raw === 'ISO generation') return 'ISO generating'
   if (raw === 'Pipe 2D drawing') return '2D drawing'
+  if (raw === LIVE_COMMENT_SECTION) return 'Live Comment'
   return raw || 'Section'
 }
