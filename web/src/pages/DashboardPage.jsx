@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { fetchAllRows } from '../lib/supabasePaginate'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
 import { computeWeightedProgress, resolveGroupDensities, GROUP_DENSITIES, statusFromPercent } from '../lib/progress'
@@ -98,18 +99,24 @@ export function DashboardPage() {
         return
       }
 
-      const { data: sections, error: sErr } = await supabase
-        .from('sections')
-        .select('id, header_name, sort_order, project_id')
-        .order('sort_order', { ascending: true })
+      // PostgREST caps at 1000 rows per request — paginate so fleet totals match per-vessel Summary.
+      const sections = await fetchAllRows((from, to) =>
+        supabase
+          .from('sections')
+          .select('id, header_name, sort_order, project_id')
+          .order('sort_order', { ascending: true })
+          .range(from, to),
+      )
 
-      if (sErr) throw sErr
-
-      const { data: tasks, error: tErr } = await supabase
-        .from('tasks')
-        .select('id, project_id, section_id, percent_complete, status, start_date, finish_date, late_date, pending_review, activity, zone, drawing_id')
-
-      if (tErr) throw tErr
+      const tasks = await fetchAllRows((from, to) =>
+        supabase
+          .from('tasks')
+          .select(
+            'id, project_id, section_id, percent_complete, status, start_date, finish_date, late_date, pending_review, activity, zone, drawing_id',
+          )
+          .order('id', { ascending: true })
+          .range(from, to),
+      )
 
       const today = todayIso()
       const sectionsByProject = new Map()
