@@ -3753,6 +3753,21 @@ label {
   gap: 6px;
   padding-bottom: 2px;
 }
+.dwg-upload-progress {
+  padding: 12px 14px;
+}
+.dwg-upload-progress-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+.dwg-upload-progress-fill {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
 .dwg-table {
   width: 100%;
   border-collapse: collapse;

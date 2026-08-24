@@ -18,6 +18,15 @@ function statusLabel(status) {
   return 'In review'
 }
 
+function isPdfFile(file) {
+  const name = String(file?.name || '').toLowerCase()
+  return name.endsWith('.pdf') || file?.type === 'application/pdf'
+}
+
+function titleFromFile(file) {
+  return String(file.name || 'Untitled drawing').replace(/\.pdf$/i, '').trim() || 'Untitled drawing'
+}
+
 export function DrawingsListPage() {
   const { user, caps } = useAuth()
   const { currentProject, projects, selectProject } = useProject()
@@ -28,11 +37,21 @@ export function DrawingsListPage() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(null)
   const [error, setError] = useState('')
   const [title, setTitle] = useState('')
   const [version, setVersion] = useState('Rev 1')
 
   const canUpload = caps.canCreateTask
+
+  async function refreshList() {
+    if (!currentProject?.id) {
+      setRows([])
+      return
+    }
+    const data = await listDrawings(currentProject.id)
+    setRows(data)
+  }
 
   useEffect(() => {
     if (!currentProject?.id) {
@@ -62,36 +81,83 @@ export function DrawingsListPage() {
   }, [currentProject?.id])
 
   async function handleUpload(e) {
-    const file = e.target.files?.[0]
+    const picked = Array.from(e.target.files || [])
     e.target.value = ''
-    if (!file || !currentProject) return
-    if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
-      toast.error('Invalid file', 'Please upload a PDF drawing.')
+    if (!picked.length || !currentProject) return
+
+    const pdfs = picked.filter(isPdfFile)
+    const skipped = picked.length - pdfs.length
+    if (!pdfs.length) {
+      toast.error('Invalid file', 'Please select one or more PDF drawings.')
       return
     }
+    if (skipped > 0) {
+      toast.warning('Some files skipped', `${skipped} non-PDF file(s) were ignored.`)
+    }
+
     setUploading(true)
+    setUploadProgress({ done: 0, total: pdfs.length })
+    const uploaded = []
+    const failed = []
+
     try {
-      const row = await uploadDrawingPdf({
-        projectId: currentProject.id,
-        file,
-        title: title || file.name.replace(/\.pdf$/i, ''),
-        version,
-        userId: user.id,
-      })
+      for (let i = 0; i < pdfs.length; i += 1) {
+        const file = pdfs[i]
+        setUploadProgress({ done: i, total: pdfs.length, name: file.name })
+        try {
+          // Single file: optional Title field. Batch: each file keeps its own name.
+          const drawingTitle =
+            pdfs.length === 1 && title.trim()
+              ? title.trim()
+              : titleFromFile(file)
+          const row = await uploadDrawingPdf({
+            projectId: currentProject.id,
+            file,
+            title: drawingTitle,
+            version,
+            userId: user.id,
+          })
+          uploaded.push(row)
+        } catch (err) {
+          failed.push({ name: file.name, message: err.message || 'Upload failed' })
+        }
+        setUploadProgress({ done: i + 1, total: pdfs.length, name: file.name })
+      }
+
       setTitle('')
-      toast.success('Drawing uploaded', row.title)
-      navigate(`/plan-drawing/${row.id}`)
-    } catch (err) {
-      toast.error('Upload failed', err.message)
+      await refreshList()
+
+      if (uploaded.length === 1 && failed.length === 0) {
+        toast.success('Drawing uploaded', uploaded[0].title)
+        navigate(`/plan-drawing/${uploaded[0].id}`)
+        return
+      }
+
+      if (uploaded.length > 0) {
+        toast.success(
+          `Uploaded ${uploaded.length} drawing${uploaded.length > 1 ? 's' : ''}`,
+          failed.length ? `${failed.length} failed — see details.` : 'All selected PDFs are on the list.'
+        )
+      }
+      if (failed.length) {
+        toast.error(
+          `${failed.length} upload(s) failed`,
+          failed
+            .slice(0, 3)
+            .map((f) => f.name)
+            .join(', ') + (failed.length > 3 ? '…' : '')
+        )
+      }
     } finally {
       setUploading(false)
+      setUploadProgress(null)
     }
   }
 
   async function handleDelete(row) {
     const ok = await confirm({
       title: `Delete ${row.title}?`,
-      message: 'The PDF and all pins on this drawing will be removed.',
+      message: 'The PDF and all marks on this drawing will be removed.',
       confirmText: 'Delete drawing',
       isDanger: true,
     })
@@ -105,13 +171,19 @@ export function DrawingsListPage() {
     }
   }
 
+  const uploadLabel = uploading
+    ? uploadProgress
+      ? `Uploading ${uploadProgress.done}/${uploadProgress.total}…`
+      : 'Uploading…'
+    : 'Upload PDFs'
+
   return (
     <div className="dwg-list-page">
       <div className="pm-page-head">
         <div>
           <h2>Plan Drawing</h2>
           <p className="muted">
-            Upload a PDF, open it with crisp zoom, then pin issues as engineering tasks.
+            Upload one or many PDFs, then open a drawing to mark regions and comments.
           </p>
         </div>
       </div>
@@ -135,11 +207,11 @@ export function DrawingsListPage() {
           </select>
         </label>
         <label>
-          Title
+          Title (optional, single file)
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. NB994 W51 piping plan"
+            placeholder="Leave blank to use file name(s)"
             disabled={!canUpload || uploading}
           />
         </label>
@@ -156,6 +228,7 @@ export function DrawingsListPage() {
             ref={fileRef}
             type="file"
             accept="application/pdf,.pdf"
+            multiple
             hidden
             onChange={handleUpload}
           />
@@ -165,13 +238,32 @@ export function DrawingsListPage() {
             disabled={!canUpload || !currentProject || uploading}
             onClick={() => fileRef.current?.click()}
           >
-            {uploading ? 'Uploading…' : 'Upload PDF'}
+            {uploadLabel}
           </button>
-          {!canUpload && (
-            <span className="muted">Senior / Manager can upload. Everyone can open and view pins.</span>
+          {canUpload ? (
+            <span className="muted">Select multiple PDFs in the file dialog (Ctrl/Shift + click).</span>
+          ) : (
+            <span className="muted">Senior / Manager can upload. Everyone can open and view marks.</span>
           )}
         </div>
       </div>
+
+      {uploading && uploadProgress && (
+        <div className="pm-panel dwg-upload-progress">
+          <div className="dwg-upload-progress-bar">
+            <div
+              className="dwg-upload-progress-fill"
+              style={{
+                width: `${Math.round((uploadProgress.done / Math.max(uploadProgress.total, 1)) * 100)}%`,
+              }}
+            />
+          </div>
+          <p className="muted" style={{ margin: '8px 0 0', fontSize: 12 }}>
+            {uploadProgress.done}/{uploadProgress.total}
+            {uploadProgress.name ? ` — ${uploadProgress.name}` : ''}
+          </p>
+        </div>
+      )}
 
       {error && <p className="muted" style={{ color: '#b91c1c' }}>{error}</p>}
       {loading && <p className="muted">Loading drawings…</p>}
