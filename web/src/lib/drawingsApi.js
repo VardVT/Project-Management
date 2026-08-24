@@ -198,14 +198,18 @@ export async function updateAnnotationCalloutPosition(annotation, { x, y }) {
 }
 
 /**
- * Remove mark from drawing. Also deletes linked task when present.
+ * Remove mark from drawing and its linked task.
+ * Deletes the task first (while task_id is still known), then the annotation.
  */
 export async function deleteAnnotationMark(annotation) {
   if (!annotation?.id) return
-  const taskId = annotation.task_id || annotation.task?.id
-  const { error } = await supabase.from('drawing_annotations').delete().eq('id', annotation.id)
-  if (error) throw error
+  const taskId = annotation.task_id || annotation.task?.id || null
+
   if (taskId) {
-    await supabase.from('tasks').delete().eq('id', taskId)
+    const { error: taskErr } = await supabase.from('tasks').delete().eq('id', taskId)
+    if (taskErr) throw new Error(taskErr.message || 'Failed to delete linked task')
   }
+
+  const { error } = await supabase.from('drawing_annotations').delete().eq('id', annotation.id)
+  if (error) throw new Error(error.message || 'Failed to delete comment')
 }
