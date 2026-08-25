@@ -10,13 +10,25 @@ import { ROLES } from '../lib/roles'
 import { DonutRing, MultiSegmentDonut, VerticalBarChart } from '../components/Charts'
 import { IconVessel } from '../components/Icons'
 
+// ─── Improved color palette (teal as primary) ───────────────────────────────
 const BUCKET_COLOR = {
-  'Not Started (0%)': 'var(--ink-muted)',
-  '1-25%': 'var(--warning)',
-  '26-50%': 'var(--warning)',
-  '51-75%': 'var(--warning)',
-  '76-99%': 'var(--warning)',
-  'Completed (100%)': 'var(--success)',
+  'Not Started (0%)': '#94a3b8',   // slate
+  '1-25%': '#f97316',              // orange
+  '26-50%': '#f59e0b',             // amber
+  '51-75%': '#14b8a6',             // teal-400
+  '76-99%': '#0d9488',             // primary teal
+  'Completed (100%)': '#10b981',   // emerald
+}
+
+// Helper: màu progress bar theo %
+function progressColor(percent) {
+  const p = Number(percent) || 0
+  if (p >= 100) return '#10b981'
+  if (p >= 76) return '#0d9488'
+  if (p >= 51) return '#14b8a6'
+  if (p >= 26) return '#f59e0b'
+  if (p > 0) return '#f97316'
+  return '#94a3b8'
 }
 
 function buildPercentBuckets(tasks) {
@@ -37,7 +49,11 @@ function buildPercentBuckets(tasks) {
     else if (p < 100) buckets['76-99%'] += 1
     else buckets['Completed (100%)'] += 1
   })
-  return Object.entries(buckets).map(([name, value]) => ({ name, value, color: BUCKET_COLOR[name] }))
+  return Object.entries(buckets).map(([name, value]) => ({
+    name,
+    value,
+    color: BUCKET_COLOR[name],
+  }))
 }
 
 function todayIso() {
@@ -127,7 +143,7 @@ function RichProjectDashboard({ eyebrow, title }) {
     Promise.all([
       supabase
         .from('tasks')
-        .select('id, section_id, percent_complete, start_date, finish_date, activity, zone')
+        .select('id, section_id, percent_complete, start_date, finish_date, activity, zone, drawing_id')
         .eq('project_id', currentProject.id),
       supabase
         .from('sections')
@@ -205,7 +221,9 @@ function RichProjectDashboard({ eyebrow, title }) {
         <div className="summary-kpi-tile">
           <span className="summary-kpi-label">Overall Progress</span>
           <div className="summary-kpi-value-group">
-            <span className="summary-kpi-num">{allRow.avgPercent}%</span>
+            <span className="summary-kpi-num" style={{ color: progressColor(allRow.avgPercent) }}>
+              {allRow.avgPercent}%
+            </span>
             <span className={`summary-status-pill ${allRow.avgPercent === 100 ? 'done' : allRow.avgPercent > 0 ? 'progress' : 'idle'}`}>
               {allRow.avgPercent === 100 ? 'Completed' : allRow.avgPercent > 0 ? 'In Progress' : 'Pending'}
             </span>
@@ -223,7 +241,7 @@ function RichProjectDashboard({ eyebrow, title }) {
         <div className="summary-kpi-tile">
           <span className="summary-kpi-label">Completed Tasks</span>
           <div className="summary-kpi-value-group">
-            <span className="summary-kpi-num text-success">{completedCount}</span>
+            <span className="summary-kpi-num" style={{ color: '#10b981' }}>{completedCount}</span>
             <span className="summary-kpi-sub">({allRow.total ? Math.round((completedCount / allRow.total) * 100) : 0}%)</span>
           </div>
         </div>
@@ -231,7 +249,7 @@ function RichProjectDashboard({ eyebrow, title }) {
         <div className="summary-kpi-tile">
           <span className="summary-kpi-label">In Progress / Active</span>
           <div className="summary-kpi-value-group">
-            <span className="summary-kpi-num text-warning">{inProgressCount}</span>
+            <span className="summary-kpi-num" style={{ color: '#0d9488' }}>{inProgressCount}</span>
             <span className="summary-kpi-sub">Not started: {notStartedCount}</span>
           </div>
         </div>
@@ -251,20 +269,26 @@ function RichProjectDashboard({ eyebrow, title }) {
 
           <div className="summary-donut-layout">
             <div className="summary-donut-wrap">
-              <DonutRing percent={allRow.avgPercent} size={150} stroke={16} color="#0d9488" />
+              <DonutRing
+                percent={allRow.avgPercent}
+                size={150}
+                stroke={16}
+                color="#0d9488"
+                trackColor="#ccfbf1"
+              />
             </div>
 
             <div className="summary-donut-metrics">
               <div className="summary-donut-stat-item">
-                <span className="stat-bullet completed" />
+                <span className="stat-bullet" style={{ background: '#10b981' }} />
                 <div className="stat-text">
                   <span className="stat-name">Completed Progress</span>
-                  <strong>{allRow.avgPercent}%</strong>
+                  <strong style={{ color: '#10b981' }}>{allRow.avgPercent}%</strong>
                 </div>
               </div>
 
               <div className="summary-donut-stat-item">
-                <span className="stat-bullet remaining" />
+                <span className="stat-bullet" style={{ background: '#94a3b8' }} />
                 <div className="stat-text">
                   <span className="stat-name">Remaining Workload</span>
                   <strong>{allRow.remaining}%</strong>
@@ -272,7 +296,7 @@ function RichProjectDashboard({ eyebrow, title }) {
               </div>
 
               <div className="summary-donut-stat-item">
-                <span className="stat-bullet schedule" />
+                <span className="stat-bullet" style={{ background: '#0d9488' }} />
                 <div className="stat-text">
                   <span className="stat-name">Active Schedule Duration</span>
                   <strong>{allRow.days != null ? `${allRow.days} calendar days` : 'Not set'}</strong>
@@ -306,7 +330,12 @@ function RichProjectDashboard({ eyebrow, title }) {
                   </div>
                   <div className="summary-due-tag">
                     <span className="summary-due-date">{t.finish_date}</span>
-                    <span className="summary-due-pct">{(Number(t.percent_complete) || 0)}%</span>
+                    <span
+                      className="summary-due-pct"
+                      style={{ color: progressColor(t.percent_complete), fontWeight: 700 }}
+                    >
+                      {(Number(t.percent_complete) || 0)}%
+                    </span>
                   </div>
                 </div>
               ))}
@@ -364,9 +393,17 @@ function RichProjectDashboard({ eyebrow, title }) {
                   <td>
                     <div className="summary-progress-cell">
                       <div className="summary-bar-track">
-                        <div className="summary-bar-fill" style={{ width: `${allRow.avgPercent}%` }} />
+                        <div
+                          className="summary-bar-fill"
+                          style={{
+                            width: `${allRow.avgPercent}%`,
+                            background: progressColor(allRow.avgPercent),
+                          }}
+                        />
                       </div>
-                      <strong className="summary-pct-text">{allRow.avgPercent}%</strong>
+                      <strong className="summary-pct-text" style={{ color: progressColor(allRow.avgPercent) }}>
+                        {allRow.avgPercent}%
+                      </strong>
                     </div>
                   </td>
                   <td style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>{allRow.remaining}%</td>
@@ -389,11 +426,16 @@ function RichProjectDashboard({ eyebrow, title }) {
                       <div className="summary-progress-cell">
                         <div className="summary-bar-track">
                           <div
-                            className={`summary-bar-fill fill-${r.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`}
-                            style={{ width: `${r.avgPercent}%` }}
+                            className="summary-bar-fill"
+                            style={{
+                              width: `${r.avgPercent}%`,
+                              background: progressColor(r.avgPercent),
+                            }}
                           />
                         </div>
-                        <strong className="summary-pct-text">{r.avgPercent}%</strong>
+                        <strong className="summary-pct-text" style={{ color: progressColor(r.avgPercent) }}>
+                          {r.avgPercent}%
+                        </strong>
                       </div>
                     </td>
                     <td style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>{r.remaining}%</td>
@@ -440,7 +482,15 @@ function RichProjectDashboard({ eyebrow, title }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', flex: 1, minWidth: '150px' }}>
                   {r.pie.map((s) => (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} key={s.name}>
-                      <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+                      <span
+                        style={{
+                          width: '9px',
+                          height: '9px',
+                          borderRadius: '50%',
+                          background: s.color,
+                          flexShrink: 0,
+                        }}
+                      />
                       <span>{s.name}</span>
                       <strong style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>
                         {s.value} ({Math.round((s.value / r.total) * 100)}%)
