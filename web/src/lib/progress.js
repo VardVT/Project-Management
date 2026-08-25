@@ -104,7 +104,7 @@ export function computeWeightedProgress(sectionsWithTasks, densitiesOverride = n
   return { overallProgress, groups, sectionStats, totalTasks }
 }
 
-const PIE_COLORS_SUMMARY = { notStarted: '#64748b', inProgress: '#0d9488', completed: '#059669' }
+const PIE_COLORS_SUMMARY = { notStarted: '#94A3B8', inProgress: '#F59E0B', completed: '#10B981' }
 
 function daysBetweenDates(startIso, endIso) {
   if (!startIso || !endIso) return null
