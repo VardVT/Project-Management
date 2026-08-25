@@ -58,6 +58,10 @@ export function SectionTasksPage() {
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [bulkBusy, setBulkBusy] = useState(false)
 
+  // Sorting
+  const [sortKey, setSortKey] = useState('')
+  const [sortDir, setSortDir] = useState('asc') // 'asc' | 'desc'
+
   async function load() {
     if (!sectionId || !currentProject) return
     setLoading(true)
@@ -99,11 +103,64 @@ export function SectionTasksPage() {
     })
   }, [tasks, filterAssigned, filterText, filterStatus])
 
+  // Sorted list (sau khi filter)
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered
+
+    const getValue = (t) => {
+      switch (sortKey) {
+        case 'zone':
+          return (t.zone || '').toLowerCase()
+        case 'activity':
+          return (t.activity || '').toLowerCase()
+        case 'drawing_id':
+          return (t.drawing_id || '').toLowerCase()
+        case 'assignee': {
+          const p = profiles.find((pr) => pr.id === t.assignee_id)
+          return (p?.display_name || p?.email || '').toLowerCase()
+        }
+        case 'start_date':
+          return t.start_date || ''
+        case 'finish_date':
+          return t.finish_date || ''
+        case 'percent_complete':
+          return Number(t.percent_complete) || 0
+        case 'status':
+          return (t.status || '').toLowerCase()
+        default:
+          return ''
+      }
+    }
+
+    return [...filtered].sort((a, b) => {
+      const va = getValue(a)
+      const vb = getValue(b)
+
+      if (va < vb) return sortDir === 'asc' ? -1 : 1
+      if (va > vb) return sortDir === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [filtered, sortKey, sortDir, profiles])
+
   const activeFilterCount = [
     filterAssigned,
     filterText,
     filterStatus.size > 0 ? true : null,
   ].filter(Boolean).length
+
+  function toggleSort(key) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
+
+  function sortIndicator(key) {
+    if (sortKey !== key) return null
+    return sortDir === 'asc' ? ' ▲' : ' ▼'
+  }
 
   function toggleSelect(id) {
     setSelectedIds((prev) => {
@@ -116,8 +173,8 @@ export function SectionTasksPage() {
 
   function toggleSelectAll() {
     setSelectedIds((prev) => {
-      if (prev.size === filtered.length && filtered.length > 0) return new Set()
-      return new Set(filtered.map((t) => t.id))
+      if (prev.size === sorted.length && sorted.length > 0) return new Set()
+      return new Set(sorted.map((t) => t.id))
     })
   }
 
@@ -314,7 +371,6 @@ export function SectionTasksPage() {
           </div>
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            {/* Filter drawer trigger */}
             <button
               type="button"
               className={`pm-btn tiny ${activeFilterCount > 0 ? 'primary' : 'secondary'}`}
@@ -347,8 +403,8 @@ export function SectionTasksPage() {
         </div>
 
         <p className="muted" style={{ marginTop: '4px' }}>
-          Vessel <strong>{currentProject?.ship_id}</strong> · {filtered.length}
-          {tasks.length !== filtered.length ? ` of ${tasks.length}` : ''} tasks
+          Vessel <strong>{currentProject?.ship_id}</strong> · {sorted.length}
+          {tasks.length !== sorted.length ? ` of ${tasks.length}` : ''} tasks
           {caps.canEditAssignedOnly ? ' (Assigned to you)' : ''}
         </p>
       </div>
@@ -436,24 +492,40 @@ export function SectionTasksPage() {
                   <input
                     type="checkbox"
                     className="pm-checkbox-circle"
-                    checked={selectedIds.size > 0 && selectedIds.size === filtered.length}
+                    checked={selectedIds.size > 0 && selectedIds.size === sorted.length}
                     onChange={toggleSelectAll}
                     title="Select All"
                   />
                 </th>
-                <th>Section</th>
-                <th>Activity Description</th>
-                <th>Drawing ID</th>
-                <th>PIC</th>
-                <th>Start Date</th>
-                <th>Finish Date</th>
-                <th>% Done</th>
-                <th>Status</th>
+                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('zone')}>
+                  Section{sortIndicator('zone')}
+                </th>
+                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('activity')}>
+                  Activity Description{sortIndicator('activity')}
+                </th>
+                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('drawing_id')}>
+                  Drawing ID{sortIndicator('drawing_id')}
+                </th>
+                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('assignee')}>
+                  PIC{sortIndicator('assignee')}
+                </th>
+                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('start_date')}>
+                  Start Date{sortIndicator('start_date')}
+                </th>
+                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('finish_date')}>
+                  Finish Date{sortIndicator('finish_date')}
+                </th>
+                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('percent_complete')}>
+                  % Done{sortIndicator('percent_complete')}
+                </th>
+                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('status')}>
+                  Status{sortIndicator('status')}
+                </th>
                 <th>Review</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((t) => {
+              {sorted.map((t) => {
                 const canEdit =
                   caps.canEditAllTasks || (caps.canEditAssignedOnly && t.assignee_id === user.id)
                 return (
@@ -556,7 +628,7 @@ export function SectionTasksPage() {
               })}
             </tbody>
           </table>
-          {filtered.length === 0 && (
+          {sorted.length === 0 && (
             <p className="muted" style={{ textAlign: 'center', padding: '24px' }}>
               No tasks found {activeFilterCount > 0 ? 'matching the current filters.' : 'in this section.'}
             </p>
@@ -587,7 +659,6 @@ export function SectionTasksPage() {
             </div>
 
             <form onSubmit={handleAddTask} className="new-task-form">
-              {/* Group 1: Task Core Information */}
               <div className="new-task-section">
                 <label className="new-task-field-full">
                   <span className="field-label">Activity Description <strong className="required-star">*</strong></span>
@@ -622,7 +693,6 @@ export function SectionTasksPage() {
                 </div>
               </div>
 
-              {/* Group 2: Assignment & Status */}
               <div className="new-task-section">
                 <div className="new-task-grid-2">
                   {caps.canEditAllTasks ? (
@@ -667,7 +737,6 @@ export function SectionTasksPage() {
                 </div>
               </div>
 
-              {/* Group 3: Schedule & Initial Progress */}
               <div className="new-task-section">
                 <div className="new-task-grid-2">
                   <label>
@@ -742,12 +811,12 @@ export function SectionTasksPage() {
         </div>
       )}
 
-      {/* ── RIGHT FILTER DRAWER (no backdrop) ─────────────── */}
+      {/* ── RIGHT FILTER DRAWER ─────────────── */}
       <RightDrawer
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         title="Filter & Search"
-        subtitle={`${tasks.length} tasks total · ${filtered.length} shown`}
+        subtitle={`${tasks.length} tasks total · ${sorted.length} shown`}
         footer={
           <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
             <button
@@ -769,7 +838,6 @@ export function SectionTasksPage() {
           </div>
         }
       >
-        {/* Text search */}
         <div className="pm-drawer-section">
           <div className="pm-drawer-section-title">Search</div>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -785,7 +853,6 @@ export function SectionTasksPage() {
           </div>
         </div>
 
-        {/* Engineer filter */}
         {!caps.canEditAssignedOnly && (
           <div className="pm-drawer-section">
             <div className="pm-drawer-section-title">Engineer / PIC</div>
@@ -838,10 +905,9 @@ export function SectionTasksPage() {
           </div>
         </div>
 
-        {/* Live count summary */}
         <div style={{ marginTop: 'auto', padding: '12px', background: 'var(--bg)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
           <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink-primary)', fontVariantNumeric: 'tabular-nums' }}>
-            {filtered.length}
+            {sorted.length}
           </div>
           <div className="muted" style={{ fontSize: '11.5px' }}>of {tasks.length} tasks match</div>
         </div>
@@ -859,4 +925,4 @@ export function SectionTasksPage() {
       ) : null}
     </div>
   )
-        }
+    }
