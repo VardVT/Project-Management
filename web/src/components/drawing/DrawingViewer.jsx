@@ -125,7 +125,7 @@ export function DrawingViewer({
               initialScale={1}
               minScale={0.4}
               maxScale={8}
-              wheel={{ step: 0.12 }}
+              wheel={{ step: 0.04 }}
               panning={{ disabled: tool === 'mark' || draggingCallout }}
               doubleClick={{ disabled: true }}
               limitToBounds={false}
