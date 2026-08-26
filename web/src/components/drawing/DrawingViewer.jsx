@@ -1,9 +1,16 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { PdfCanvas } from './PdfCanvas'
 import { AnnotationOverlay } from './AnnotationOverlay'
 import { DrawingToolbar } from './DrawingToolbar'
 import { TaskPinModal } from './TaskPinModal'
+
+const MIN_ZOOM = 0.4
+const MAX_ZOOM = 8
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value))
+}
 
 /**
  * Main drawing workspace: crisp PDF + pan/zoom + rectangle callout overlay.
@@ -30,6 +37,10 @@ export function DrawingViewer({
   const [draggingCallout, setDraggingCallout] = useState(false)
   const archived = drawing?.status === 'approved_archived' || !drawing?.file_path
 
+  // ✅ ref tới instance của react-zoom-pan-pinch để có thể "reset" scale CSS
+  // sau khi đã nướng (bake) mức zoom đó vào renderZoom (re-render PDF thật).
+  const transformRef = useRef(null)
+
   function canEditAnnotation(ann) {
     if (archived) return false
     if (canEditMarks) return true
@@ -53,6 +64,25 @@ export function DrawingViewer({
     },
     [onPageCount]
   )
+
+  // ✅ Chạy khi thao tác zoom bằng lăn chuột / pinch KẾT THÚC (thư viện tự
+  // debounce việc này, không cần setTimeout thủ công).
+  // Ý tưởng: CSS transform scale hiện tại (do lăn chuột tạo ra) sẽ được
+  // "nướng" thành renderZoom thật → PdfCanvas re-render PDF ở độ phân giải
+  // mới (nét), sau đó ta reset scale của TransformWrapper về 1 để không bị
+  // áp zoom 2 lần chồng lên nhau (1 lần CSS + 1 lần render thật).
+  const handleZoomStop = useCallback((ref) => {
+    const { scale, positionX, positionY } = ref.state
+
+    // Bỏ qua thay đổi quá nhỏ (tránh re-render PDF liên tục không cần thiết)
+    if (Math.abs(scale - 1) < 0.02) return
+
+    setRenderZoom((prev) => clamp(prev * scale, MIN_ZOOM, MAX_ZOOM))
+
+    // animationTime = 0: snap ngay lập tức, không có hiệu ứng easing,
+    // giữ nguyên vị trí đang pan (positionX, positionY)
+    transformRef.current?.setTransform(positionX, positionY, 1, 0)
+  }, [])
 
   async function handleSubmitMark(payload) {
     setBusy(true)
@@ -91,6 +121,7 @@ export function DrawingViewer({
             <div className="dwg-pdf-status">Drawing file is not available (archived or missing).</div>
           ) : (
             <TransformWrapper
+              ref={transformRef}
               initialScale={1}
               minScale={0.4}
               maxScale={8}
@@ -98,6 +129,7 @@ export function DrawingViewer({
               panning={{ disabled: tool === 'mark' || draggingCallout }}
               doubleClick={{ disabled: true }}
               limitToBounds={false}
+              onZoomStop={handleZoomStop}
             >
               <TransformComponent
                 wrapperClass="dwg-transform-wrap"
