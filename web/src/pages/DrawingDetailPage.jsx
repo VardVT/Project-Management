@@ -137,8 +137,10 @@ export function DrawingDetailPage() {
     if (isArchived) badgeStyle = 'bg-amber-50 text-amber-700 border-amber-200'
 
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${badgeStyle}`}>
-        <span className={`w-1.5 h-1.5 rounded-full ${isApproved ? 'bg-emerald-500' : isArchived ? 'bg-amber-500' : 'bg-slate-400'}`} />
+      <span
+        className={`inline-flex shrink-0 items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${badgeStyle}`}
+      >
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isApproved ? 'bg-emerald-500' : isArchived ? 'bg-amber-500' : 'bg-slate-400'}`} />
         {status || 'Draft'}
       </span>
     )
@@ -146,7 +148,7 @@ export function DrawingDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
+      <div className="flex flex-col items-center justify-center h-dvh bg-slate-50">
         <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
         <p className="text-slate-500 text-sm font-medium animate-pulse">Đang tải bản vẽ...</p>
       </div>
@@ -155,7 +157,7 @@ export function DrawingDetailPage() {
 
   if (error || !drawing) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-50 p-4">
+      <div className="flex items-center justify-center h-dvh bg-slate-50 p-4">
         <div className="max-w-md w-full bg-white rounded-xl shadow-lg border border-slate-200 p-6 text-center">
           <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,42 +178,51 @@ export function DrawingDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-slate-100 overflow-hidden">
-      <header className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between shrink-0 shadow-sm z-10">
-        <div className="flex items-center gap-4">
+    // ✅ h-dvh thay vì h-screen: tránh lệch chiều cao trên mobile do thanh địa chỉ trình duyệt co giãn
+    <div className="flex flex-col h-dvh bg-slate-100 overflow-hidden">
+      {/* ✅ header: cho phép wrap trên màn hình hẹp thay vì tràn ngang */}
+      <header className="bg-white border-b border-slate-200 px-3 sm:px-4 py-2.5 flex flex-wrap items-center justify-between gap-y-2 shrink-0 shadow-sm z-10">
+        {/* ✅ min-w-0 để phần tiêu đề có thể co lại và truncate thay vì đẩy tràn */}
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <Link
             to="/plan-drawing"
-            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors px-2 py-1 rounded-md hover:bg-slate-100"
+            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors px-2 py-1 rounded-md hover:bg-slate-100 shrink-0"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Bản vẽ
+            {/* ✅ ẩn chữ trên màn hình rất nhỏ, chỉ giữ icon mũi tên */}
+            <span className="hidden sm:inline">Bản vẽ</span>
           </Link>
-          <div className="h-4 w-px bg-slate-200" />
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-semibold text-slate-900 leading-tight">{drawing.title}</h1>
+          <div className="h-4 w-px bg-slate-200 shrink-0" />
+          {/* ✅ min-w-0 bắt buộc để truncate hoạt động bên trong flex item */}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              {/* ✅ truncate tiêu đề dài thay vì đẩy layout tràn ra ngoài */}
+              <h1 className="text-base font-semibold text-slate-900 leading-tight truncate max-w-[45vw] sm:max-w-xs">
+                {drawing.title}
+              </h1>
               {renderStatusBadge(drawing.status)}
             </div>
-            <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
-              <span>{drawing.version || 'Rev 1'}</span>
-              <span>•</span>
-              <span>{drawing.page_count || 1} trang</span>
+            <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5 truncate">
+              <span className="shrink-0">{drawing.version || 'Rev 1'}</span>
+              <span className="shrink-0">•</span>
+              <span className="shrink-0">{drawing.page_count || 1} trang</span>
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {drawing.status === 'approved_archived' && (
-            <span className="text-xs text-amber-700 bg-amber-50 px-3 py-1 rounded-md border border-amber-200">
-              🔒 Bản vẽ đã lưu trữ (Chỉ xem)
+            <span className="text-xs text-amber-700 bg-amber-50 px-3 py-1 rounded-md border border-amber-200 whitespace-nowrap">
+              🔒 <span className="hidden sm:inline">Bản vẽ đã lưu trữ (Chỉ xem)</span>
+              <span className="sm:hidden">Chỉ xem</span>
             </span>
           )}
         </div>
       </header>
 
-      <main className="flex-1 relative overflow-hidden bg-slate-200">
+      <main className="flex-1 relative overflow-hidden bg-slate-200 min-h-0">
         <DrawingViewer
           fileUrl={fileUrl}
           drawing={drawing}
