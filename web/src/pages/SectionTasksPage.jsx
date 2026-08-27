@@ -56,7 +56,9 @@ export function SectionTasksPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedIds, setSelectedIds] = useState(new Set())
+  const [lastSelectedId, setLastSelectedId] = useState(null) // Dùng cho Shift + Click
   const [bulkBusy, setBulkBusy] = useState(false)
+  const [bulkPercentInput, setBulkPercentInput] = useState(0) // Input % cho bulk update
 
   // Sorting
   const [sortKey, setSortKey] = useState('')
@@ -91,6 +93,7 @@ export function SectionTasksPage() {
   useEffect(() => {
     load()
     setSelectedIds(new Set())
+    setLastSelectedId(null)
   }, [sectionId, currentProject?.id, caps.canEditAssignedOnly, user?.id])
 
   const filtered = useMemo(() => {
@@ -162,18 +165,40 @@ export function SectionTasksPage() {
     return sortDir === 'asc' ? ' ▲' : ' ▼'
   }
 
-  function toggleSelect(id) {
+  // Xử lý chọn đơn lẻ hoặc Shift + Click chọn khoảng
+  function handleCheckboxClick(e, id, currentIndex) {
+    const isShift = e.shiftKey
     setSelectedIds((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (isShift && lastSelectedId != null) {
+        // Tìm index của item được chọn trước đó trong danh sách đang hiển thị (sorted)
+        const lastIndex = sorted.findIndex((t) => t.id === lastSelectedId)
+        if (lastIndex !== -1) {
+          const start = Math.min(lastIndex, currentIndex)
+          const end = Math.max(lastIndex, currentIndex)
+          // Đánh dấu chọn tất cả các phần tử nằm trong khoảng từ start đến end
+          for (let i = start; i <= end; i++) {
+            next.add(sorted[i].id)
+          }
+        } else {
+          if (next.has(id)) next.delete(id)
+          else next.add(id)
+        }
+      } else {
+        if (next.has(id)) next.delete(id)
+        else next.add(id)
+      }
       return next
     })
+    setLastSelectedId(id)
   }
 
   function toggleSelectAll() {
     setSelectedIds((prev) => {
-      if (prev.size === sorted.length && sorted.length > 0) return new Set()
+      if (prev.size === sorted.length && sorted.length > 0) {
+        setLastSelectedId(null)
+        return new Set()
+      }
       return new Set(sorted.map((t) => t.id))
     })
   }
@@ -257,7 +282,7 @@ export function SectionTasksPage() {
   async function bulkDelete() {
     if (!caps.canEditAllTasks || selectedIds.size === 0) return
     const ok = await confirm({
-      title: `Delete \( {selectedIds.size} Task \){selectedIds.size > 1 ? 's' : ''}?`,
+      title: `Delete ${selectedIds.size} Task${selectedIds.size > 1 ? 's' : ''}?`,
       message: 'The selected tasks will be permanently removed. This action cannot be undone.',
       confirmText: `Delete ${selectedIds.size} Tasks`,
       isDanger: true,
@@ -278,9 +303,10 @@ export function SectionTasksPage() {
         'Tasks Deleted',
         deleted < ids.length
           ? `Removed ${deleted} of ${ids.length} selected (some were blocked).`
-          : `\( {deleted} task \){deleted > 1 ? 's' : ''} removed.`
+          : `${deleted} task${deleted > 1 ? 's' : ''} removed.`
       )
       setSelectedIds(new Set())
+      setLastSelectedId(null)
       await load()
     } catch (err) {
       toast.error('Delete Failed', err.message || 'Bulk delete failed')
@@ -299,6 +325,7 @@ export function SectionTasksPage() {
         .in('id', [...selectedIds])
       if (err) throw err
       setSelectedIds(new Set())
+      setLastSelectedId(null)
       await load()
     } catch (err) {
       toast.error('Move Failed', err.message || 'Bulk move section failed')
@@ -319,6 +346,34 @@ export function SectionTasksPage() {
       await load()
     } catch (err) {
       toast.error('Assign Failed', err.message || 'Bulk assignment failed')
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
+  // Tính năng mới: Thay đổi % hoàn thành hàng loạt
+  async function bulkSetPercent(pct) {
+    if (selectedIds.size === 0) return
+    const numericPct = Math.min(Math.max(Number(pct) || 0, 0), caps.percentCap)
+    setBulkBusy(true)
+    try {
+      const ids = [...selectedIds]
+      // Lần lượt cập nhật trạng thái & timestamp đi kèm cho từng task để chuẩn logic hệ thống
+      for (const id of ids) {
+        const targetTask = tasks.find((t) => t.id === id)
+        if (!targetTask) continue
+
+        let patch = { percent_complete: numericPct }
+        patch = syncPercentAndStatus(patch, targetTask)
+        patch = withCompletionTimestamps(patch, targetTask)
+
+        await supabase.from('tasks').update(patch).eq('id', id)
+      }
+
+      toast.success('Updated % Done', `Successfully updated ${ids.length} tasks to ${numericPct}%.`)
+      await load()
+    } catch (err) {
+      toast.error('Update Failed', err.message || 'Bulk percent update failed')
     } finally {
       setBulkBusy(false)
     }
@@ -409,58 +464,90 @@ export function SectionTasksPage() {
         </p>
       </div>
 
-      {/* Bulk actions toolbar */}
-      {caps.canEditAllTasks && selectedIds.size > 0 && (
-        <div className="pm-bulk-toolbar">
+      {/* Bulk actions toolbar - Thêm chức năng chỉnh sửa % hàng loạt */}
+      {selectedIds.size > 0 && (
+        <div className="pm-bulk-toolbar" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <span className="pm-bulk-count">{selectedIds.size} selected</span>
 
-          <select
-            defaultValue=""
-            disabled={bulkBusy}
-            onChange={(e) => {
-              bulkMoveSection(e.target.value)
-              e.target.value = ''
-            }}
-            style={{ height: '28px', fontSize: '12px' }}
-          >
-            <option value="" disabled>Move to section…</option>
-            {sections
-              .filter((s) => s.id !== sectionId)
-              .map((s) => (
-                <option key={s.id} value={s.id}>
-                  {displaySectionName(s.header_name)}
-                </option>
-              ))}
-          </select>
+          {caps.canEditAllTasks && (
+            <>
+              <select
+                defaultValue=""
+                disabled={bulkBusy}
+                onChange={(e) => {
+                  bulkMoveSection(e.target.value)
+                  e.target.value = ''
+                }}
+                style={{ height: '28px', fontSize: '12px' }}
+              >
+                <option value="" disabled>Move to section…</option>
+                {sections
+                  .filter((s) => s.id !== sectionId)
+                  .map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {displaySectionName(s.header_name)}
+                    </option>
+                  ))}
+              </select>
 
-          <select
-            defaultValue=""
-            disabled={bulkBusy}
-            onChange={(e) => {
-              bulkSetAssignee(e.target.value)
-              e.target.value = ''
-            }}
-            style={{ height: '28px', fontSize: '12px' }}
-          >
-            <option value="" disabled>Assign engineer…</option>
-            <option value="">— Unassigned —</option>
-            {profiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.display_name || p.email}
-              </option>
-            ))}
-          </select>
+              <select
+                defaultValue=""
+                disabled={bulkBusy}
+                onChange={(e) => {
+                  bulkSetAssignee(e.target.value)
+                  e.target.value = ''
+                }}
+                style={{ height: '28px', fontSize: '12px' }}
+              >
+                <option value="" disabled>Assign engineer…</option>
+                <option value="">— Unassigned —</option>
+                {profiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.display_name || p.email}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
 
-          <button type="button" className="pm-btn danger tiny" disabled={bulkBusy} onClick={bulkDelete}>
-            <IconTrash size={12} />
-            <span>{bulkBusy ? 'Deleting…' : `Delete (${selectedIds.size})`}</span>
-          </button>
+          {/* Cụm chỉnh sửa % hàng loạt */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <input
+              type="number"
+              min={0}
+              max={caps.percentCap}
+              value={bulkPercentInput}
+              onChange={(e) => setBulkPercentInput(e.target.value)}
+              style={{ width: '55px', height: '28px', fontSize: '12px', textAlign: 'center' }}
+              placeholder="%"
+              disabled={bulkBusy}
+            />
+            <button
+              type="button"
+              className="pm-btn secondary tiny"
+              disabled={bulkBusy}
+              onClick={() => bulkSetPercent(bulkPercentInput)}
+              title="Set % Done for selected tasks"
+            >
+              Set %
+            </button>
+          </div>
+
+          {caps.canEditAllTasks && (
+            <button type="button" className="pm-btn danger tiny" disabled={bulkBusy} onClick={bulkDelete}>
+              <IconTrash size={12} />
+              <span>{bulkBusy ? 'Deleting…' : `Delete (${selectedIds.size})`}</span>
+            </button>
+          )}
 
           <button
             type="button"
             className="pm-btn ghost tiny"
             disabled={bulkBusy}
-            onClick={() => setSelectedIds(new Set())}
+            onClick={() => {
+              setSelectedIds(new Set())
+              setLastSelectedId(null)
+            }}
           >
             Clear
           </button>
@@ -525,7 +612,7 @@ export function SectionTasksPage() {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((t) => {
+              {sorted.map((t, index) => {
                 const canEdit =
                   caps.canEditAllTasks || (caps.canEditAssignedOnly && t.assignee_id === user.id)
                 return (
@@ -535,7 +622,8 @@ export function SectionTasksPage() {
                         type="checkbox"
                         className="pm-checkbox-circle"
                         checked={selectedIds.has(t.id)}
-                        onChange={() => toggleSelect(t.id)}
+                        onClick={(e) => handleCheckboxClick(e, t.id, index)}
+                        onChange={() => {}} // Ngăn warning React vì đã xử lý qua onClick để nhận sự kiện Shift
                       />
                     </td>
                     <td>
@@ -870,59 +958,7 @@ export function SectionTasksPage() {
             </select>
           </div>
         )}
-
-        {/* Status filter - multi select */}
-        <div className="pm-drawer-section">
-          <div className="pm-drawer-section-title">Status</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            <button
-              type="button"
-              className={`pill-btn ${filterStatus.size === 0 ? 'active' : ''}`}
-              onClick={() => setFilterStatus(new Set())}
-            >
-              All
-            </button>
-            {STATUSES.map((s) => {
-              const isActive = filterStatus.has(s)
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  className={`pill-btn ${isActive ? 'active' : ''}`}
-                  onClick={() => {
-                    setFilterStatus((prev) => {
-                      const next = new Set(prev)
-                      if (next.has(s)) next.delete(s)
-                      else next.add(s)
-                      return next
-                    })
-                  }}
-                >
-                  {s}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        <div style={{ marginTop: 'auto', padding: '12px', background: 'var(--bg)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
-          <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink-primary)', fontVariantNumeric: 'tabular-nums' }}>
-            {sorted.length}
-          </div>
-          <div className="muted" style={{ fontSize: '11.5px' }}>of {tasks.length} tasks match</div>
-        </div>
       </RightDrawer>
-
-      {viewPerson ? (
-        <TeamProfileModal
-          person={viewPerson}
-          onClose={() => setViewPerson(null)}
-          onPersonUpdated={(updated) => {
-            setProfiles((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)))
-            setViewPerson(updated)
-          }}
-        />
-      ) : null}
     </div>
   )
-    }
+}
