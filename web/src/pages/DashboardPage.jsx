@@ -73,8 +73,11 @@ export function DashboardPage() {
   // Controls & Filters
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL') // ALL | IN_PROGRESS | COMPLETED | ATTENTION
-  const [sortBy, setSortBy] = useState('PROGRESS_DESC') // PROGRESS_DESC | PROGRESS_ASC | TASKS_DESC | SHIP_ID | DEADLINE
+  const [sortBy, setSortBy] = useState('MANUAL') // MANUAL | PROGRESS_DESC | PROGRESS_ASC | TASKS_DESC | SHIP_ID | DEADLINE
   const [viewMode, setViewMode] = useState('overview') // overview | matrix | benchmark | compare
+  const [showHiddenVessels, setShowHiddenVessels] = useState(false)
+  const [draggedVesselId, setDraggedVesselId] = useState(null)
+  const [savingOrder, setSavingOrder] = useState(false)
 
   // Side-by-side comparison selection (IDs of vessels to compare)
   const [selectedForCompare, setSelectedForCompare] = useState([])
@@ -89,7 +92,7 @@ export function DashboardPage() {
       setError('')
       const { data: projects, error: pErr } = await supabase
         .from('projects')
-        .select('id, name, ship_id, department, status, start_date, end_date, created_at, ship_leader_id, owner_id, group_weights')
+        .select('id, name, ship_id, department, status, start_date, end_date, created_at, ship_leader_id, owner_id, group_weights, display_order, directory_hidden')
         .order('created_at', { ascending: false })
 
       if (pErr) throw pErr
@@ -197,6 +200,8 @@ export function DashboardPage() {
           endDate: calcEnd,
           durationDays,
           rawProject: p,
+          displayOrder: Number.isFinite(Number(p.display_order)) ? Number(p.display_order) : null,
+          directoryHidden: Boolean(p.directory_hidden),
         }
       })
 
@@ -322,7 +327,17 @@ export function DashboardPage() {
       list = list.filter((v) => v.overdueCount > 0 || v.pendingReviewCount > 0)
     }
 
+    // Manual order is the default directory order. Hidden vessels stay out of the
+    // normal directory but remain in vesselDataList so fleet KPIs are unaffected.
+    list = list.filter((v) => showHiddenVessels || !v.directoryHidden)
+
     list.sort((a, b) => {
+      if (sortBy === 'MANUAL') {
+        const ao = a.displayOrder ?? Number.MAX_SAFE_INTEGER
+        const bo = b.displayOrder ?? Number.MAX_SAFE_INTEGER
+        if (ao !== bo) return ao - bo
+        return a.ship_id.localeCompare(b.ship_id)
+      }
       if (sortBy === 'PROGRESS_DESC') return b.overallProgress - a.overallProgress
       if (sortBy === 'PROGRESS_ASC') return a.overallProgress - b.overallProgress
       if (sortBy === 'TASKS_DESC') return b.totalTasks - a.totalTasks
@@ -336,7 +351,116 @@ export function DashboardPage() {
     })
 
     return list
-  }, [vesselDataList, searchTerm, statusFilter, sortBy])
+  }, [vesselDataList, searchTerm, statusFilter, sortBy, showHiddenVessels])
+
+  const hiddenVesselCount = useMemo(
+    () => vesselDataList.filter((v) => v.directoryHidden).length,
+    [vesselDataList]
+  )
+
+  function handleDragStart(event, vesselId) {
+    if (sortBy !== 'MANUAL') return
+    setDraggedVesselId(vesselId)
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', vesselId)
+  }
+
+  function handleDragOver(event) {
+    if (sortBy !== 'MANUAL' || !draggedVesselId) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+  }
+
+  async function handleDrop(event, targetVesselId) {
+    event.preventDefault()
+    if (sortBy !== 'MANUAL' || !draggedVesselId || draggedVesselId === targetVesselId) {
+      setDraggedVesselId(null)
+      return
+    }
+
+    // Reorder against the complete non-hidden directory sequence, not only the
+    // currently filtered cards. This prevents Search/Status filters from corrupting
+    // the saved manual order.
+    const manualIds = vesselDataList
+      .filter((v) => !v.directoryHidden)
+      .sort((a, b) => {
+        const ao = a.displayOrder ?? Number.MAX_SAFE_INTEGER
+        const bo = b.displayOrder ?? Number.MAX_SAFE_INTEGER
+        if (ao !== bo) return ao - bo
+        return a.ship_id.localeCompare(b.ship_id)
+      })
+      .map((v) => v.id)
+
+    const fromIndex = manualIds.indexOf(draggedVesselId)
+    const toIndex = manualIds.indexOf(targetVesselId)
+    if (fromIndex < 0 || toIndex < 0) {
+      setDraggedVesselId(null)
+      return
+    }
+
+    const reorderedIds = [...manualIds]
+    const [movedId] = reorderedIds.splice(fromIndex, 1)
+    reorderedIds.splice(toIndex, 0, movedId)
+
+    const visibleOrderMap = new Map(reorderedIds.map((id, index) => [id, index]))
+    const nextList = vesselDataList.map((v) =>
+      visibleOrderMap.has(v.id) ? { ...v, displayOrder: visibleOrderMap.get(v.id) } : v
+    )
+
+    setVesselDataList(nextList)
+    setDraggedVesselId(null)
+    setSavingOrder(true)
+
+    try {
+      await Promise.all(
+        reorderedIds.map((id, index) =>
+          supabase.from('projects').update({ display_order: index }).eq('id', id)
+        )
+      )
+    } catch (err) {
+      setError(err.message || 'Unable to save vessel directory order')
+      await loadAllVesselsData()
+    } finally {
+      setSavingOrder(false)
+    }
+  }
+
+  async function toggleVesselHidden(vesselId) {
+    const vessel = vesselDataList.find((v) => v.id === vesselId)
+    if (!vessel) return
+
+    const nextHidden = !vessel.directoryHidden
+    setVesselDataList((prev) =>
+      prev.map((v) => (v.id === vesselId ? { ...v, directoryHidden: nextHidden } : v))
+    )
+
+    const { error: updateError } = await supabase
+      .from('projects')
+      .update({ directory_hidden: nextHidden })
+      .eq('id', vesselId)
+
+    if (updateError) {
+      setError(updateError.message || 'Unable to save vessel visibility')
+      setVesselDataList((prev) =>
+        prev.map((v) => (v.id === vesselId ? { ...v, directoryHidden: !nextHidden } : v))
+      )
+    }
+  }
+
+  async function showAllHiddenVessels() {
+    const hiddenIds = vesselDataList.filter((v) => v.directoryHidden).map((v) => v.id)
+    if (hiddenIds.length === 0) return
+
+    setVesselDataList((prev) => prev.map((v) => ({ ...v, directoryHidden: false })))
+    const results = await Promise.all(
+      hiddenIds.map((id) => supabase.from('projects').update({ directory_hidden: false }).eq('id', id))
+    )
+    const failed = results.find((result) => result.error)
+    if (failed?.error) {
+      setError(failed.error.message || 'Unable to restore hidden vessels')
+      await loadAllVesselsData()
+    }
+  }
 
   function toggleCompareSelection(id) {
     if (!selectedForCompare.includes(id) && selectedForCompare.length >= 4) {
@@ -516,6 +640,20 @@ export function DashboardPage() {
             </div>
 
             <div className="dash-filters-group">
+              <button
+                type="button"
+                className={`pill-btn ${showHiddenVessels ? 'active' : ''}`}
+                onClick={() => setShowHiddenVessels((prev) => !prev)}
+                title="Show or hide vessels marked hidden in the directory"
+              >
+                {showHiddenVessels ? '◉ Showing Hidden' : `◌ Hidden (${hiddenVesselCount})`}
+              </button>
+              {hiddenVesselCount > 0 && showHiddenVessels ? (
+                <button type="button" className="pill-btn" onClick={showAllHiddenVessels}>
+                  Show All
+                </button>
+              ) : null}
+
               <div className="dash-search-wrap">
                 <IconSearch size={14} className="search-icon" />
                 <input
@@ -563,6 +701,7 @@ export function DashboardPage() {
                 onChange={(e) => setSortBy(e.target.value)}
                 style={{ height: '30px', fontSize: '12px' }}
               >
+                <option value="MANUAL">Manual Card Order ↕</option>
                 <option value="PROGRESS_DESC">Progress: High → Low</option>
                 <option value="PROGRESS_ASC">Progress: Low → High</option>
                 <option value="TASKS_DESC">Workload: Most Tasks</option>
@@ -608,21 +747,42 @@ export function DashboardPage() {
                   {filteredAndSortedVessels.map((v) => {
                     const isSelected = selectedForCompare.includes(v.id)
                     return (
-                      <div key={v.id} className="vessel-executive-card">
+                      <div
+                        key={v.id}
+                        className={`vessel-executive-card ${draggedVesselId === v.id ? 'is-dragging' : ''}`}
+                        style={{ cursor: sortBy === 'MANUAL' ? 'grab' : 'default', opacity: draggedVesselId === v.id ? 0.55 : 1 }}
+                        draggable={sortBy === 'MANUAL'}
+                        onDragStart={(event) => handleDragStart(event, v.id)}
+                        onDragOver={handleDragOver}
+                        onDrop={(event) => handleDrop(event, v.id)}
+                        onDragEnd={() => setDraggedVesselId(null)}
+                      >
                         <div className="v-card-top">
                           <div className="v-card-title">
                             <span className="v-dept-badge">{v.department}</span>
                             <h4>Vessel {v.ship_id}</h4>
                           </div>
 
-                          <button
-                            type="button"
-                            className={`pm-btn tiny ${isSelected ? 'primary' : 'ghost'}`}
-                            onClick={() => toggleCompareSelection(v.id)}
-                            title={isSelected ? 'Remove from comparator' : 'Add to side-by-side comparison'}
-                          >
-                            {isSelected ? '✓ Selected' : '+ Compare'}
-                          </button>
+                          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              className="pm-btn tiny ghost"
+                              onClick={() => toggleVesselHidden(v.id)}
+                              title={v.directoryHidden ? 'Show vessel in directory' : 'Hide vessel from directory'}
+                              draggable={false}
+                            >
+                              {v.directoryHidden ? '◉ Show' : '◌ Hide'}
+                            </button>
+                            <button
+                              type="button"
+                              className={`pm-btn tiny ${isSelected ? 'primary' : 'ghost'}`}
+                              onClick={() => toggleCompareSelection(v.id)}
+                              title={isSelected ? 'Remove from comparator' : 'Add to side-by-side comparison'}
+                              draggable={false}
+                            >
+                              {isSelected ? '✓ Selected' : '+ Compare'}
+                            </button>
+                          </div>
                         </div>
 
                         <div className="v-card-body">
