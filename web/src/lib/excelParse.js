@@ -363,7 +363,21 @@ function mapMtoColumns(headerRow) {
   headerRow.forEach((raw, idx) => {
     const h = normHeader(raw)
     if (!h) return
-    if (cols.docsNo == null && h.includes('docs no')) cols.docsNo = idx
+
+    // Cột số thứ tự (No / STT) — dùng để lọc dòng nhiễu giống 3D
+    if (
+      cols.no == null &&
+      (h === 'no' ||
+        h === 'no.' ||
+        h === '#' ||
+        h === 'stt' ||
+        h === 'nr' ||
+        h === 'row' ||
+        h === 'row no' ||
+        h === 'row no.')
+    ) {
+      cols.no = idx
+    } else if (cols.docsNo == null && h.includes('docs no')) cols.docsNo = idx
     else if (cols.description == null && h === 'description') cols.description = idx
     else if (cols.fileName == null && h.includes('file name')) cols.fileName = idx
     else if (cols.pic == null && h === 'pic') cols.pic = idx
@@ -377,18 +391,59 @@ function mapMtoColumns(headerRow) {
   return cols
 }
 
+/**
+ * Lọc dòng MTO nghiêm ngặt hơn (tinh thần giống isNumberedDataRow của 3D).
+ * - Có cột No → bắt buộc phải là số hợp lệ.
+ * - Không có cột No → vẫn lấy theo Docs No, nhưng loại các dòng nhiễu phổ biến.
+ */
+function isMtoDataRow(row, cols) {
+  const docsNo = String(cell(row, cols.docsNo)).trim()
+  if (!docsNo) return false
+
+  // Nếu có cột số thứ tự → bắt buộc phải đánh số (giống 3D)
+  if (cols.no != null) {
+    return isRowNumberValue(cell(row, cols.no))
+  }
+
+  // Fallback khi không có cột No: loại các từ khóa nhiễu thường gặp ở cuối sheet
+  const lower = docsNo.toLowerCase()
+  const noiseKeywords = [
+    'total',
+    'sum',
+    'note',
+    'remark',
+    'ghi chú',
+    'tong',
+    'tổng',
+    'summary',
+    'end',
+    'kết thúc',
+  ]
+  if (noiseKeywords.some((k) => lower.includes(k))) return false
+
+  // Docs No quá ngắn hoặc chỉ toàn ký tự đặc biệt cũng bỏ
+  if (docsNo.length < 2) return false
+
+  return true
+}
+
 function parseMtoSheet(wb, sheetName) {
   const matrix = sheetToMatrix(wb.Sheets[sheetName])
   const found = findHeader(matrix, mapMtoColumns, (c) => c.docsNo != null && c.pic != null)
   if (!found) return []
   const { headerRowIdx, cols } = found
   const rows = []
+
   for (let r = headerRowIdx + 1; r < matrix.length; r++) {
     const row = matrix[r]
     if (!row || row.every((c) => String(c).trim() === '')) continue
+
+    // Chỉ nhận dòng dữ liệu thật (siết chặt giống 3D)
+    if (!isMtoDataRow(row, cols)) continue
+
     const docsNo = String(cell(row, cols.docsNo)).trim()
-    if (!docsNo) continue
     const picRaw = resolveAbbrev(cell(row, cols.pic))
+
     rows.push({
       drawingId: docsNo, // Docs No dùng làm khóa khớp, giống drawing_id
       activity: String(cell(row, cols.description)).trim(),
