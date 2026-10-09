@@ -238,8 +238,8 @@ export function AppShell() {
             </div>
 
             <div className="pm-header-title">
-              <h1>Progress Management</h1>
-              <span className="subtitle">Pipe and Machinery Manager</span>
+              <h1>VARD Marine Operations</h1>
+              <span className="subtitle">Pipe and Machinery Engineering Suite</span>
             </div>
           </div>
 
