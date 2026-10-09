@@ -324,7 +324,7 @@ export function SCurveChart({
   actual = [],
   height = 260,
   planColor = '#64748b',
-  actualColor = '#0d9488',
+  actualColor = '#00f0ff',
 }) {
   const n = days.length
   if (!n) {
@@ -437,7 +437,7 @@ export function DualDailyBars({ days = [], plan = [], actual = [], height = 160,
               style={{
                 width: 8,
                 height: `${(it.actual / max) * 100}%`,
-                background: '#0d9488',
+                background: 'var(--secondary, #00f0ff)',
                 borderRadius: '3px 3px 0 0',
                 minHeight: it.actual ? 2 : 0,
               }}
