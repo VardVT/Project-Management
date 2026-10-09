@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useProject } from '../hooks/useProject'
 import { supabase } from '../lib/supabase'
@@ -14,7 +14,7 @@ import { applyEngineeringPlansImport, mergeAliasSectionsToCanonical } from '../l
 import { applyPicPercentImport } from '../lib/excelImport'
 import { applyPipingVtSectionMapping } from '../lib/pipingVtMapping'
 import { downloadReportXlsx } from '../lib/exportReport'
-import { IconUpload, IconMap, IconRefresh, IconDownload } from './Icons'
+import { IconUpload, IconMap, IconRefresh, IconDownload, IconChevronDown } from './Icons'
 import { useNotification } from './NotificationContext'
 import { SyncSheetPickerModal } from './SyncSheetPickerModal'
 
@@ -24,8 +24,23 @@ export function ExcelToolbar() {
   const { toast } = useNotification()
   const plansRef = useRef(null)
   const percentRef = useRef(null)
+  const dropdownRef = useRef(null)
   const [busy, setBusy] = useState('')
   const [syncPicker, setSyncPicker] = useState(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleOutsideClick(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setMenuOpen(false)
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleOutsideClick)
+      return () => document.removeEventListener('mousedown', handleOutsideClick)
+    }
+  }, [menuOpen])
 
   async function onPlansFile(e) {
     const file = e.target.files?.[0]
@@ -215,59 +230,105 @@ export function ExcelToolbar() {
 
   return (
     <>
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-      {caps.canImportExcel && (
-        <>
-          <input ref={plansRef} type="file" accept=".xlsx,.xls" hidden onChange={onPlansFile} />
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+        {caps.canImportExcel && (
+          <div ref={dropdownRef} style={{ position: 'relative' }}>
+            <input ref={plansRef} type="file" accept=".xlsx,.xls" hidden onChange={onPlansFile} />
+            <input ref={percentRef} type="file" accept=".xlsx,.xls,.xlsm" hidden onChange={onPercentFile} />
+
+            <button
+              type="button"
+              className="pm-btn secondary"
+              disabled={!!busy}
+              onClick={() => setMenuOpen((o) => !o)}
+              title="Batch and Engineering Plan Operations"
+              style={{
+                borderColor: menuOpen ? 'var(--secondary)' : undefined,
+                color: menuOpen ? 'var(--secondary)' : undefined,
+              }}
+            >
+              <IconMap size={14} />
+              <span>{busy ? `${busy.toUpperCase()}…` : 'Operations'}</span>
+              <IconChevronDown size={13} style={{ transform: menuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+            </button>
+
+            {menuOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 4px)',
+                  left: 0,
+                  minWidth: '220px',
+                  background: '#111823',
+                  border: '1px solid var(--border-strong)',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.7)',
+                  borderRadius: 'var(--radius-xs)',
+                  padding: '4px',
+                  zIndex: 40,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                }}
+              >
+                <button
+                  type="button"
+                  className="pm-menu-item"
+                  style={{ fontSize: '12px', padding: '7px 10px' }}
+                  onClick={() => {
+                    setMenuOpen(false)
+                    plansRef.current?.click()
+                  }}
+                  title="Import Engineering Plans (WBS + Activities + Drawings)"
+                >
+                  <IconUpload size={14} />
+                  <span>Import Engineering Plans</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="pm-menu-item"
+                  style={{ fontSize: '12px', padding: '7px 10px' }}
+                  onClick={() => {
+                    setMenuOpen(false)
+                    onMapping()
+                  }}
+                  title="Auto-map Piping VT tasks into 4 technical sections"
+                >
+                  <IconMap size={14} />
+                  <span>Route Technical Sections</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="pm-menu-item"
+                  style={{ fontSize: '12px', padding: '7px 10px' }}
+                  onClick={() => {
+                    setMenuOpen(false)
+                    percentRef.current?.click()
+                  }}
+                  title="Sync % progress and engineer assignments from 01/02/03/04 sheets"
+                >
+                  <IconRefresh size={14} />
+                  <span>Sync % Progress / PIC</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {caps.canExportReport && (
           <button
             type="button"
-            className="pm-btn secondary"
-            disabled={!!busy}
-            onClick={() => plansRef.current?.click()}
-            title="Import Engineering Plans (WBS + Activities + Drawings)"
+            className="pm-btn success"
+            disabled={!!busy || !currentProject?.id}
+            onClick={onExportReport}
+            title="Export 4 raw data sheets (01/02/03/04) to Excel"
           >
-            <IconUpload size={14} />
-            <span>{busy === 'import' ? 'Importing…' : 'Import Plans'}</span>
+            <IconDownload size={14} />
+            <span>{busy === 'export' ? 'Exporting…' : 'Export'}</span>
           </button>
-
-          <button
-            type="button"
-            className="pm-btn secondary"
-            disabled={!!busy}
-            onClick={onMapping}
-            title="Auto-map Piping VT tasks into 4 technical sections"
-          >
-            <IconMap size={14} />
-            <span>{busy === 'map' ? 'Mapping…' : 'Route Sections'}</span>
-          </button>
-
-          <input ref={percentRef} type="file" accept=".xlsx,.xls,.xlsm" hidden onChange={onPercentFile} />
-          <button
-            type="button"
-            className="pm-btn secondary"
-            disabled={!!busy}
-            onClick={() => percentRef.current?.click()}
-            title="Sync % progress and engineer assignments from 01/02/03/04 sheets"
-          >
-            <IconRefresh size={14} />
-            <span>{busy === 'percent' ? 'Syncing…' : 'Sync % / PIC'}</span>
-          </button>
-        </>
-      )}
-
-      {caps.canExportReport && (
-        <button
-          type="button"
-          className="pm-btn success"
-          disabled={!!busy || !currentProject?.id}
-          onClick={onExportReport}
-          title="Export 4 raw data sheets (01/02/03/04) to Excel"
-        >
-          <IconDownload size={14} />
-          <span>{busy === 'export' ? 'Exporting…' : 'Export Excel'}</span>
-        </button>
-      )}
-    </div>
+        )}
+      </div>
 
     {syncPicker && (
       <SyncSheetPickerModal
