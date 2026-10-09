@@ -849,9 +849,9 @@ select,
 textarea {
   height: 32px;
   padding: 0 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  background: #090f18;
+  background: #ffffff;
   color: var(--ink-primary);
   font-size: 13px;
   outline: none;
@@ -1006,23 +1006,24 @@ label {
 }
 
 .pm-table tbody tr {
-  transition: background 0.1s ease;
+  /* Clean static rows without disruptive hover background */
 }
 
 .pm-table tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.015);
+  background: #fbfcfd;
 }
 
+/* Remove hover background entirely per user instruction to prevent eye strain */
 .pm-table tbody tr:hover {
-  background: #16202e !important;
+  background: transparent !important;
 }
 
 .pm-table tbody tr.pending {
-  background: rgba(247, 127, 0, 0.1) !important;
+  background: #fff8eb !important;
 }
 
 .pm-table tbody tr.row-selected {
-  background: rgba(0, 240, 255, 0.12) !important;
+  background: #e6faff !important;
 }
 
 /* In-table Inputs & Selects */
@@ -1042,14 +1043,14 @@ label {
 
 .pm-table input:hover,
 .pm-table select:hover {
-  border-color: var(--border);
-  background: #090f18;
+  border-color: var(--border-default);
+  background: transparent;
 }
 
 .pm-table input:focus,
 .pm-table select:focus {
-  border-color: var(--secondary);
-  background: #090f18;
+  border-color: var(--primary);
+  background: #ffffff;
 }
 
 .pm-table input:disabled,
