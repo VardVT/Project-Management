@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth, useProject, useNotification, displaySectionName, VesselProject } from './context/AppContext';
-import { NewProjectModal } from './components/NewProjectModal';
-import { ExcelToolbar } from './components/ExcelToolbar';
-import { ProfileModal } from './components/ProfileModal';
-import { UserAvatar } from './components/UserAvatar';
+import { useState, useEffect } from 'react'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { useAuth, useProject, useNotification, displaySectionName } from './context/AppContext'
+import { NewProjectModal } from './components/NewProjectModal'
+import { ExcelToolbar } from './components/ExcelToolbar'
+import { ProfileModal } from './components/ProfileModal'
+import { UserAvatar } from './components/UserAvatar'
 import {
   IconDashboard,
   IconVessel,
@@ -24,106 +24,102 @@ import {
   IconSearch,
   IconSettings,
   IconStar,
-} from './components/Icons';
+} from './components/Icons'
 
 export function AppShell() {
-  const { profile, user, caps, signOut } = useAuth();
-  const { currentProject, projects, sections, selectProject, deleteProject } = useProject();
-  const { confirm, toast } = useNotification();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { profile, user, caps, signOut } = useAuth()
+  const { currentProject, projects, sections, selectProject, deleteProject } = useProject()
+  const { confirm, toast } = useNotification()
+  const navigate = useNavigate()
+  const location = useLocation()
 
-  // Initial expand Vessel 1005 to match the design screenshot
-  const [expandedVessels, setExpandedVessels] = useState<Set<string>>(new Set(['1005']));
-  const [taskOpen, setTaskOpen] = useState<boolean>(true);
-  const [showNew, setShowNew] = useState<boolean>(false);
-  const [showProfile, setShowProfile] = useState<boolean>(false);
-  const [deleting, setDeleting] = useState<boolean>(false);
-  const [switching, setSwitching] = useState<string | null>(null);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
-  const [filterQuery, setFilterQuery] = useState<string>('');
-  const [showVesselDropdown, setShowVesselDropdown] = useState<boolean>(false);
+  // Mặc định mở rộng Vessel 1005 để khớp với giao diện mẫu
+  const [expandedVessels, setExpandedVessels] = useState(new Set(['1005']))
+  const [taskOpen, setTaskOpen] = useState(true)
+  const [showNew, setShowNew] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [switching, setSwitching] = useState(null)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [filterQuery, setFilterQuery] = useState('')
+  const [showVesselDropdown, setShowVesselDropdown] = useState(false)
 
-  const name = profile?.display_name || user?.email?.split('@')[0] || 'Phan Trọng Khôi';
-  const ship = currentProject?.ship_id || currentProject?.name || '1001';
-  const dept = currentProject?.department || 'Piping';
+  const name = profile?.display_name || user?.email?.split('@')[0] || 'Phan Trọng Khôi'
+  const ship = currentProject?.ship_id || currentProject?.name || '1001'
+  const dept = currentProject?.department || 'Piping'
 
-  // Keyboard shortcut listener for collapse [ and search Cmd+K
+  // Phím tắt '[' để thu gọn/mở rộng sidebar
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === '[' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
-        e.preventDefault();
-        setIsSidebarCollapsed((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, []);
-
-  function toggleVessel(id: string) {
-    setExpandedVessels((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  async function ensureCurrentThen(vessel: VesselProject, after: () => void) {
-    if (currentProject?.id !== vessel.id) {
-      setSwitching(vessel.id);
-      try {
-        await selectProject(vessel);
-      } finally {
-        setSwitching(null);
+    function handleKey(e) {
+      if (e.key === '[' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+        e.preventDefault()
+        setIsSidebarCollapsed((prev) => !prev)
       }
     }
-    after();
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [])
+
+  function toggleVessel(id) {
+    setExpandedVessels((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
-  async function onClickTask(vessel: VesselProject) {
-    setExpandedVessels((prev) => new Set(prev).add(vessel.id));
-    await ensureCurrentThen(vessel, () => setTaskOpen(true));
+  async function ensureCurrentThen(vessel, after) {
+    if (currentProject?.id !== vessel.id) {
+      setSwitching(vessel.id)
+      try {
+        await selectProject(vessel)
+      } finally {
+        setSwitching(null)
+      }
+    }
+    after()
   }
 
-  async function onClickSummary(vessel: VesselProject) {
-    await ensureCurrentThen(vessel, () => navigate('/summary'));
+  async function onClickTask(vessel) {
+    setExpandedVessels((prev) => new Set(prev).add(vessel.id))
+    await ensureCurrentThen(vessel, () => setTaskOpen(true))
+  }
+
+  async function onClickSummary(vessel) {
+    await ensureCurrentThen(vessel, () => navigate('/summary'))
   }
 
   async function onDeleteProject() {
-    if (!currentProject?.id || !caps.canDeleteProject) return;
-    const label = currentProject.ship_id || currentProject.name || 'this vessel';
+    if (!currentProject?.id || !caps.canDeleteProject) return
+    const label = currentProject.ship_id || currentProject.name || 'this vessel'
     const ok = await confirm({
       title: `Delete Vessel ${label}?`,
-      message:
-        'All sections, drawings, and engineering tasks will be permanently removed. This action cannot be undone.',
+      message: 'All sections, drawings, and engineering tasks will be permanently removed. This action cannot be undone.',
       confirmText: 'Delete Vessel',
       isDanger: true,
-    });
-    if (!ok) return;
-    setDeleting(true);
+    })
+    if (!ok) return
+    setDeleting(true)
     try {
-      await deleteProject(currentProject.id);
-      navigate('/dashboard');
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to delete vessel';
-      toast.error('Delete Failed', message);
+      await deleteProject(currentProject.id)
+      navigate('/dashboard')
+    } catch (err) {
+      toast.error('Delete Failed', err?.message || 'Failed to delete vessel')
     } finally {
-      setDeleting(false);
+      setDeleting(false)
     }
   }
 
-  // Filtered vessel list for sidebar search
+  // Lọc tàu theo ô tìm kiếm
   const filteredProjects = projects.filter((v) =>
     (v.name || v.ship_id).toLowerCase().includes(filterQuery.toLowerCase())
-  );
+  )
 
-  const starredProjects = projects.filter((v) => v.starred);
+  const starredProjects = projects.filter((v) => v.starred)
 
   return (
-    <div
-      className={`pm-app shell-${caps.shell} flex h-screen w-screen overflow-hidden text-[13px] bg-[#FAFBFC] text-[#172B4D] antialiased select-none`}
-    >
+    <div className={`pm-app shell-${caps?.shell || 'admin'} flex h-screen w-screen overflow-hidden text-[13px] bg-[#FAFBFC] text-[#172B4D] antialiased select-none`}>
       {/* SIDEBAR */}
       <aside
         className={`pm-sidebar ${
@@ -152,8 +148,8 @@ export function AppShell() {
                   <div className="pm-user-name font-semibold text-[#172B4D] text-xs truncate" title={name}>
                     {name}
                   </div>
-                  <div className="pm-role-badge inline-block text-[10px] font-medium text-[#626F86]">
-                    {caps.label || 'Admin · Fleet Lead'}
+                  <div className={`pm-role-badge role-${caps?.shell} inline-block text-[10px] font-medium text-[#626F86]`}>
+                    {caps?.label || 'Admin · Fleet Lead'}
                   </div>
                 </div>
               </button>
@@ -184,7 +180,7 @@ export function AppShell() {
                 <IconChevronDown size={13} className="text-[#626F86] group-hover:text-[#172B4D] shrink-0" />
               </button>
 
-              {/* Quick switcher menu */}
+              {/* Quick switcher flyout */}
               {showVesselDropdown && (
                 <div className="absolute left-3 right-3 top-10 bg-white border border-[#DFE1E6] rounded-md shadow-lg z-50 py-1 max-h-52 overflow-y-auto">
                   <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#626F86]">
@@ -195,8 +191,8 @@ export function AppShell() {
                       key={`switch-${v.id}`}
                       type="button"
                       onClick={() => {
-                        selectProject(v);
-                        setShowVesselDropdown(false);
+                        selectProject(v)
+                        setShowVesselDropdown(false)
                       }}
                       className={`w-full px-2.5 py-1.5 text-left text-xs flex items-center justify-between hover:bg-[#F4F5F7] cursor-pointer ${
                         currentProject?.id === v.id ? 'bg-[#E9F2FF] font-semibold text-[#0052CC]' : ''
@@ -237,7 +233,7 @@ export function AppShell() {
                   Overview
                 </div>
                 <div className="space-y-0.5 mt-0.5">
-                  {caps.showDashboard && (
+                  {caps?.showDashboard && (
                     <NavLink
                       to="/dashboard"
                       className={({ isActive }) =>
@@ -285,8 +281,8 @@ export function AppShell() {
                         key={`star-${v.id}`}
                         type="button"
                         onClick={() => {
-                          selectProject(v);
-                          navigate('/dashboard');
+                          selectProject(v)
+                          navigate('/dashboard')
                         }}
                         className="w-full flex items-center justify-between px-2.5 py-1.5 rounded text-[#172B4D] hover:bg-[#EBECF0] transition-colors group cursor-pointer text-left"
                       >
@@ -305,7 +301,7 @@ export function AppShell() {
 
               {/* Section: VESSELS & ENGINEERING */}
               <div>
-                <div className="flex items-center justify-between px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#626F86]">
+                <div className="pm-menu-section-label flex items-center justify-between px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#626F86]">
                   <span>Vessels &amp; Engineering</span>
                   <span className="text-[10px] bg-[#EBECF0] px-1.5 py-0.2 rounded text-[#172B4D] font-mono font-semibold">
                     {projects.length}
@@ -314,18 +310,17 @@ export function AppShell() {
 
                 {filteredProjects.length === 0 ? (
                   <span className="pm-submenu-empty block px-2.5 py-2 text-[11px] text-gray-400 italic">
-                    No vessels found
+                    No vessels loaded
                   </span>
                 ) : (
                   <div className="space-y-1 mt-0.5">
                     {filteredProjects.map((v) => {
-                      const isCurrent = currentProject?.id === v.id;
-                      const isExpanded = expandedVessels.has(v.id);
+                      const isCurrent = currentProject?.id === v.id
+                      const isExpanded = expandedVessels.has(v.id)
 
-                      // Badge styles
-                      const isDone = v.progress === 100;
-                      const isHigh = v.progress >= 95;
-                      const isCritical = v.progress < 30 || v.overdue >= 7;
+                      const isDone = v.progress === 100
+                      const isHigh = v.progress >= 95
+                      const isCritical = v.progress < 30 || v.overdue >= 7
 
                       return (
                         <div
@@ -402,19 +397,19 @@ export function AppShell() {
                                   </span>
                                 </div>
                                 <span className="text-[9px] font-mono font-semibold text-[#626F86] bg-[#EBECF0] px-1 rounded">
-                                  {sections.length}
+                                  {sections?.length || 6}
                                 </span>
                               </button>
 
                               {/* Level 3: Sections & Deliverables */}
                               {isCurrent && taskOpen && (
                                 <div className="pm-submenu pm-submenu-nested pl-6 pr-2 space-y-0.5 border-l-2 border-[#DFE1E6] ml-3.5 mt-0.5">
-                                  {sections.length === 0 ? (
+                                  {sections?.length === 0 ? (
                                     <span className="pm-submenu-empty block py-1 text-[10px] text-gray-400 italic">
                                       No sections
                                     </span>
                                   ) : (
-                                    sections.map((s) => (
+                                    sections?.map((s) => (
                                       <NavLink
                                         key={s.id}
                                         to={`/sections/${s.id}`}
@@ -467,7 +462,7 @@ export function AppShell() {
                             </div>
                           )}
                         </div>
-                      );
+                      )
                     })}
                   </div>
                 )}
@@ -479,7 +474,7 @@ export function AppShell() {
                   Management
                 </div>
                 <div className="space-y-0.5 mt-0.5">
-                  {caps.showReviewRequests && (
+                  {caps?.showReviewRequests && (
                     <NavLink
                       to="/reviews"
                       className={({ isActive }) =>
@@ -500,7 +495,7 @@ export function AppShell() {
                     </NavLink>
                   )}
 
-                  {caps.showCalendar && (
+                  {caps?.showCalendar && (
                     <NavLink
                       to="/calendar"
                       className={({ isActive }) =>
@@ -516,7 +511,7 @@ export function AppShell() {
                     </NavLink>
                   )}
 
-                  {caps.showTeamDirectory && (
+                  {caps?.showTeamDirectory && (
                     <NavLink
                       to="/users"
                       className={({ isActive }) =>
@@ -532,7 +527,7 @@ export function AppShell() {
                     </NavLink>
                   )}
 
-                  {caps.showReports && (
+                  {caps?.showReports && (
                     <NavLink
                       to="/reports"
                       className={({ isActive }) =>
@@ -548,7 +543,7 @@ export function AppShell() {
                     </NavLink>
                   )}
 
-                  {caps.showPlanDrawing && (
+                  {caps?.showPlanDrawing && (
                     <NavLink
                       to="/plan-drawing"
                       className={({ isActive }) =>
@@ -626,9 +621,7 @@ export function AppShell() {
       {/* MAIN VIEWPORT */}
       <div className="pm-main flex-1 flex flex-col h-screen overflow-hidden">
         {/* TOPBAR HEADER */}
-        <header
-          className="pm-header h-14 bg-white border-b border-[#DFE1E6] px-4 sm:px-6 flex items-center justify-between shrink-0 shadow-2xs z-20"
-        >
+        <header className="pm-header h-14 bg-white border-b border-[#DFE1E6] px-4 sm:px-6 flex items-center justify-between shrink-0 shadow-2xs z-20">
           <div className="pm-header-left flex items-center gap-2 sm:gap-4">
             {isSidebarCollapsed && (
               <button
@@ -663,7 +656,7 @@ export function AppShell() {
 
           <div className="pm-header-actions flex items-center gap-2">
             <div className="pm-action-group flex items-center gap-1.5">
-              {caps.canCreateProject && (
+              {caps?.canCreateProject && (
                 <button
                   type="button"
                   className="pm-btn primary inline-flex items-center gap-1.5 bg-[#0052CC] hover:bg-[#0747A6] text-white px-3 py-1.5 rounded font-medium text-xs shadow-2xs transition-colors cursor-pointer"
@@ -679,7 +672,7 @@ export function AppShell() {
               <ExcelToolbar />
             </div>
 
-            {caps.canDeleteProject && currentProject?.id ? (
+            {caps?.canDeleteProject && currentProject?.id ? (
               <button
                 type="button"
                 className="pm-btn danger inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-[#DE350B] bg-white hover:bg-[#FFEBE6] border border-[#DFE1E6] hover:border-red-300 rounded transition-colors cursor-pointer"
@@ -696,8 +689,8 @@ export function AppShell() {
               type="button"
               className="pm-btn ghost inline-flex items-center justify-center text-[#626F86] hover:text-[#DE350B] hover:bg-[#F4F5F7] w-7 h-7 rounded text-xs transition-colors cursor-pointer"
               onClick={async () => {
-                await signOut();
-                navigate('/dashboard');
+                await signOut()
+                navigate('/dashboard')
               }}
               title="Sign out of system"
             >
@@ -716,5 +709,5 @@ export function AppShell() {
       {showNew && <NewProjectModal onClose={() => setShowNew(false)} />}
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
     </div>
-  );
+  )
 }
