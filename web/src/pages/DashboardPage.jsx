@@ -552,7 +552,7 @@ export function DashboardPage() {
           </div>
           <div className="fleet-kpi-val-row">
             <span className="fleet-kpi-val">{fleetRollup.avgProgress}%</span>
-            <DonutRing percent={fleetRollup.avgProgress} size={44} stroke={6} color="#0d9488" />
+            <DonutRing percent={fleetRollup.avgProgress} size={44} stroke={6} color="var(--secondary)" />
           </div>
           <div className="fleet-kpi-sub">
             <span>3D: <strong>{fleetRollup.fleet3D}%</strong> · ISO: <strong>{fleetRollup.fleetISO}%</strong> · 2D: <strong>{fleetRollup.fleet2D}%</strong></span>
