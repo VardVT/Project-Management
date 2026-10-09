@@ -4,53 +4,97 @@
    ========================================================================== */
 
 :root {
-  /* Color Palette Tokens ? Luxurious Marine Teal / Emerald (Xanh Ng?c) */
-  --bg: #f2f7f7;
-  --bg-deep: #e2ecec;
-  --surface: #ffffff;
-  --surface-hover: #f7fafb;
-  --surface-active: #edf5f5;
-  --surface-subtle: #f4f9f9;
+  /* ==========================================================================
+     VARD MARINE OPERATIONS DESIGN SYSTEM TOKENS
+     ========================================================================== */
+  --vard-surface: #0c141f;
+  --vard-surface-dim: #0c141f;
+  --vard-surface-bright: #323947;
+  --vard-surface-container-lowest: #070e1a;
+  --vard-surface-container-low: #151c28;
+  --vard-surface-container: #19202c;
+  --vard-surface-container-high: #232a37;
+  --vard-surface-container-highest: #2e3542;
+  --vard-on-surface: #dce2f4;
+  --vard-on-surface-variant: #e7bcba;
+  --vard-inverse-surface: #dce2f4;
+  --vard-inverse-on-surface: #2a313d;
+  --vard-outline: #ae8885;
+  --vard-outline-variant: #5d3f3d;
+  --vard-surface-tint: #ffb3af;
+  --vard-primary: #ffb3af;
+  --vard-on-primary: #68000e;
+  --vard-primary-container: #d90429;
+  --vard-on-primary-container: #ffeae8;
+  --vard-inverse-primary: #bf0022;
+  --vard-secondary: #d3fbff;
+  --vard-on-secondary: #00363a;
+  --vard-secondary-container: #00eefc;
+  --vard-on-secondary-container: #00686f;
+  --vard-tertiary: #ffb784;
+  --vard-on-tertiary: #502500;
+  --vard-tertiary-container: #a95500;
+  --vard-on-tertiary-container: #ffeadf;
+  --vard-error: #ffb4ab;
+  --vard-on-error: #690005;
+  --vard-error-container: #93000a;
+  --vard-on-error-container: #ffdad6;
+  --vard-background: #0c141f;
+  --vard-on-background: #dce2f4;
+  --vard-surface-variant: #2e3542;
+
+  /* Typography */
+  --font-family: 'Chivo', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-headline: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Main Workspace / Interior Application Tokens */
+  --bg: #0c141f;
+  --bg-deep: #070e1a;
+  --surface: #19202c;
+  --surface-hover: #232a37;
+  --surface-active: #2e3542;
+  --surface-subtle: #151c28;
   
-  --ink-primary: #0f2425;
-  --ink-secondary: #1f3d3f;
-  --ink-muted: #537577;
-  --ink-faint: #8ca3a5;
+  --ink-primary: #dce2f4;
+  --ink-secondary: #e7bcba;
+  --ink-muted: #ae8885;
+  --ink-faint: #5d3f3d;
   
-  --border: #d7e5e5;
-  --border-subtle: #e6f0f0;
-  --border-strong: #b8cfcf;
+  --border: #2e3542;
+  --border-subtle: #232a37;
+  --border-strong: #5d3f3d;
   
-  /* Semantic Colors ? Modern Marine Emerald / Teal */
-  --primary: #0d9488;
-  --primary-hover: #0f766e;
-  --primary-subtle: #f0fdfa;
-  --primary-border: #99f6e4;
+  /* Semantic Brand Accents */
+  --primary: #d90429;
+  --primary-hover: #b90322;
+  --primary-subtle: rgba(217, 4, 41, 0.15);
+  --primary-border: rgba(217, 4, 41, 0.4);
   
-  --teal: #0d9488;
-  --teal-subtle: #f0fdfa;
+  --teal: #00eefc;
+  --teal-subtle: rgba(0, 238, 252, 0.12);
   
-  --success: #059669;
-  --success-subtle: #ecfdf5;
-  --success-border: #a7f3d0;
+  --secondary: #00eefc;
+  --secondary-hover: #00dbe9;
+  --secondary-subtle: rgba(0, 238, 252, 0.12);
   
-  --warning: #d97706;
-  --warning-subtle: #fffbeb;
-  --warning-border: #fde68a;
+  --success: #34d399;
+  --success-subtle: rgba(52, 211, 153, 0.12);
+  --success-border: rgba(52, 211, 153, 0.35);
   
-  --danger: #e11d48;
-  --danger-subtle: #fff1f2;
-  --danger-border: #fecdd3;
+  --warning: #ffb784;
+  --warning-subtle: rgba(255, 183, 132, 0.15);
+  --warning-border: rgba(255, 183, 132, 0.35);
+  
+  --danger: #d90429;
+  --danger-subtle: rgba(217, 4, 41, 0.15);
+  --danger-border: rgba(217, 4, 41, 0.35);
   
   /* Shell & Role Themes */
-  --shell-sidebar: #0a1f22;
-  --shell-sidebar-hover: rgba(255, 255, 255, 0.08);
-  --shell-sidebar-active: rgba(13, 148, 136, 0.25);
-  --shell-accent: #0d9488;
-  
-  /* Typography Tokens */
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --shell-sidebar: #070e1a;
+  --shell-sidebar-hover: rgba(220, 226, 244, 0.08);
+  --shell-sidebar-active: rgba(217, 4, 41, 0.22);
+  --shell-accent: #d90429;
   
   /* Radii */
   --radius-xs: 4px;
@@ -60,27 +104,27 @@
   --radius-full: 9999px;
   
   /* Elevation */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
 }
 
 /* Role Specific Shell Accents */
 .shell-manager {
-  --shell-sidebar: #0a1f22;
-  --shell-accent: #0d9488;
+  --shell-sidebar: #070e1a;
+  --shell-accent: #d90429;
 }
 
 .shell-senior {
-  --shell-sidebar: #092628;
-  --shell-accent: #14b8a6;
+  --shell-sidebar: #091422;
+  --shell-accent: #00eefc;
 }
 
 .shell-engineer {
-  --shell-sidebar: #132225;
-  --shell-accent: #06b6d4;
+  --shell-sidebar: #101927;
+  --shell-accent: #ffb784;
 }
 
 /* Base Reset */
@@ -498,9 +542,9 @@ button, input, select, textarea {
 }
 
 .pm-btn.secondary, .pm-btn.blue {
-  background: #ffffff;
+  background: var(--surface);
   border-color: var(--border);
-  color: var(--ink-secondary);
+  color: var(--ink-primary);
 }
 
 .pm-btn.secondary:hover, .pm-btn.blue:hover {
@@ -574,7 +618,7 @@ textarea {
   padding: 0 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: #ffffff;
+  background: var(--surface-subtle);
   color: var(--ink-primary);
   font-size: 13px;
   outline: none;
@@ -701,7 +745,7 @@ label {
 }
 
 .pm-table th {
-  background: #f8fafc;
+  background: var(--surface-subtle);
   color: var(--ink-secondary);
   font-weight: 600;
   font-size: 11.5px;
@@ -729,15 +773,15 @@ label {
 }
 
 .pm-table tbody tr:hover {
-  background: #f1f5f9;
+  background: var(--surface-hover);
 }
 
 .pm-table tbody tr.pending {
-  background: #fffbeb !important;
+  background: rgba(255, 183, 132, 0.12) !important;
 }
 
 .pm-table tbody tr.row-selected {
-  background: #eff6ff !important;
+  background: rgba(0, 238, 252, 0.12) !important;
 }
 
 /* In-table Inputs & Selects */
@@ -750,19 +794,20 @@ label {
   border-radius: var(--radius-xs);
   border: 1px solid transparent;
   background: transparent;
+  color: var(--ink-primary);
   text-align: center;
 }
 
 .pm-table input:hover,
 .pm-table select:hover {
   border-color: var(--border);
-  background: #fff;
+  background: var(--surface);
 }
 
 .pm-table input:focus,
 .pm-table select:focus {
-  border-color: var(--primary);
-  background: #fff;
+  border-color: var(--secondary);
+  background: var(--surface);
 }
 
 .pm-table input:disabled,
@@ -780,7 +825,7 @@ label {
   height: 16px !important;
   border-radius: 50%;
   border: 1.5px solid var(--border-strong);
-  background: #fff;
+  background: var(--surface);
   cursor: pointer;
   display: block;
   margin: 0 auto;
@@ -971,7 +1016,7 @@ label {
   justify-content: flex-end;
   padding: 12px 16px;
   border-top: 1px solid var(--border);
-  background: #f8fafc;
+  background: var(--surface-subtle);
   flex-shrink: 0;
 }
 
@@ -1019,7 +1064,8 @@ label {
   align-items: flex-start;
   gap: 10px;
   padding: 11px 12px 11px 14px;
-  background: #ffffff;
+  background: var(--surface);
+  color: var(--ink-primary);
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow:
@@ -1587,8 +1633,8 @@ label {
   background: var(--surface);
   border-radius: var(--radius-lg);
   padding: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(220, 226, 244, 0.05);
   animation: pmScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
@@ -4097,10 +4143,11 @@ label {
 }
 
 /* ==========================================================================
-   VARD SHIPBUILDING SUITE - CLEAN MARITIME AUTHENTICATION DESIGN
-   Exact matching styling for VARD Shipbuilding Suite Login & Telemetry
+   ORIGINAL VARD SHIPBUILDING SUITE AUTHENTICATION STYLING
+   Restored clean light Atlassian style matching Image 2.html
    ========================================================================== */
 
+/* Base Layout for Login Page */
 .vard-suite-login {
   min-height: 100vh;
   position: relative;
@@ -4117,46 +4164,48 @@ label {
   -moz-osx-font-smoothing: grayscale;
 }
 
-.auth-card-shadow {
-  box-shadow: 0 10px 30px -4px rgba(9, 30, 66, 0.08), 0 0 1px 1px rgba(9, 30, 66, 0.05);
-}
-
-.auth-card {
+/* Authentication Card */
+.vard-suite-login .auth-card {
   width: 100%;
   max-width: 400px;
-  background: #ffffff;
-  border-radius: 4px;
+  background-color: #ffffff;
+  border-radius: 3px;
   border: 1px solid #dfe1e6;
-  padding: 36px 36px 32px;
+  box-shadow: 0 10px 30px -4px rgba(9, 30, 66, 0.08), 0 0 1px 1px rgba(9, 30, 66, 0.05);
+  padding: 32px 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   position: relative;
+  box-sizing: border-box;
   z-index: 10;
   margin: auto;
-  box-sizing: border-box;
+}
+
+.auth-card-shadow {
+  box-shadow: 0 10px 30px -4px rgba(9, 30, 66, 0.08), 0 0 1px 1px rgba(9, 30, 66, 0.05);
 }
 
 @media (max-width: 480px) {
-  .auth-card {
-    padding: 28px 20px 24px;
-    border-left: none;
-    border-right: none;
-    border-radius: 0;
+  .vard-suite-login .auth-card {
+    padding: 24px 20px;
+    max-width: 100%;
   }
 }
 
+/* Atlassian Input Controls */
 .atlassian-input {
   width: 100%;
+  background-color: #fafbfc;
+  border: 2px solid #dfe1e6;
+  border-radius: 3px;
+  color: #172b4d;
   font-size: 14px;
   line-height: 20px;
-  color: #172b4d;
-  background-color: #fafbfc;
-  border: 1px solid #dfe1e6;
-  border-radius: 3px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   box-sizing: border-box;
+  outline: none;
   transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -4168,26 +4217,31 @@ label {
   background-color: #ffffff;
   border-color: #d90429;
   box-shadow: 0 0 0 2px rgba(217, 4, 41, 0.2);
-  outline: none;
 }
 
 .atlassian-input::placeholder {
-  color: #8993a4;
+  color: #a5adba;
 }
 
+.atlassian-input:disabled {
+  background-color: #f4f5f7;
+  color: #a5adba;
+  cursor: not-allowed;
+}
+
+/* Primary Submit Button */
 .atlassian-btn-submit {
   width: 100%;
   background-color: #d90429;
   color: #ffffff;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
   line-height: 20px;
-  padding: 10px 12px;
+  padding: 10px 16px;
   border-radius: 3px;
   border: none;
   cursor: pointer;
-  transition: background-color 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 1px 2px rgba(9, 30, 66, 0.08);
+  transition: background-color 0.15s ease, transform 0.1s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4203,11 +4257,11 @@ label {
 }
 
 .atlassian-btn-submit:disabled {
-  opacity: 0.7;
+  opacity: 0.65;
   cursor: not-allowed;
 }
 
-/* Corner Isometric Shipyard Telemetry Illustrations */
+/* Corner Isometric Shipyard Illustrations */
 .corner-illustration-left {
   position: fixed;
   bottom: 0;
@@ -4229,14 +4283,14 @@ label {
 @media (min-width: 1280px) {
   .corner-illustration-left,
   .corner-illustration-right {
-    width: 460px;
+    width: 440px;
   }
 }
 
 @media (min-width: 1536px) {
   .corner-illustration-left,
   .corner-illustration-right {
-    width: 500px;
+    width: 480px;
   }
 }
 
@@ -4247,7 +4301,7 @@ label {
   }
 }
 
-/* Auth Banner & Feedback */
+/* Auth Error Message Banner */
 .auth-error-banner {
   display: flex;
   align-items: flex-start;
@@ -4256,7 +4310,7 @@ label {
   margin-bottom: 16px;
   padding: 10px 12px;
   background-color: #ffebe6;
-  border: 1px solid #ff8f73;
+  border: 1px solid #ffbdad;
   border-radius: 3px;
   color: #bf2600;
   font-size: 13px;
@@ -4274,21 +4328,23 @@ label {
   background: transparent;
   color: #bf2600;
   cursor: pointer;
-  padding: 0 2px;
+  padding: 0 4px;
   font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
 }
 
 /* Autocomplete suggestions list for directory */
 .engineer-suggest-dropdown {
   position: absolute;
-  top: calc(100% + 2px);
+  top: calc(100% + 4px);
   left: 0;
   right: 0;
   background: #ffffff;
   border: 1px solid #dfe1e6;
   border-radius: 3px;
-  box-shadow: 0 4px 12px rgba(9, 30, 66, 0.15);
-  max-height: 200px;
+  box-shadow: 0 4px 16px rgba(9, 30, 66, 0.15);
+  max-height: 220px;
   overflow-y: auto;
   z-index: 30;
   list-style: none;
@@ -4301,10 +4357,15 @@ label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
+  padding: 8px 12px;
   font-size: 12.5px;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background 0.12s;
+  border-bottom: 1px solid #f4f5f7;
+}
+
+.engineer-suggest-item:last-child {
+  border-bottom: none;
 }
 
 .engineer-suggest-item:hover {
@@ -4313,15 +4374,18 @@ label {
 
 .engineer-suggest-item strong {
   color: #172b4d;
+  font-weight: 600;
 }
 
 .engineer-suggest-item .emp-badge {
-  font-size: 11px;
-  color: #6b778c;
+  font-size: 10.5px;
+  color: #505f79;
   background: #ebecf0;
-  padding: 1px 5px;
+  border: 1px solid #dfe1e6;
+  padding: 1px 6px;
   border-radius: 3px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Supabase Connection Help Modal */
@@ -4329,7 +4393,8 @@ label {
   position: fixed;
   inset: 0;
   background: rgba(9, 30, 66, 0.54);
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 100;
   display: flex;
   align-items: center;
@@ -4339,13 +4404,15 @@ label {
 
 .supabase-help-modal {
   width: 100%;
-  max-width: 520px;
+  max-width: 540px;
   background: #ffffff;
   border-radius: 6px;
-  box-shadow: 0 20px 40px rgba(9, 30, 66, 0.25);
+  box-shadow: 0 12px 36px rgba(9, 30, 66, 0.25);
   border: 1px solid #dfe1e6;
   overflow: hidden;
   text-align: left;
+  color: #172b4d;
+  position: relative;
 }
 
 .supabase-help-header {
@@ -4353,13 +4420,13 @@ label {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid #ebecf0;
+  border-bottom: 1px solid #dfe1e6;
   background: #fafbfc;
 }
 
 .supabase-help-header h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: #172b4d;
   display: flex;
@@ -4369,7 +4436,7 @@ label {
 
 .supabase-help-body {
   padding: 20px;
-  max-height: 70vh;
+  max-height: 72vh;
   overflow-y: auto;
 }
 
@@ -4377,10 +4444,11 @@ label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: #006644;
+  color: #00875a;
   background: #e3fcef;
+  border: 1px solid #abf5d1;
   padding: 3px 8px;
   border-radius: 12px;
 }
@@ -4389,59 +4457,63 @@ label {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #36b37e;
+  background: #00875a;
 }
 
 .supabase-account-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border: 1px solid #dfe1e6;
   border-radius: 4px;
-  background: #ffffff;
-  margin-bottom: 8px;
-  transition: border-color 0.15s, background 0.15s;
+  background: #f4f5f7;
+  margin-bottom: 10px;
+  transition: all 0.15s;
 }
 
 .supabase-account-card:hover {
   border-color: #4c9aff;
-  background: #f4f5f7;
+  background: #ebecf0;
 }
 
 .supabase-account-card .role-pill {
-  font-size: 10.5px;
-  font-weight: 600;
-  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
   border-radius: 3px;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .role-pill.manager {
-  background: #deebff;
-  color: #0747a6;
+  background: #ffebe6;
+  color: #de350b;
+  border: 1px solid #ffbdad;
 }
 
 .role-pill.senior {
-  background: #eae6ff;
-  color: #403294;
+  background: #deebff;
+  color: #0747a6;
+  border: 1px solid #b3d4ff;
 }
 
 .role-pill.engineer {
-  background: #e3fcef;
-  color: #006644;
+  background: #eae6ff;
+  color: #403294;
+  border: 1px solid #c0b6f2;
 }
 
 .btn-fill-account {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: #0052cc;
-  background: transparent;
+  background: #deebff;
   border: 1px solid #b3d4ff;
   border-radius: 3px;
-  padding: 4px 8px;
+  padding: 5px 10px;
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all 0.15s;
 }
 
 .btn-fill-account:hover {
