@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { useAuth, useProject, useNotification, displaySectionName } from './context/AppContext'
-import { NewProjectModal } from './components/NewProjectModal'
-import { ExcelToolbar } from './components/ExcelToolbar'
-import { ProfileModal } from './components/ProfileModal'
-import { UserAvatar } from './components/UserAvatar'
+import { useAuth } from '../hooks/useAuth'
+import { useProject } from '../hooks/useProject'
+import { displaySectionName } from '../lib/roles'
+import { NewProjectModal } from './NewProjectModal'
+import { ExcelToolbar } from './ExcelToolbar'
+import { ProfileModal } from './ProfileModal'
+import { UserAvatar } from './UserAvatar'
+import { useNotification, NotificationRenderer } from './NotificationContext'
 import {
   IconDashboard,
   IconVessel,
@@ -24,7 +27,7 @@ import {
   IconSearch,
   IconSettings,
   IconStar,
-} from './components/Icons'
+} from './Icons'
 
 export function AppShell() {
   const { profile, user, caps, signOut } = useAuth()
@@ -33,7 +36,7 @@ export function AppShell() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Mặc định mở rộng Vessel 1005 để khớp với giao diện mẫu
+  // Mặc định mở rộng Vessel 1005 để hiển thị cây công việc như bản thiết kế
   const [expandedVessels, setExpandedVessels] = useState(new Set(['1005']))
   const [taskOpen, setTaskOpen] = useState(true)
   const [showNew, setShowNew] = useState(false)
@@ -91,7 +94,7 @@ export function AppShell() {
   }
 
   async function onDeleteProject() {
-    if (!currentProject?.id || !caps.canDeleteProject) return
+    if (!currentProject?.id || !caps?.canDeleteProject) return
     const label = currentProject.ship_id || currentProject.name || 'this vessel'
     const ok = await confirm({
       title: `Delete Vessel ${label}?`,
@@ -111,7 +114,7 @@ export function AppShell() {
     }
   }
 
-  // Lọc tàu theo ô tìm kiếm
+  // Lọc tàu theo từ khóa tìm kiếm
   const filteredProjects = projects.filter((v) =>
     (v.name || v.ship_id).toLowerCase().includes(filterQuery.toLowerCase())
   )
@@ -120,7 +123,7 @@ export function AppShell() {
 
   return (
     <div className={`pm-app shell-${caps?.shell || 'admin'} flex h-screen w-screen overflow-hidden text-[13px] bg-[#FAFBFC] text-[#172B4D] antialiased select-none`}>
-      {/* SIDEBAR */}
+      {/* SIDEBAR NAVIGATION */}
       <aside
         className={`pm-sidebar ${
           isSidebarCollapsed ? 'w-0 sm:w-14 overflow-hidden border-r-0' : 'w-[260px]'
@@ -129,7 +132,7 @@ export function AppShell() {
       >
         {!isSidebarCollapsed && (
           <>
-            {/* User Profile Header */}
+            {/* User Profile Header in Sidebar */}
             <div className="pm-sidebar-user p-3 border-b border-[#EBECF0] flex items-center justify-between">
               <button
                 type="button"
@@ -180,7 +183,7 @@ export function AppShell() {
                 <IconChevronDown size={13} className="text-[#626F86] group-hover:text-[#172B4D] shrink-0" />
               </button>
 
-              {/* Quick switcher flyout */}
+              {/* Menu chọn tàu active */}
               {showVesselDropdown && (
                 <div className="absolute left-3 right-3 top-10 bg-white border border-[#DFE1E6] rounded-md shadow-lg z-50 py-1 max-h-52 overflow-y-auto">
                   <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#626F86]">
@@ -206,7 +209,7 @@ export function AppShell() {
               )}
             </div>
 
-            {/* Quick Search / Filter Input with Cmd+K */}
+            {/* Quick Search / Filter Input */}
             <div className="px-3 py-1.5">
               <div className="relative flex items-center">
                 <span className="absolute left-2.5 pointer-events-none text-gray-400">
@@ -225,9 +228,9 @@ export function AppShell() {
               </div>
             </div>
 
-            {/* Scrollable Navigation Items */}
+            {/* Navigation Menu */}
             <nav className="pm-menu flex-1 overflow-y-auto px-2 py-1.5 space-y-3.5 text-xs select-none">
-              {/* Section: OVERVIEW */}
+              {/* Overview */}
               <div>
                 <div className="pm-menu-section-label px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#626F86]">
                   Overview
@@ -268,7 +271,7 @@ export function AppShell() {
                 </div>
               </div>
 
-              {/* Section: STARRED VESSELS */}
+              {/* Starred Vessels */}
               {starredProjects.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#626F86]">
@@ -299,7 +302,7 @@ export function AppShell() {
                 </div>
               )}
 
-              {/* Section: VESSELS & ENGINEERING */}
+              {/* Vessels & Engineering */}
               <div>
                 <div className="pm-menu-section-label flex items-center justify-between px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#626F86]">
                   <span>Vessels &amp; Engineering</span>
@@ -379,7 +382,7 @@ export function AppShell() {
                             </div>
                           </button>
 
-                          {/* Submenu when vessel is expanded */}
+                          {/* Submenu khi mở rộng tàu */}
                           {isExpanded && (
                             <div className="pm-submenu py-1.5 bg-[#FAFBFC] border-t border-[#EBECF0] text-[11px] space-y-1">
                               {/* Level 2: Tasks Folder */}
@@ -468,7 +471,7 @@ export function AppShell() {
                 )}
               </div>
 
-              {/* Section: MANAGEMENT */}
+              {/* Management */}
               <div>
                 <div className="pm-menu-section-label px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#626F86]">
                   Management
@@ -594,7 +597,7 @@ export function AppShell() {
           </>
         )}
 
-        {/* Collapsed State Bar */}
+        {/* Trạng thái thanh nhỏ khi thu gọn */}
         {isSidebarCollapsed && (
           <div className="h-full flex flex-col items-center py-3 justify-between">
             <button
@@ -708,6 +711,11 @@ export function AppShell() {
       {/* MODALS */}
       {showNew && <NewProjectModal onClose={() => setShowNew(false)} />}
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+
+      {/* NOTIFICATIONS & CONFIRM DIALOG */}
+      <NotificationRenderer />
     </div>
   )
 }
+
+export default AppShell
