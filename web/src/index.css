@@ -1014,7 +1014,9 @@ label {
 }
 
 /* Remove hover background entirely per user instruction to prevent eye strain */
-.pm-table tbody tr:hover {
+.pm-table tbody tr:hover,
+.pm-table tbody tr:hover td,
+.pm-table td:hover {
   background: transparent !important;
 }
 
@@ -1026,7 +1028,7 @@ label {
   background: #e6faff !important;
 }
 
-/* In-table Inputs & Selects */
+/* In-table Inputs & Selects: No hover flicker on cells */
 .pm-table input,
 .pm-table select {
   width: 100%;
@@ -1043,14 +1045,15 @@ label {
 
 .pm-table input:hover,
 .pm-table select:hover {
-  border-color: var(--border-default);
-  background: transparent;
+  border-color: transparent !important;
+  background: transparent !important;
 }
 
 .pm-table input:focus,
 .pm-table select:focus {
   border-color: var(--primary);
   background: #ffffff;
+  outline: none;
 }
 
 .pm-table input:disabled,
@@ -1078,7 +1081,7 @@ label {
 }
 
 .pm-checkbox-circle:hover {
-  border-color: var(--primary);
+  border-color: var(--border-strong) !important;
 }
 
 .pm-checkbox-circle:checked {
@@ -1748,7 +1751,7 @@ label {
 }
 
 .vessel-executive-card:hover {
-  border-color: var(--primary-border);
+  /* Static border without hover change */
 }
 
 .v-card-top {
@@ -2317,7 +2320,7 @@ label {
 }
 
 .profile-color-swatch:hover {
-  transform: scale(1.15);
+  /* Stable, no scaling */
 }
 
 .profile-color-swatch.active {
@@ -2339,8 +2342,7 @@ label {
 }
 
 .profile-color-custom:hover {
-  border-color: var(--primary);
-  transform: scale(1.1);
+  /* Stable, no scaling */
 }
 
 .profile-color-custom input[type='color'] {
@@ -2369,7 +2371,7 @@ label {
 }
 
 .sync-picker-group:hover {
-  border-color: var(--border-strong);
+  /* Static border */
 }
 
 .sync-picker-group-head {
@@ -2395,9 +2397,7 @@ label {
 }
 
 .sync-sheet-item:hover {
-  border-color: var(--primary-border);
-  background: var(--primary-subtle);
-  transform: translateX(2px);
+  /* Stable hover without jump */
 }
 
 .sync-sheet-item.selected {
@@ -2453,8 +2453,7 @@ label {
 }
 
 .pm-project-pick button:hover {
-  border-color: var(--primary);
-  background: var(--primary-subtle);
+  border-color: var(--border-strong);
 }
 
 /* ==========================================================================
@@ -2588,7 +2587,7 @@ label {
 }
 
 .email-picker-list button:hover {
-  background: var(--primary-subtle);
+  background: var(--surface-hover);
 }
 
 .emp-id {
@@ -2672,7 +2671,7 @@ label {
 }
 .users-dir-row.clickable:hover,
 .users-dir-row:hover {
-  background: var(--surface-subtle);
+  background: transparent !important;
 }
 .users-dir-row.access-off {
   opacity: 0.72;
@@ -3239,9 +3238,7 @@ label {
 }
 
 .summary-due-item:hover {
-  background: var(--surface);
-  border-color: #0d9488;
-  transform: translateX(2px);
+  /* Static, no shift or color jump on hover */
 }
 
 .summary-due-main {
@@ -3485,7 +3482,7 @@ label {
   opacity: 0.85;
 }
 .assignee-chip-main:not(:disabled):hover {
-  background: var(--surface-subtle);
+  background: transparent !important;
 }
 .assignee-chip-name {
   font-size: 12px;
@@ -3520,7 +3517,7 @@ label {
   flex-shrink: 0;
 }
 .assignee-chip-caret:hover {
-  background: var(--surface-subtle);
+  background: transparent !important;
   color: var(--ink-primary);
 }
 .assignee-cell.open .assignee-chip {
@@ -3602,8 +3599,7 @@ label {
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 .profile-org-chip.clickable:hover {
-  background: var(--surface-subtle);
-  border-color: var(--border);
+  /* Static without hover jump */
 }
 
 /* Rolling near-term Gantt (?15 days) */
@@ -3799,7 +3795,6 @@ label {
   cursor: pointer;
   min-width: 0;
 }
-.gantt-label:hover,
 .gantt-label.active {
   background: var(--surface-subtle);
 }
@@ -4447,7 +4442,7 @@ label {
 }
 
 .atlassian-input:hover {
-  background-color: #ebecf0;
+  background-color: #fafbfc;
 }
 
 .atlassian-input:focus {
@@ -4691,8 +4686,8 @@ label {
 }
 
 .supabase-account-card:hover {
-  border-color: #d90429;
-  background: var(--surface-hover);
+  border-color: var(--border-default);
+  background: var(--surface);
 }
 
 .supabase-account-card .role-pill {
