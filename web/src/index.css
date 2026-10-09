@@ -4095,3 +4095,1293 @@ label {
     max-height: 220px;
   }
 }
+
+/* ==========================================================================
+   VARD MARINE OPERATIONS - TACTILE INDUSTRIAL TECH DESIGN SYSTEM
+   High-density naval bridge console & ECDIS telemetry styling for Login
+   ========================================================================== */
+
+.vard-login {
+  /* Surface Tokens */
+  --vard-surface: #0c141f;
+  --vard-surface-dim: #0c141f;
+  --vard-surface-bright: #323947;
+  --vard-surface-lowest: #070e1a;
+  --vard-surface-low: #151c28;
+  --vard-surface-container: #19202c;
+  --vard-surface-high: #232a37;
+  --vard-surface-highest: #2e3542;
+  --vard-on-surface: #dce2f4;
+  --vard-on-surface-variant: #e7bcba;
+  --vard-inverse-surface: #dce2f4;
+  --vard-inverse-on-surface: #2a313d;
+  
+  /* Outline & Structural Borders */
+  --vard-outline: #ae8885;
+  --vard-outline-variant: #5d3f3d;
+  --vard-border-seam: #1e293b;
+  --vard-surface-base: #070a0f;
+  --vard-surface-panel: #0b0f17;
+  --vard-surface-elevated: #131a26;
+  
+  /* Primary Action: VARD Marine Crimson */
+  --vard-primary: #ffb3af;
+  --vard-on-primary: #68000e;
+  --vard-primary-container: #d90429;
+  --vard-on-primary-container: #ffeae8;
+  --vard-inverse-primary: #bf0022;
+  --vard-primary-hover: #b20322;
+  --vard-primary-active: #8e021b;
+  
+  /* Secondary: Hydrodynamic Cyan Telemetry */
+  --vard-secondary: #d3fbff;
+  --vard-on-secondary: #00363a;
+  --vard-secondary-container: #00eefc;
+  --vard-secondary-cyan: #00f0ff;
+  --vard-on-secondary-container: #00686f;
+  
+  /* Tertiary: Navigational Amber Alerts */
+  --vard-tertiary: #ffb784;
+  --vard-on-tertiary: #502500;
+  --vard-tertiary-container: #a95500;
+  --vard-nav-amber: #f77f00;
+  
+  /* Error / Hazard */
+  --vard-error: #ffb4ab;
+  --vard-on-error: #690005;
+  --vard-error-container: #93000a;
+  --vard-on-error-container: #ffdad6;
+  
+  /* Text Neutrals */
+  --vard-text-primary: #f1f5f9;
+  --vard-text-secondary: #94a3b8;
+  --vard-text-muted: #475569;
+
+  /* Typography */
+  --vard-font-headline: "Space Grotesk", sans-serif;
+  --vard-font-body: "Chivo", -apple-system, sans-serif;
+  --vard-font-mono: "JetBrains Mono", monospace;
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  background-color: var(--vard-surface);
+  color: var(--vard-on-surface);
+  font-family: var(--vard-font-body);
+  font-size: 15px;
+  line-height: 24px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.vard-login *,
+.vard-login *::before,
+.vard-login *::after {
+  box-sizing: border-box;
+}
+
+/* Background Atmosphere & Precision Grids */
+.vard-background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--vard-surface-base);
+}
+
+.vard-bg-glow {
+  position: absolute;
+  pointer-events: none;
+  filter: blur(100px);
+}
+
+.vard-bg-red {
+  top: -20%;
+  left: -10%;
+  width: 65vw;
+  height: 65vw;
+  background: radial-gradient(circle, rgba(217, 4, 41, 0.16) 0%, transparent 70%);
+}
+
+.vard-bg-cyan {
+  top: 30%;
+  right: -15%;
+  width: 55vw;
+  height: 55vw;
+  background: radial-gradient(circle, rgba(0, 240, 255, 0.09) 0%, transparent 68%);
+}
+
+.vard-bg-bottom {
+  bottom: -25%;
+  left: 25%;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(ellipse, rgba(217, 4, 41, 0.08) 0%, transparent 70%);
+}
+
+.vard-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.045;
+  background-image:
+    linear-gradient(var(--vard-primary-container) 1px, transparent 1px),
+    linear-gradient(to right, var(--vard-primary-container) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.vard-micro-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image:
+    linear-gradient(var(--vard-secondary-cyan) 1px, transparent 1px),
+    linear-gradient(to right, var(--vard-secondary-cyan) 1px, transparent 1px);
+  background-size: 12px 12px;
+}
+
+.vard-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(7, 10, 15, 0.75) 85%, #070a0f 100%);
+}
+
+/* Naval Top Header Bar */
+.vard-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(11, 15, 23, 0.94);
+  border-bottom: 1px solid var(--vard-border-seam);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.vard-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 54px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.vard-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.vard-brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 0;
+  background: var(--vard-primary-container);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(217, 4, 41, 0.35);
+}
+
+.vard-brand-title {
+  font-family: var(--vard-font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--vard-text-primary);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.vard-header-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--vard-border-seam);
+}
+
+.vard-online {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--vard-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--vard-on-surface-variant);
+  text-transform: uppercase;
+}
+
+.vard-header-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vard-header-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 0;
+  border: 1px solid var(--vard-border-seam);
+  background: var(--vard-surface-lowest);
+  font-family: var(--vard-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--vard-text-secondary);
+  text-transform: uppercase;
+}
+
+.vard-ai-chip {
+  border-color: rgba(0, 240, 255, 0.3);
+  background: rgba(0, 240, 255, 0.06);
+  color: var(--vard-secondary-cyan);
+}
+
+.vard-paw {
+  color: var(--vard-secondary-cyan);
+}
+
+.vard-satellite {
+  color: var(--vard-outline);
+}
+
+/* Status Dots */
+.vard-status-dot {
+  position: relative;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 0;
+  flex-shrink: 0;
+}
+
+.vard-status-dot.cyan {
+  background: var(--vard-secondary-cyan);
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+}
+
+.vard-status-dot.red {
+  background: var(--vard-primary-container);
+  box-shadow: 0 0 8px rgba(217, 4, 41, 0.6);
+}
+
+.vard-status-dot.green {
+  background: #059669;
+  box-shadow: 0 0 8px rgba(5, 150, 105, 0.6);
+}
+
+.vard-status-dot.red::after {
+  position: absolute;
+  inset: -2px;
+  border: 1px solid var(--vard-primary-container);
+  content: "";
+  animation: vard-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Main Viewport & Layout */
+.vard-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 86px 32px 40px;
+}
+
+.vard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 460px);
+  align-items: center;
+  gap: 56px;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* Mascot Section: Cyber Feline Telemetry */
+.vard-mascot-section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.vard-mascot-aura {
+  position: absolute;
+  top: 45%;
+  left: 30%;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: rgba(217, 4, 41, 0.14);
+  filter: blur(80px);
+  pointer-events: none;
+  animation: vard-aura 4.5s ease-in-out infinite;
+}
+
+/* Tactile HUD Speech Bubble */
+.vard-speech-bubble {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  border-radius: 0;
+  border: 1px solid var(--vard-primary-container);
+  background: var(--vard-surface-panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(217, 4, 41, 0.15);
+  backdrop-filter: blur(16px);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.vard-speech-bubble::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 2px;
+  background: var(--vard-secondary-cyan);
+}
+
+.vard-speech-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 36px;
+  width: 0;
+  height: 0;
+  border-top: 8px solid var(--vard-surface-panel);
+  border-right: 8px solid transparent;
+  border-left: 8px solid transparent;
+}
+
+.vard-speech-bubble.bubble-cyan {
+  border-color: var(--vard-secondary-cyan);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 240, 255, 0.2);
+}
+
+.vard-speech-bubble.bubble-red {
+  border-color: var(--vard-primary-container);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(217, 4, 41, 0.25);
+}
+
+.vard-speech-bubble.bubble-success {
+  border-color: #059669;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(5, 150, 105, 0.25);
+}
+
+.vard-bubble-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.vard-bubble-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--vard-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--vard-primary);
+  text-transform: uppercase;
+}
+
+.vard-bubble-mode {
+  padding: 3px 8px;
+  border-radius: 0;
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  background: rgba(0, 240, 255, 0.08);
+  font-family: var(--vard-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--vard-secondary-cyan);
+  text-transform: uppercase;
+}
+
+.vard-speech-bubble p {
+  margin: 0;
+  font-family: var(--vard-font-body);
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--vard-on-surface);
+}
+
+/* Cyber Feline Portal / Telemetry Display */
+.vard-cat-portal {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 410px);
+  aspect-ratio: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+}
+
+.vard-cat-portal:focus-visible {
+  outline: 2px solid var(--vard-secondary-cyan);
+  outline-offset: 6px;
+}
+
+.vard-orbit {
+  position: absolute;
+  pointer-events: none;
+}
+
+.vard-orbit-outer {
+  inset: 0;
+  border: 1px dashed rgba(0, 240, 255, 0.35);
+  animation: vard-spin-cw 40s linear infinite;
+}
+
+.vard-orbit-middle {
+  inset: 14px;
+  border: 2px solid rgba(217, 4, 41, 0.45);
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  animation: vard-spin-ccw 26s linear infinite;
+}
+
+.vard-orbit-inner {
+  inset: 26px;
+  border: 1px solid var(--vard-border-seam);
+  background: radial-gradient(circle, rgba(217, 4, 41, 0.08) 0%, transparent 70%);
+}
+
+.vard-cat-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 2px solid var(--vard-border-seam);
+  background: #000000;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.vard-cat-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  animation: vard-float 5s ease-in-out infinite, vard-eye-glow 4s ease-in-out infinite;
+  transition: transform 0.35s ease;
+}
+
+.vard-cat-reflection {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 30%, rgba(0, 240, 255, 0.08) 50%, transparent 70%);
+  pointer-events: none;
+}
+
+.cat-forward .vard-cat-frame {
+  border-color: var(--vard-secondary-cyan);
+  box-shadow: 0 0 32px rgba(0, 240, 255, 0.35), inset 0 0 20px rgba(0, 240, 255, 0.15);
+}
+
+.cat-defensive .vard-cat-frame {
+  border-color: var(--vard-primary-container);
+  box-shadow: 0 0 36px rgba(217, 4, 41, 0.4), inset 0 0 20px rgba(217, 4, 41, 0.15);
+}
+
+.cat-ready .vard-cat-frame {
+  border-color: var(--vard-primary-container);
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.3), 0 0 30px rgba(217, 4, 41, 0.35);
+}
+
+.cat-success .vard-cat-frame {
+  border-color: #059669;
+  box-shadow: 0 0 45px rgba(5, 150, 105, 0.45);
+}
+
+.vard-hud-label {
+  position: absolute;
+  z-index: 2;
+  padding: 4px 8px;
+  border-radius: 0;
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  background: rgba(7, 10, 15, 0.94);
+  color: var(--vard-secondary-cyan);
+  font-family: var(--vard-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.vard-hud-top {
+  top: 0;
+  right: 0;
+}
+
+.vard-hud-bottom {
+  bottom: 0;
+  left: 0;
+  border-color: rgba(217, 4, 41, 0.35);
+  color: var(--vard-primary);
+}
+
+/* Mascot Meta Chips */
+.vard-mascot-meta {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.vard-meta-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 0;
+  border: 1px solid var(--vard-border-seam);
+  background: var(--vard-surface-panel);
+  font-family: var(--vard-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--vard-text-secondary);
+  text-transform: uppercase;
+}
+
+.vard-meta-chip strong {
+  color: var(--vard-text-primary);
+  font-weight: 600;
+}
+
+.vard-meta-icon {
+  color: var(--vard-secondary-cyan);
+}
+
+.vard-cyan-text {
+  color: var(--vard-secondary-cyan) !important;
+}
+
+.vard-red-text {
+  color: var(--vard-primary) !important;
+}
+
+/* Right Section: Bulkhead Authentication Panel */
+.vard-form-section {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.vard-login-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  padding: 32px 30px;
+  border-radius: 0;
+  border: 1px solid var(--vard-border-seam);
+  background: var(--vard-surface-elevated);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(217, 4, 41, 0.1);
+}
+
+/* Precision Crimson Seam Accent */
+.vard-card-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--vard-primary-container) 0%, var(--vard-secondary-cyan) 50%, var(--vard-primary-container) 100%);
+  box-shadow: 0 0 12px rgba(217, 4, 41, 0.7);
+}
+
+.vard-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--vard-border-seam);
+}
+
+.vard-product-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vard-product-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 0;
+  border: 1px solid var(--vard-border-seam);
+  background: var(--vard-surface-lowest);
+  color: var(--vard-primary-container);
+}
+
+.vard-product-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--vard-text-primary);
+  font-family: var(--vard-font-headline);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+  letter-spacing: -0.01em;
+}
+
+.vard-product-name > span {
+  padding: 2px 6px;
+  border-radius: 0;
+  border: 1px solid rgba(217, 4, 41, 0.4);
+  background: rgba(217, 4, 41, 0.14);
+  color: var(--vard-primary);
+  font-family: var(--vard-font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.vard-product-brand p {
+  margin: 2px 0 0;
+  font-family: var(--vard-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--vard-on-surface-variant);
+  text-transform: uppercase;
+}
+
+.vard-version {
+  padding: 4px 8px;
+  border-radius: 0;
+  border: 1px solid var(--vard-border-seam);
+  background: var(--vard-surface-lowest);
+  color: var(--vard-text-secondary);
+  font-family: var(--vard-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.vard-welcome h1 {
+  margin: 0;
+  font-family: var(--vard-font-headline);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+  color: var(--vard-text-primary);
+}
+
+.vard-welcome p {
+  margin: 6px 0 0;
+  font-family: var(--vard-font-body);
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--vard-text-secondary);
+}
+
+/* Forms & Field Controls */
+.vard-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.vard-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vard-field-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: var(--vard-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--vard-text-secondary);
+  text-transform: uppercase;
+}
+
+.vard-directory-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--vard-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--vard-secondary-cyan);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.vard-picker {
+  min-width: 0;
+}
+
+/* Password Inset Well */
+.vard-password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.vard-password-symbol {
+  position: absolute;
+  left: 14px;
+  z-index: 1;
+  color: var(--vard-outline);
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.vard-login .vard-password-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 54px 0 42px;
+  border-radius: 0;
+  border: 1px solid var(--vard-border-seam);
+  background: var(--vard-surface-panel);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+  color: var(--vard-text-primary);
+  font-family: var(--vard-font-mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.vard-password-input::placeholder {
+  color: rgba(148, 163, 184, 0.5);
+}
+
+.vard-login .vard-password-input:focus {
+  border-color: var(--vard-secondary-cyan);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6), 0 0 10px rgba(0, 240, 255, 0.25);
+}
+
+.vard-password-toggle {
+  position: absolute;
+  right: 8px;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: var(--vard-outline);
+  font-family: var(--vard-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.vard-password-toggle:hover {
+  color: var(--vard-text-primary);
+}
+
+.vard-text-button {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vard-primary);
+  font-family: var(--vard-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.vard-text-button:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.vard-field-hint {
+  margin: 0;
+  font-family: var(--vard-font-mono);
+  font-size: 10px;
+  line-height: 15px;
+  letter-spacing: 0.04em;
+  color: var(--vard-text-muted);
+}
+
+/* Checkbox & Options */
+.vard-form-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-family: var(--vard-font-mono);
+  font-size: 11px;
+}
+
+.vard-remember {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--vard-text-secondary);
+  font-family: var(--vard-font-body);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.vard-login .vard-remember input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border-radius: 0;
+  border: 1px solid #334155;
+  background: var(--vard-surface-panel);
+  accent-color: var(--vard-primary-container);
+  cursor: pointer;
+}
+
+.vard-encryption-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--vard-outline);
+  font-family: var(--vard-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Primary Operational Button (Strict Crimson #D90429, Sharp 0px corners, Cyan Pip on hover) */
+.vard-submit {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 6px;
+  padding: 12px 20px;
+  border-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--vard-primary-container);
+  color: #ffffff;
+  font-family: var(--vard-font-headline);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(217, 4, 41, 0.35);
+  transition: background-color 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+
+.vard-submit:hover:not(:disabled) {
+  background: var(--vard-primary-hover);
+  box-shadow: 0 6px 20px rgba(217, 4, 41, 0.5);
+  border-right: 2px solid var(--vard-secondary-cyan);
+}
+
+.vard-submit:active:not(:disabled) {
+  background: var(--vard-primary-active);
+  box-shadow: 0 2px 8px rgba(217, 4, 41, 0.3);
+}
+
+.vard-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.vard-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: vard-spin-cw 0.7s linear infinite;
+}
+
+/* Diagnostic Errors & Notices */
+.vard-error,
+.vard-directory-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 0;
+  border: 1px solid var(--vard-primary-container);
+  background: rgba(147, 0, 10, 0.35);
+  color: var(--vard-on-error-container);
+  font-family: var(--vard-font-body);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.vard-error p,
+.vard-directory-notice p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  word-break: break-word;
+}
+
+.vard-error button,
+.vard-directory-notice button {
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-family: var(--vard-font-mono);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.vard-error-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 0;
+  border: 1px solid currentColor;
+  font-family: var(--vard-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.vard-directory-notice {
+  border-color: rgba(247, 127, 0, 0.5);
+  background: rgba(169, 85, 0, 0.2);
+  color: var(--vard-tertiary);
+}
+
+.vard-directory-notice button {
+  text-decoration: underline;
+  font-size: 12px;
+}
+
+/* Bulkhead Panel Footer */
+.vard-card-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--vard-border-seam);
+  font-family: var(--vard-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--vard-text-secondary);
+}
+
+.vard-footer-row {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vard-card-footer p {
+  margin: 0;
+  text-align: center;
+  color: var(--vard-text-muted);
+}
+
+/* ==========================================================================
+   EMAIL PICKER STYLING INTEGRATION (Precision Instrument Controls)
+   ========================================================================== */
+
+.vard-picker .email-picker {
+  position: relative;
+  width: 100%;
+}
+
+.vard-picker .email-picker-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 0;
+  border: 1px solid var(--vard-border-seam);
+  background: var(--vard-surface-panel);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+  color: var(--vard-text-primary);
+  font-family: var(--vard-font-body);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.vard-picker .email-picker-trigger:hover {
+  border-color: #334155;
+}
+
+.vard-picker .email-picker-trigger:focus,
+.vard-picker .email-picker-trigger.open {
+  border-color: var(--vard-secondary-cyan);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6), 0 0 10px rgba(0, 240, 255, 0.25);
+  outline: none;
+}
+
+.vard-picker .email-picker-trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vard-picker .emp-id {
+  font-family: var(--vard-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vard-secondary-cyan);
+  background: rgba(0, 240, 255, 0.08);
+  padding: 2px 6px;
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  letter-spacing: 0.06em;
+}
+
+.vard-picker .muted {
+  color: var(--vard-text-secondary);
+}
+
+.vard-picker .email-picker-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  border-radius: 0;
+  border: 1px solid var(--vard-border-seam);
+  background: var(--vard-surface-elevated);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 16px rgba(0, 240, 255, 0.1);
+  padding: 8px;
+}
+
+.vard-picker .email-picker-search {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px 0 32px !important;
+  border-radius: 0;
+  border: 1px solid var(--vard-border-seam);
+  background: var(--vard-surface-panel);
+  color: var(--vard-text-primary);
+  font-family: var(--vard-font-mono);
+  font-size: 12px;
+  outline: none;
+}
+
+.vard-picker .email-picker-search:focus {
+  border-color: var(--vard-secondary-cyan);
+}
+
+.vard-picker .email-picker-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.vard-picker .email-picker-list li {
+  margin: 0;
+  padding: 0;
+}
+
+.vard-picker .email-picker-list button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: transparent;
+  color: var(--vard-text-primary);
+  font-family: var(--vard-font-body);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.vard-picker .email-picker-list button:hover {
+  background: var(--vard-surface-high);
+}
+
+.vard-picker .email-picker-list button.active {
+  background: rgba(217, 4, 41, 0.2);
+  border-left: 3px solid var(--vard-primary-container);
+}
+
+.vard-picker .emp-meta {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.vard-picker .emp-meta strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vard-text-primary);
+}
+
+.vard-picker .pill.muted-pill {
+  font-family: var(--vard-font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 0;
+  border: 1px solid var(--vard-border-seam);
+  background: var(--vard-surface-lowest);
+  color: var(--vard-on-surface-variant);
+  text-transform: uppercase;
+}
+
+/* Keyframe Animations */
+@keyframes vard-float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(0.5deg);
+  }
+}
+
+@keyframes vard-aura {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes vard-spin-cw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes vard-spin-ccw {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes vard-eye-glow {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 16px rgba(0, 240, 255, 0.35))
+      drop-shadow(0 0 25px rgba(217, 4, 41, 0.2));
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 26px rgba(0, 240, 255, 0.65))
+      drop-shadow(0 0 35px rgba(217, 4, 41, 0.4));
+  }
+}
+
+@keyframes vard-ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1050px) {
+  .vard-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 440px);
+    gap: 32px;
+  }
+  .vard-cat-portal {
+    width: min(100%, 340px);
+  }
+}
+
+@media (max-width: 768px) {
+  .vard-header-inner {
+    padding: 0 16px;
+  }
+  .vard-header-divider,
+  .vard-online,
+  .vard-ai-chip {
+    display: none;
+  }
+  .vard-main {
+    padding: 76px 16px 32px;
+  }
+  .vard-layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .vard-mascot-section {
+    align-items: center;
+  }
+  .vard-cat-portal {
+    width: min(75vw, 300px);
+  }
+  .vard-mascot-aura {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 260px;
+    height: 260px;
+  }
+  .vard-form-section {
+    justify-content: center;
+  }
+  .vard-login-card {
+    max-width: 480px;
+    padding: 24px 20px;
+  }
+}
+
+@media (max-width: 440px) {
+  .vard-welcome h1 {
+    font-size: 22px;
+    line-height: 28px;
+  }
+  .vard-product-name {
+    font-size: 17px;
+  }
+  .vard-footer-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
