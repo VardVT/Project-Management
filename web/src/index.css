@@ -742,14 +742,14 @@ button, input, select, textarea {
   font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: none;
   white-space: nowrap;
   user-select: none;
 }
 
 .pm-btn:hover {
-  background: var(--surface-hover);
-  border-color: var(--border-strong);
+  background: #ffffff;
+  border-color: var(--border);
   color: var(--ink-primary);
 }
 
@@ -770,20 +770,20 @@ button, input, select, textarea {
 }
 
 .pm-btn.primary:hover, .pm-btn.purple:hover {
-  background: var(--primary-hover);
-  border-color: var(--primary-hover);
+  background: var(--primary);
+  border-color: var(--primary);
 }
 
 .pm-btn.secondary, .pm-btn.blue {
-  background: #111823;
+  background: #ffffff;
   border-color: var(--border);
   color: var(--ink-primary);
 }
 
 .pm-btn.secondary:hover, .pm-btn.blue:hover {
-  background: rgba(0, 240, 255, 0.06);
-  border-color: var(--secondary);
-  color: var(--secondary);
+  background: #ffffff;
+  border-color: var(--border);
+  color: var(--ink-primary);
 }
 
 .pm-btn.success, .pm-btn.green {
@@ -794,8 +794,8 @@ button, input, select, textarea {
 }
 
 .pm-btn.success:hover, .pm-btn.green:hover {
-  background: #059669;
-  border-color: #059669;
+  background: var(--success);
+  border-color: var(--success);
 }
 
 .pm-btn.danger {
@@ -806,9 +806,9 @@ button, input, select, textarea {
 }
 
 .pm-btn.danger:hover {
-  background: var(--danger);
-  border-color: var(--danger);
-  color: #fff;
+  background: var(--danger-subtle);
+  border-color: var(--danger-border);
+  color: #ff8594;
 }
 
 .pm-btn.ghost {
@@ -818,8 +818,8 @@ button, input, select, textarea {
 }
 
 .pm-btn.ghost:hover {
-  background: var(--surface-hover);
-  color: var(--ink-primary);
+  background: transparent;
+  color: var(--ink-muted);
 }
 
 .pm-btn.tiny {
