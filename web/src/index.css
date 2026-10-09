@@ -5,88 +5,99 @@
 
 :root {
   /* ==========================================================================
-     VARD MARINE OPERATIONS - LIGHT ENTERPRISE DESIGN SYSTEM (STITCH SPEC)
-     Clean, high-legibility Atlassian/Fleet Engineering Light Mode
+     VARD MARINE OPERATIONS - LIGHT STITCH DESIGN SYSTEM SPECIFICATION
+     Tactile Industrial Precision with VARD Marine Crimson, Hydrodynamic Cyan,
+     Navigational Amber, and Crisp Light Marine Steel Surfaces
      ========================================================================== */
 
-  /* Neutral Foundation & Surface Elevation Series */
-  --bg: #fafbfc;
-  --bg-deep: #f4f5f7;
+  /* Neutral Foundation & Surface Elevation Series (Light Marine Hull & Cold Slates) */
+  --bg: #f4f6fa;
+  --bg-deep: #e9edf4;
   --surface-base: #ffffff;
-  --surface-dim: #fafbfc;
+  --surface-dim: #f0f3f8;
   --surface: #ffffff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f6f8fb;
   --surface-container: #ffffff;
   --surface-elevated: #ffffff;
   --surface-bright: #ffffff;
-  --surface-high: #f4f5f7;
-  --surface-highest: #ebecf0;
-  --surface-hover: #f4f5f7;
-  --surface-active: #ebecf0;
-  --surface-subtle: #fafbfc;
+  --surface-high: #f0f4f9;
+  --surface-highest: #e6ebf2;
+  --surface-hover: #f3f6fa;
+  --surface-active: #e8edf5;
+  --surface-subtle: #f8fafd;
 
-  /* Typography Colors */
-  --ink-primary: #172b4d;
-  --ink-secondary: #42526e;
-  --ink-muted: #626f86;
-  --ink-faint: #8993a4;
-  --on-surface: #172b4d;
-  --on-surface-variant: #626f86;
-  --on-background: #172b4d;
+  /* Typography Colors - High-legibility Marine Cold Slates */
+  --ink-primary: #0c141f;            /* from Stitch: deepest hull tone #0c141f */
+  --ink-secondary: #2a313d;          /* from Stitch: inverse-on-surface #2a313d */
+  --ink-muted: #5d6878;
+  --ink-faint: #8e9bb0;
+  --on-surface: #0c141f;
+  --on-surface-variant: #5d6878;
+  --on-background: #0c141f;
 
-  /* Clean Enterprise Seams & Borders */
-  --border: #dfe1e6;
-  --border-subtle: #ebecf0;
-  --border-strong: #c1c7d0;
-  --outline: #dfe1e6;
-  --outline-variant: #ebecf0;
+  /* Clean Precision Milled Seams & Borders */
+  --border: #dbe2ec;
+  --border-subtle: #ebf0f7;
+  --border-strong: #b4c2d3;
+  --outline: #ae8885;               /* from Stitch: outline #ae8885 */
+  --outline-variant: #e2e8f0;
 
-  /* Primary Action Blue (#0052CC) */
-  --primary: #0052cc;
-  --primary-hover: #0747a6;
-  --primary-active: #003884;
-  --primary-container: #0052cc;
+  /* Primary Action Signals: VARD Marine Crimson (#D90429) */
+  --primary: #d90429;               /* from Stitch: primary-container: #d90429 */
+  --primary-hover: #bf0022;         /* from Stitch: inverse-primary: #bf0022 */
+  --primary-active: #930018;        /* from Stitch: on-primary-fixed-variant: #930018 */
+  --primary-container: #ffeae8;     /* from Stitch: on-primary-container: #ffeae8 */
   --on-primary: #ffffff;
-  --primary-subtle: #e9f2ff;
-  --primary-border: #b3d4ff;
+  --on-primary-container: #68000e;  /* from Stitch: on-primary: #68000e */
+  --primary-subtle: #fff1f0;
+  --primary-border: #ffb3af;        /* from Stitch: primary: #ffb3af */
+  --primary-fixed: #ffdad7;         /* from Stitch: primary-fixed: #ffdad7 */
+  --surface-tint: #ffb3af;
 
-  /* Hydrodynamic Teal/Green (#00875A / #10B981) */
-  --secondary: #00875a;
-  --secondary-container: #e3fcef;
-  --secondary-hover: #006644;
-  --secondary-subtle: #e3fcef;
-  --secondary-border: #abf5d1;
-  --on-secondary: #00875a;
-  --teal: #00875a;
-  --teal-subtle: #e3fcef;
+  /* Hydrodynamic Cyan (#00eefc / #00808a) - Telemetry, Active Vectors, Sensor Accents */
+  --secondary: #00808a;             /* High-legibility cyan tone for light background */
+  --secondary-container: #d3fbff;    /* from Stitch: secondary: #d3fbff */
+  --secondary-hover: #00686f;       /* from Stitch: on-secondary-container: #00686f */
+  --secondary-subtle: #e6faff;
+  --secondary-border: #7df4ff;       /* from Stitch: secondary-fixed: #7df4ff */
+  --on-secondary: #ffffff;
+  --on-secondary-container: #00363a; /* from Stitch: on-secondary: #00363a */
+  --cyan: #00eefc;                  /* from Stitch: secondary-container: #00eefc */
+  --teal: #00808a;
+  --teal-subtle: #d3fbff;
 
-  /* Navigational Amber (#FF8B00) */
-  --tertiary: #ff8b00;
-  --tertiary-container: #fff0b3;
-  --tertiary-subtle: #fff0b3;
-  --tertiary-border: #ffe380;
+  /* Navigational Amber (#F77F00 / #A95500) - Operational Alerts, Drydock Flags */
+  --tertiary: #a95500;              /* from Stitch: tertiary-container: #a95500 */
+  --tertiary-container: #ffdcc6;    /* from Stitch: tertiary-fixed: #ffdcc6 */
+  --tertiary-hover: #8b4500;
+  --tertiary-subtle: #ffeadf;       /* from Stitch: on-tertiary-container: #ffeadf */
+  --tertiary-border: #ffb784;       /* from Stitch: tertiary: #ffb784 */
+  --on-tertiary: #ffffff;
+  --on-tertiary-container: #502500; /* from Stitch: on-tertiary: #502500 */
 
   /* Semantic Status Signals */
-  --success: #00875a;
-  --success-subtle: #e3fcef;
-  --success-border: #abf5d1;
+  --success: #059669;
+  --success-subtle: #d1fae5;
+  --success-border: #6ee7b7;
 
-  --warning: #ff8b00;
-  --warning-subtle: #fff0b3;
-  --warning-border: #ffe380;
+  --warning: #d97706;
+  --warning-subtle: #ffeadf;
+  --warning-border: #ffb784;
 
-  --danger: #de350b;
-  --danger-subtle: #ffebe6;
-  --danger-border: #ffbdad;
+  --danger: #d90429;
+  --danger-subtle: #ffeae8;
+  --danger-border: #ffb3af;
 
   /* Sidebar Clean Deck */
-  --shell-sidebar: #fafbfc;
-  --shell-sidebar-hover: #f4f5f7;
-  --shell-sidebar-active: #e9f2ff;
-  --shell-accent: #0052cc;
+  --shell-sidebar: #f8fafd;
+  --shell-sidebar-hover: #eef3f9;
+  --shell-sidebar-active: #ffeae8;
+  --shell-accent: #d90429;
 
-  /* Typography Families */
-  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Typography Families from Stitch specification */
+  --font-heading: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family: 'Chivo', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Refined Curvature */
@@ -106,15 +117,15 @@
 
 /* Shell & Role Accents */
 .shell-manager {
-  --shell-accent: #0052cc;
+  --shell-accent: #d90429;
 }
 
 .shell-senior {
-  --shell-accent: #00875a;
+  --shell-accent: #00808a;
 }
 
 .shell-engineer {
-  --shell-accent: #0052cc;
+  --shell-accent: #d90429;
 }
 
 /* Base Reset */
@@ -475,20 +486,22 @@ button, input, select, textarea {
 }
 
 .pm-menu-item:hover {
-  background: #ebecf0;
+  background: var(--surface-hover);
   color: var(--ink-primary);
 }
 
 .pm-menu-item.active {
-  background: #e9f2ff;
-  color: #0052cc;
+  background: #ffeae8;
+  color: #d90429;
   font-weight: 600;
+  border-left: 2px solid #d90429;
 }
 
 .pm-menu-item.overview-active {
-  background: #e9f2ff;
-  color: #0052cc;
+  background: #ffeae8;
+  color: #d90429;
   font-weight: 600;
+  border-left: 2px solid #d90429;
 }
 
 .pm-menu-item.parent {
@@ -500,7 +513,7 @@ button, input, select, textarea {
 }
 
 .pm-vessel-group .active-vessel {
-  color: #0052cc;
+  color: #d90429;
   font-weight: 600;
 }
 
@@ -522,7 +535,7 @@ button, input, select, textarea {
 }
 
 .pm-submenu .pm-menu-item.sub:hover {
-  background: #ebecf0;
+  background: var(--surface-hover);
   color: var(--ink-primary);
 }
 
@@ -539,14 +552,15 @@ button, input, select, textarea {
 }
 
 .pm-submenu .pm-menu-item.sub2:hover {
-  background: #ebecf0;
+  background: var(--surface-hover);
   color: var(--ink-primary);
 }
 
 .pm-submenu .pm-menu-item.sub2.active {
-  color: #0052cc;
+  color: #d90429;
   font-weight: 600;
-  background: #e9f2ff;
+  background: #ffeae8;
+  border-left: 2px solid #d90429;
 }
 
 .pm-submenu-empty {
@@ -4680,8 +4694,8 @@ label {
 }
 
 .supabase-account-card:hover {
-  border-color: #4c9aff;
-  background: #f4f5f7;
+  border-color: #d90429;
+  background: var(--surface-hover);
 }
 
 .supabase-account-card .role-pill {
@@ -4693,26 +4707,26 @@ label {
 }
 
 .role-pill.manager {
-  background: #deebff;
-  color: #0747a6;
+  background: #ffeae8;
+  color: #930018;
 }
 
 .role-pill.senior {
-  background: #eae6ff;
-  color: #403294;
+  background: #d3fbff;
+  color: #004f54;
 }
 
 .role-pill.engineer {
-  background: #e3fcef;
-  color: #006644;
+  background: #ffdcc6;
+  color: #713700;
 }
 
 .btn-fill-account {
   font-size: 12px;
   font-weight: 600;
-  color: #0052cc;
+  color: #d90429;
   background: transparent;
-  border: 1px solid #b3d4ff;
+  border: 1px solid #ffb3af;
   border-radius: 3px;
   padding: 4px 8px;
   cursor: pointer;
@@ -4720,6 +4734,6 @@ label {
 }
 
 .btn-fill-account:hover {
-  background: #0052cc;
+  background: #d90429;
   color: #ffffff;
 }
