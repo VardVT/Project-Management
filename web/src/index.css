@@ -1748,8 +1748,6 @@ label {
 }
 
 .vessel-executive-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
   border-color: var(--primary-border);
 }
 
@@ -3093,8 +3091,7 @@ label {
 }
 
 .summary-kpi-tile:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+  /* Stable hover without jump */
 }
 
 .summary-kpi-label {
@@ -3411,8 +3408,7 @@ label {
 }
 
 .fleet-kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+  /* Stable hover without jump */
 }
 
 .fleet-kpi-card::before {
