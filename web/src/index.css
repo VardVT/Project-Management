@@ -88,6 +88,28 @@
   --danger-border: #fecaca;
   --danger-ink: #b91c1c;
 
+
+  /* Activity status colors */
+  --status-notstarted: #dc2626;
+  --status-notstarted-bg: #fef2f2;
+  --status-notstarted-border: #fca5a5;
+  --status-notstarted-ink: #b91c1c;
+
+  --status-progress: #eab308;
+  --status-progress-bg: #fefce8;
+  --status-progress-border: #fde047;
+  --status-progress-ink: #a16207;
+
+  --status-done: #16a34a;
+  --status-done-bg: #f0fdf4;
+  --status-done-border: #86efac;
+  --status-done-ink: #15803d;
+
+  --status-hold: #7c3aed;
+  --status-hold-bg: #f5f3ff;
+  --status-hold-border: #c4b5fd;
+  --status-hold-ink: #6d28d9;
+
   /* Sidebar */
   --shell-sidebar: #fbfdfc;
   --shell-sidebar-hover: #eef6f1;
@@ -972,28 +994,38 @@ label {
   white-space: nowrap;
 }
 
+.status-chip::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
 .status-chip.todo, .status-chip.not-started {
-  background: #e2e8f0;
-  color: #475569;
-  border: 1px solid #cbd5e1;
+  background: var(--status-notstarted-bg);
+  color: var(--status-notstarted-ink);
+  border: 1px solid var(--status-notstarted-border);
 }
 
 .status-chip.doing, .status-chip.in-progress {
-  background: #fff7ed;
-  color: #c2410c;
-  border: 1px solid #fdba74;
+  background: var(--status-progress-bg);
+  color: var(--status-progress-ink);
+  border: 1px solid var(--status-progress-border);
 }
 
 .status-chip.done, .status-chip.completed {
-  background: #ecfdf5;
-  color: #047857;
-  border: 1px solid #6ee7b7;
+  background: var(--status-done-bg);
+  color: var(--status-done-ink);
+  border: 1px solid var(--status-done-border);
 }
 
 .status-chip.on-hold {
-  background: #fef2f2;
-  color: #b91c1c;
-  border: 1px solid #fca5a5;
+  background: var(--status-hold-bg);
+  color: var(--status-hold-ink);
+  border: 1px solid var(--status-hold-border);
 }
 
 .status-select {
@@ -1009,10 +1041,10 @@ label {
 
 .status-select:disabled { opacity: 0.7; cursor: default; }
 
-.status-select-not-started { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
-.status-select-in-progress { background: #fff7ed; color: #c2410c; border-color: #fdba74; }
-.status-select-completed { background: #ecfdf5; color: #047857; border-color: #6ee7b7; }
-.status-select-on-hold { background: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
+.status-select-not-started { background: var(--status-notstarted-bg); color: var(--status-notstarted-ink); border-color: var(--status-notstarted-border); }
+.status-select-in-progress { background: var(--status-progress-bg); color: var(--status-progress-ink); border-color: var(--status-progress-border); }
+.status-select-completed { background: var(--status-done-bg); color: var(--status-done-ink); border-color: var(--status-done-border); }
+.status-select-on-hold { background: var(--status-hold-bg); color: var(--status-hold-ink); border-color: var(--status-hold-border); }
 
 /* ==========================================================================
    RIGHT SLIDE-OVER DRAWER (no backdrop, content stays readable)
@@ -2562,13 +2594,9 @@ label {
   font-family: var(--font-mono);
 }
 
-.summary-status-pill.done { background: var(--success-subtle); color: var(--success); }
-.summary-status-pill.progress {
-  background: var(--secondary-subtle);
-  color: var(--secondary);
-  border: 1px solid var(--secondary-border);
-}
-.summary-status-pill.idle { background: var(--surface-subtle); color: var(--ink-muted); }
+.summary-status-pill.done { background: var(--status-done-bg); color: var(--status-done-ink); border: 1px solid var(--status-done-border); }
+.summary-status-pill.progress { background: var(--status-progress-bg); color: var(--status-progress-ink); border: 1px solid var(--status-progress-border); }
+.summary-status-pill.idle { background: var(--status-notstarted-bg); color: var(--status-notstarted-ink); border: 1px solid var(--status-notstarted-border); }
 
 .summary-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 
@@ -2906,9 +2934,9 @@ label {
 .gantt-legend span { display: inline-flex; align-items: center; gap: 5px; }
 
 .gantt-dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
-.gantt-dot.idle { background: #94a3b8; }
-.gantt-dot.progress { background: #22c55e; }
-.gantt-dot.hold { background: #ea580c; }
+.gantt-dot.idle { background: var(--status-notstarted); }
+.gantt-dot.progress { background: var(--status-progress); }
+.gantt-dot.hold { background: var(--status-hold); }
 
 .gantt-late-mark { width: 2px; height: 12px; background: #dc2626; display: inline-block; }
 .gantt-today-mark { width: 2px; height: 12px; background: #2563eb; display: inline-block; }
@@ -3052,9 +3080,9 @@ label {
   z-index: 1;
 }
 
-.gantt-bar.tone-idle { background: #cbd5e1; }
-.gantt-bar.tone-progress { background: #bbf7d0; }
-.gantt-bar.tone-hold { background: #fed7aa; }
+.gantt-bar.tone-idle { background: #fecaca; }
+.gantt-bar.tone-progress { background: #fef08a; }
+.gantt-bar.tone-hold { background: #ddd6fe; }
 .gantt-bar.overdue { box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.45); }
 
 .gantt-bar-fill {
@@ -3062,12 +3090,12 @@ label {
   left: 0;
   top: 0;
   bottom: 0;
-  background: #22c55e;
-  opacity: 0.85;
+  background: var(--status-progress);
+  opacity: 0.9;
 }
 
-.gantt-bar.tone-idle .gantt-bar-fill { background: #64748b; }
-.gantt-bar.tone-hold .gantt-bar-fill { background: #ea580c; }
+.gantt-bar.tone-idle .gantt-bar-fill { background: var(--status-notstarted); }
+.gantt-bar.tone-hold .gantt-bar-fill { background: var(--status-hold); }
 
 .gantt-bar-text {
   position: relative;
