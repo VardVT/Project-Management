@@ -3796,3 +3796,66 @@ label {
 }
 
 .btn-fill-account:hover { background: var(--primary); color: var(--on-primary); }
+
+/* ==========================================================================
+   STATUS COLORS INSIDE TABLES
+   Beats `.pm-table select { background: transparent }` and the hover/disabled
+   resets so the colored status pill always shows in the task grid.
+   ========================================================================== */
+
+.pm-table select.status-select,
+.pm-table .status-select {
+  width: auto;
+  min-width: 118px;
+  height: 26px;
+  padding: 2px 24px 2px 12px !important;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11.5px;
+  text-align: center;
+  text-align-last: center;
+  border-width: 1px !important;
+  border-style: solid !important;
+}
+
+.pm-table select.status-select-not-started,
+.pm-table select.status-select-not-started:hover,
+.pm-table select.status-select-not-started:disabled {
+  background-color: var(--status-notstarted-bg) !important;
+  color: var(--status-notstarted-ink) !important;
+  border-color: var(--status-notstarted-border) !important;
+}
+
+.pm-table select.status-select-in-progress,
+.pm-table select.status-select-in-progress:hover,
+.pm-table select.status-select-in-progress:disabled {
+  background-color: var(--status-progress-bg) !important;
+  color: var(--status-progress-ink) !important;
+  border-color: var(--status-progress-border) !important;
+}
+
+.pm-table select.status-select-completed,
+.pm-table select.status-select-completed:hover,
+.pm-table select.status-select-completed:disabled {
+  background-color: var(--status-done-bg) !important;
+  color: var(--status-done-ink) !important;
+  border-color: var(--status-done-border) !important;
+}
+
+.pm-table select.status-select-on-hold,
+.pm-table select.status-select-on-hold:hover,
+.pm-table select.status-select-on-hold:disabled {
+  background-color: var(--status-hold-bg) !important;
+  color: var(--status-hold-ink) !important;
+  border-color: var(--status-hold-border) !important;
+}
+
+/* Read-only status (plain text cells) use the chip look */
+.pm-table .status-chip { font-family: var(--font-mono); font-size: 11.5px; }
+
+/* Fallback: color by data attribute if your cell uses data-status */
+.pm-table [data-status="Not Started"], .pm-table [data-status="not_started"] { color: var(--status-notstarted-ink); }
+.pm-table [data-status="In Progress"], .pm-table [data-status="in_progress"] { color: var(--status-progress-ink); }
+.pm-table [data-status="Completed"],   .pm-table [data-status="completed"]   { color: var(--status-done-ink); }
+.pm-table [data-status="On Hold"],     .pm-table [data-status="on_hold"]     { color: var(--status-hold-ink); }
