@@ -3859,3 +3859,105 @@ label {
 .pm-table [data-status="In Progress"], .pm-table [data-status="in_progress"] { color: var(--status-progress-ink); }
 .pm-table [data-status="Completed"],   .pm-table [data-status="completed"]   { color: var(--status-done-ink); }
 .pm-table [data-status="On Hold"],     .pm-table [data-status="on_hold"]     { color: var(--status-hold-ink); }
+
+/* ==========================================================================
+   SIDEBAR: FIND VESSEL (search box) - refined
+   ========================================================================== */
+
+.pm-sidebar-search { padding: 8px 12px 10px; }
+
+.pm-sidebar-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 36px;
+  background: var(--surface-dim);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pm-sidebar-search-box:hover { border-color: var(--border-strong); }
+
+.pm-sidebar-search-box:focus-within {
+  background: #ffffff;
+  border-color: var(--primary-active);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.28);
+}
+
+.pm-sidebar-search-box input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 10px;
+  padding: 0 52px 0 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-primary);
+}
+
+.pm-sidebar-search-box input::placeholder { color: var(--ink-faint); font-weight: 400; }
+
+.pm-sidebar-search-box input:focus { border: none; box-shadow: none; }
+
+.pm-sidebar-search-box .search-icon {
+  position: absolute;
+  left: 11px;
+  display: inline-flex;
+  color: var(--ink-faint);
+  pointer-events: none;
+  transition: color 0.15s ease;
+}
+
+.pm-sidebar-search-box:focus-within .search-icon { color: var(--primary-ink); }
+
+.pm-sidebar-search-box .kbd-hint {
+  position: absolute;
+  right: 8px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  color: var(--ink-muted);
+  border-radius: 6px;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.pm-sidebar-search-box:focus-within .kbd-hint { opacity: 0; }
+
+/* Clear (x) button - shown when there is text */
+.pm-sidebar-search-clear {
+  position: absolute;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--ink-secondary);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.pm-sidebar-search-clear:hover { background: var(--primary-container); color: var(--on-primary-container); }
+
+/* Result count under the box */
+.pm-sidebar-search-meta {
+  margin: 6px 4px 0;
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  color: var(--ink-muted);
+}
+
+.pm-sidebar-search-meta strong { color: var(--primary-ink); }
